@@ -6,6 +6,10 @@ import { Fair } from './modules/fairs/entities/fair.entity';
 import { FairModule } from './modules/fairs/fairs.module';
 import { Stand } from './modules/fairs/entities/stand.entity';
 import { Fair_enrollment } from './modules/fairs/entities/Fair_enrollment.entity';
+import { EntreprenuerModule } from './modules/entrepreneurs/entrepreneur.module';
+import { Entreprenuer } from './modules/entrepreneurs/entities/entrepreneur.entitie';
+import { Person } from './entities/person.entity';
+
 
 @Module({
   imports: [TypeOrmModule.forRoot({
@@ -15,9 +19,9 @@ import { Fair_enrollment } from './modules/fairs/entities/Fair_enrollment.entity
     username: 'root',
     password: 'admin',
     database: 'data_prueba',
-    entities: [Fair, Stand, Fair_enrollment],
+    entities: [Fair, Stand, Fair_enrollment,Entreprenuer, Person],
     synchronize: true,
-  }), FairModule],
+  }), FairModule,EntreprenuerModule],
   controllers: [AppController],
   providers: [AppService],
 })

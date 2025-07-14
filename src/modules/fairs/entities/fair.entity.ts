@@ -1,5 +1,6 @@
 import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from "typeorm";
 import { Stand } from "./stand.entity";
+import { Fair_enrollment } from "./Fair_enrollment.entity";
 
 @Entity('fair')
 export class Fair {
@@ -18,7 +19,10 @@ export class Fair {
     @Column({ type: 'integer' })
     stand_capacity: number;
 
-    // Relación One-to-Many con Stand
     @OneToMany(() => Stand, (stand) => stand.fair)
     stands: Stand[];
+
+    
+    @OneToMany(() => Fair_enrollment, (enrollment) => enrollment.fair)
+    enrollments: Fair_enrollment[];
 }
