@@ -1,0 +1,24 @@
+import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from "typeorm";
+import { Stand } from "./stand.entity";
+
+@Entity('fair')
+export class Fair {
+    @PrimaryGeneratedColumn()
+    id_fair: number;
+
+    @Column({ type: 'varchar', length: 50 })
+    name: string;
+
+    @Column({ type: 'text' })
+    description: string;
+
+    @Column({ type: 'varchar', length: 150 })
+    location: string;
+
+    @Column({ type: 'integer' })
+    stand_capacity: number;
+
+    // Relación One-to-Many con Stand
+    @OneToMany(() => Stand, (stand) => stand.fair)
+    stands: Stand[];
+}
