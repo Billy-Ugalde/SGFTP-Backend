@@ -9,8 +9,6 @@ import { Fair_enrollment } from './modules/fairs/entities/Fair_enrollment.entity
 import { EntreprenuerModule } from './modules/entrepreneurs/entrepreneur.module';
 import { Entreprenuer } from './modules/entrepreneurs/entities/entrepreneur.entitie';
 import { Person } from './entities/person.entity';
-
-
 @Module({
   imports: [TypeOrmModule.forRoot({
     type: 'mysql',
@@ -19,6 +17,7 @@ import { Person } from './entities/person.entity';
     username: 'root',
     password: 'admin',
     database: 'data_prueba',
+    ssl: false,
     entities: [Fair, Stand, Fair_enrollment,Entreprenuer, Person],
     synchronize: true,
   }), FairModule,EntreprenuerModule],

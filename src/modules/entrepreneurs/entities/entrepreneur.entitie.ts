@@ -18,11 +18,10 @@ export class Entreprenuer {
     @OneToOne(() => Stand, (stand) => stand.entreprenuer)
     stand: Stand;
 
-
     @OneToMany(() => Fair_enrollment, (fairController) => fairController.entreprenuer)
     enrollment: Fair_enrollment;
 
-    @OneToOne(() => Person, (person) => person.entrepreneur,  {nullable: false })
+    @OneToOne(() => Person, (person) => person.entrepreneur, { nullable: false })
     @JoinColumn({ name: 'id_person' })
     person: Person;
 

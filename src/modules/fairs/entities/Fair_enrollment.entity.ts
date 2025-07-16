@@ -4,7 +4,7 @@ import { Stand } from "./stand.entity";
 import { Entreprenuer } from "src/modules/entrepreneurs/entities/entrepreneur.entitie";
 
 
-@Entity('fair_enrollment')
+@Entity()
 export class Fair_enrollment {
 
     @PrimaryGeneratedColumn()

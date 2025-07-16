@@ -1,12 +1,12 @@
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany, OneToOne } from 'typeorm';
-import { Entreprenuer } from '../modules/entrepreneurs/entities/entrepreneur.entitie'; // si existe relación
+import { Entreprenuer } from '../modules/entrepreneurs/entities/entrepreneur.entitie';
 
 @Entity()
 export class Person {
   @PrimaryGeneratedColumn({ name: 'id_person' })
   id_person: number;
 
-  @Column({ name: 'first_name', type: 'varchar', length: 50})
+  @Column({ name: 'first_name', type: 'varchar', length: 50 })
   firstName: string;
 
   @Column({ name: 'second_name', type: 'varchar', length: 50, nullable: true })
@@ -15,7 +15,7 @@ export class Person {
   @Column({ name: 'first_lastname', type: 'varchar', length: 50 })
   firstLastname: string;
 
-  @Column({ name: 'second_lastname', type: 'varchar', length: 50})
+  @Column({ name: 'second_lastname', type: 'varchar', length: 50 })
   secondLastname: string;
 
   @Column({ type: 'varchar', length: 150, unique: true })
