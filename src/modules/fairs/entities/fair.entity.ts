@@ -2,7 +2,7 @@ import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from "typeorm";
 import { Stand } from "./stand.entity";
 import { Fair_enrollment } from "./Fair_enrollment.entity";
 
-@Entity('fair')
+@Entity()
 export class Fair {
     @PrimaryGeneratedColumn()
     id_fair: number;
@@ -19,10 +19,12 @@ export class Fair {
     @Column({ type: 'integer' })
     stand_capacity: number;
 
+    @Column({ default: true })
+    status: boolean; 
+
     @OneToMany(() => Stand, (stand) => stand.fair)
     stands: Stand[];
 
-    
     @OneToMany(() => Fair_enrollment, (enrollment) => enrollment.fair)
     enrollments: Fair_enrollment[];
 }

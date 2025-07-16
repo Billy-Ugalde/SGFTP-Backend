@@ -3,7 +3,7 @@ import { Fair } from "./fair.entity";
 import { Entreprenuer } from "src/modules/entrepreneurs/entities/entrepreneur.entitie";
 import { Fair_enrollment } from "./Fair_enrollment.entity";
 
-@Entity('stand')
+@Entity()
 export class Stand {
     @PrimaryGeneratedColumn()
     id_stand: number;
@@ -17,16 +17,14 @@ export class Stand {
     @Column({ type: 'boolean' })
     status: boolean;
 
-   
     @ManyToOne(() => Fair, (fair) => fair.stands, { nullable: false })
-    @JoinColumn({ name: 'id_fair' }) // Esto define el nombre de la columna FK  y la referencia 
+    @JoinColumn({ name: 'id_fair' }) // Esto define el nombre de la columna FK  
     fair: Fair;
 
     @OneToOne(() => Entreprenuer, (entreprenuer) => entreprenuer.stand, { nullable: false })
     @JoinColumn({ name: 'id_entreprenuer' })
     entreprenuer: Entreprenuer;
 
-
-    @OneToOne(()=>Fair_enrollment, (fair_enrollment)=>fair_enrollment.stand)
+    @OneToOne(() => Fair_enrollment, (fair_enrollment) => fair_enrollment.stand)
     enrollment: Fair_enrollment;
 }
