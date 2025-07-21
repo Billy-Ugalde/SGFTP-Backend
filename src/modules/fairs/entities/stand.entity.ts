@@ -8,11 +8,11 @@ export class Stand {
     @PrimaryGeneratedColumn()
     id_stand: number;
 
-    @Column({ type: 'date' })
+    @Column({ type: 'date', nullable: false })
     assigned_date: Date;
 
-    @Column({ type: 'integer' })
-    stand_number: number;
+    @Column({ type: 'varchar' })
+    stand_code: string;
 
     @Column({ type: 'boolean' })
     status: boolean;
@@ -21,9 +21,9 @@ export class Stand {
     @JoinColumn({ name: 'id_fair' }) // Esto define el nombre de la columna FK  
     fair: Fair;
 
-    @OneToOne(() => Entreprenuer, (entreprenuer) => entreprenuer.stand, { nullable: false })
+    @OneToOne(() => Entreprenuer, (entreprenuer) => entreprenuer.stand, { nullable: true })
     @JoinColumn({ name: 'id_entreprenuer' })
-    entreprenuer: Entreprenuer;
+    entreprenuer?: Entreprenuer;            //nota: es opcional porque hasta que un emprendedor se inscribe obtiene el stand
 
     @OneToOne(() => Fair_enrollment, (fair_enrollment) => fair_enrollment.stand)
     enrollment: Fair_enrollment;
