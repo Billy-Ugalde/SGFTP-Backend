@@ -4,16 +4,23 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import { fairDto } from "../dto/createFair.dto";
 import { UpdatefairDto } from "../dto/updateFair.dto";
+import { fairStatusDto } from "../dto/fair-status.dto";
+import { StandService } from "./stand.service";
+
 @Injectable()
 export class FairService {
     constructor(
         @InjectRepository(Fair)
-        private fairRepository: Repository<Fair>
+        private fairRepository: Repository<Fair>,
+        private standService: StandService
     ) { }
 
     async create(createfairDto: fairDto) {
         const newfair = this.fairRepository.create(createfairDto)
-        return await this.fairRepository.save(newfair);
+        const savedFair = await this.fairRepository.save(newfair);
+
+        await this.standService.createInitialStands(savedFair.id_fair, savedFair.stand_capacity);
+        return savedFair;
     }
 
     async getAll() {
@@ -24,18 +31,21 @@ export class FairService {
         const fair = await this.fairRepository.findOne({ where: { id_fair } });
 
         if (!fair) {
-            throw (`La feria con el id ${id_fair} no encontrada`);
+            throw (`La feria con el id ${id_fair} no fue encontrada`);
         }
         return fair;
     }
 
     async update(id_fair: number, updateFair: UpdatefairDto) {
         await this.fairRepository.update({ id_fair }, updateFair);
+        if (updateFair.stand_capacity !== undefined) {
+            await this.standService.adjustStandsToCapacity(id_fair, updateFair.stand_capacity);
+        }
         return this.getOne(id_fair);
     }
 
-    async updateStatus(id_fair: number, status: boolean) {
-        await this.fairRepository.update({ id_fair }, { status });
+    async updateStatus(id_fair: number, fairStatus: fairStatusDto) {
+        await this.fairRepository.update(id_fair, fairStatus);
         return this.getOne(id_fair);
     }
 }

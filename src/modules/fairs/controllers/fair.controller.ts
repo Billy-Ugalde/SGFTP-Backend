@@ -33,8 +33,8 @@ export class FairController {
     @Patch(':id',)
     updateStatus(
         @Param('id', ParseIntPipe) id: number,
-        @Body() statusData: fairStatusDto
+        @Body() fairstatus: fairStatusDto
     ) {
-        return this.fairService.updateStatus(id, statusData.status);
+        return this.fairService.updateStatus(id, fairstatus);
     }
 }
