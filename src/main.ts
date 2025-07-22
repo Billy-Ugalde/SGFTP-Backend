@@ -17,6 +17,6 @@ async function bootstrap() {
       transform: true
     }),
   );
-  await app.listen(process.env.PORT ?? 3001); // Cambiar a 3001
+  await app.listen(process.env.PORT ?? 3001); // este puerto va a ser por defecto
 }
 bootstrap();
