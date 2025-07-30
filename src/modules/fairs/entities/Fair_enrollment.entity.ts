@@ -1,7 +1,7 @@
 import { Column, PrimaryGeneratedColumn, Entity, ManyToOne, JoinColumn, OneToOne } from "typeorm";
 import { Fair } from "./fair.entity";
 import { Stand } from "./stand.entity";
-import { Entreprenuer } from "src/modules/entrepreneurs/entities/entrepreneur.entitie";
+import { Entreprenuer } from "src/modules/entrepreneurs/entities/entrepreneur.entity";
 
 
 @Entity()

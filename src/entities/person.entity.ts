@@ -1,5 +1,5 @@
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany, OneToOne } from 'typeorm';
-import { Entreprenuer } from '../modules/entrepreneurs/entities/entrepreneur.entitie';
+import { Entreprenuer } from '../modules/entrepreneurs/entities/entrepreneur.entity';
 
 @Entity()
 export class Person {
