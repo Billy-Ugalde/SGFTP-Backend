@@ -1,5 +1,5 @@
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany, OneToOne } from 'typeorm';
-import { Entreprenuer } from '../modules/entrepreneurs/entities/entrepreneur.entitie';
+import { Entrepreneur } from '../modules/entrepreneurs/entities/entrepreneur.entitie';
 
 @Entity()
 export class Person {
@@ -24,6 +24,6 @@ export class Person {
   @Column({ name: 'phone_number', type: 'varchar', length: 20 })
   phoneNumber: string;
 
-  @OneToOne(() => Entreprenuer, (entrepreneur) => entrepreneur.person)
-  entrepreneur: Entreprenuer;
+  @OneToOne(() => Entrepreneur, (entrepreneur) => entrepreneur.person)
+  entrepreneur: Entrepreneur;
 }

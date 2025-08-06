@@ -22,6 +22,9 @@ export class Fair {
     @Column({ default: true })
     status: boolean; 
 
+    @Column({ type: 'date' })
+    date: Date;
+
     @OneToMany(() => Stand, (stand) => stand.fair)
     stands: Stand[];
 

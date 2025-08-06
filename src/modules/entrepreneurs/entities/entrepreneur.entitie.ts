@@ -4,7 +4,7 @@ import { Stand } from "src/modules/fairs/entities/stand.entity";
 import { Column, PrimaryGeneratedColumn, OneToOne, OneToMany, Entity, JoinColumn } from "typeorm";
 
 @Entity()
-export class Entreprenuer {
+export class Entrepreneur {
 
     @PrimaryGeneratedColumn()
     id_entreprenuer: number
