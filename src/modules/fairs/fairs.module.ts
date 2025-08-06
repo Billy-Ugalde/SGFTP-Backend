@@ -7,6 +7,7 @@ import { Stand } from "./entities/stand.entity";
 import { Fair_enrollment } from "./entities/Fair_enrollment.entity"
 import { StandService } from "./services/stand.service";
 import { StandController } from "./controllers/stand.controller";
+import { EnrollmentController } from "./controllers/enrollment.controller";
 @Module({
     imports: [TypeOrmModule.forFeature([Fair, Stand, Fair_enrollment])],
     controllers: [FairController, StandController],

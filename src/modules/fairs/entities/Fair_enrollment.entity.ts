@@ -1,7 +1,7 @@
 import { Column, PrimaryGeneratedColumn, Entity, ManyToOne, JoinColumn, OneToOne } from "typeorm";
 import { Fair } from "./fair.entity";
 import { Stand } from "./stand.entity";
-import { Entreprenuer } from "src/modules/entrepreneurs/entities/entrepreneur.entitie";
+import { Entrepreneur } from "src/modules/entrepreneurs/entities/entrepreneur.entitie";
 
 
 @Entity()
@@ -24,7 +24,7 @@ export class Fair_enrollment {
     @JoinColumn({ name: 'id_stand' })
     stand: Stand
 
-    @ManyToOne(() => Entreprenuer, (entreprenuer) => entreprenuer.enrollment, { nullable: false })
+    @ManyToOne(() => Entrepreneur, (entrepreneur) => entrepreneur.enrollment, { nullable: false })
     @JoinColumn({ name: 'id_entreprenuer' })
-    entreprenuer: Entreprenuer
+    entreprenuer: Entrepreneur
 }

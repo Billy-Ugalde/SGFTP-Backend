@@ -16,11 +16,14 @@ export class FairService {
     ) { }
 
     async create(createfairDto: fairDto) {
-        const newfair = this.fairRepository.create(createfairDto)
-        const savedFair = await this.fairRepository.save(newfair);
+        const newfair = this.fairRepository.create({
+            ...createfairDto,
+            date: new Date(createfairDto.date) // Convierte el stirng al tipo de dato date antes de enviar a la base de datos
+        });
+        const savedfair = await this.fairRepository.save(newfair);
 
-        await this.standService.createInitialStands(savedFair.id_fair, savedFair.stand_capacity);
-        return savedFair;
+        await this.standService.createInitialStands(savedfair.id_fair, savedfair.stand_capacity);
+        return savedfair;
     }
 
     async getAll() {
