@@ -2,8 +2,6 @@ import { Column, PrimaryGeneratedColumn, Entity, ManyToOne, JoinColumn, OneToOne
 import { Fair } from "./fair.entity";
 import { Stand } from "./stand.entity";
 import { Entrepreneur } from "src/modules/entrepreneurs/entities/entrepreneur.entitie";
-
-
 @Entity()
 export class Fair_enrollment {
 

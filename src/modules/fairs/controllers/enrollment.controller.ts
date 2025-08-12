@@ -13,7 +13,4 @@ export class EnrollmentController {
     create(@Body() enrollmentFairdto: EnrollmentFairDto) {
         return this.fair_enrollmentservice.create(enrollmentFairdto);
     }
-
-
-
 }
