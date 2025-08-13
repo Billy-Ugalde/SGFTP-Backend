@@ -24,6 +24,4 @@ export class EnrollmentFairDto {
 
     @IsBoolean()
     status: boolean;
-
-
 }

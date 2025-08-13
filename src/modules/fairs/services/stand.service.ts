@@ -3,7 +3,6 @@ import { Stand } from "../entities/stand.entity";
 import { Fair } from "../entities/fair.entity";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
-
 @Injectable()
 export class StandService {
     constructor(

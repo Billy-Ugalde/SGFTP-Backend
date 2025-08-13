@@ -6,7 +6,6 @@ import { fairDto } from "../dto/createFair.dto";
 import { UpdatefairDto } from "../dto/updateFair.dto";
 import { fairStatusDto } from "../dto/fair-status.dto";
 import { StandService } from "./stand.service";
-
 @Injectable()
 export class FairService {
     constructor(
@@ -15,15 +14,22 @@ export class FairService {
         private standService: StandService
     ) { }
 
-    async create(createfairDto: fairDto) {
-        const newfair = this.fairRepository.create({
-            ...createfairDto,
-            date: new Date(createfairDto.date) // Convierte el stirng al tipo de dato date antes de enviar a la base de datos
-        });
-        const savedfair = await this.fairRepository.save(newfair);
+    async create(createFairDto: fairDto) {
+        const { dateFairs, ...fairData } = createFairDto;
 
-        await this.standService.createInitialStands(savedfair.id_fair, savedfair.stand_capacity);
-        return savedfair;
+        const newFair = this.fairRepository.create({
+            ...fairData,
+            datefairs: dateFairs.map(d => ({ date: new Date(d) })),
+        });
+
+        const savedFair = await this.fairRepository.save(newFair);
+
+        await this.standService.createInitialStands(
+            savedFair.id_fair,
+            savedFair.stand_capacity,
+        );
+
+        return savedFair;
     }
 
     async getAll() {

@@ -1,4 +1,4 @@
-import { IsBoolean, IsDateString, IsNotEmpty, IsNumber, IsString, Min } from "class-validator"
+import { IsArray, isArray, IsBoolean, IsDateString, IsNotEmpty, IsNumber, IsString, Min } from "class-validator"
 
 export class fairDto {
     @IsNotEmpty()
@@ -18,9 +18,8 @@ export class fairDto {
     @Min(1)
     stand_capacity: number;
 
-    @IsDateString()
     @IsNotEmpty()
-    date: string;
+    readonly dateFairs: string[];
 
     @IsNotEmpty()
     @IsBoolean()
