@@ -1,25 +1,35 @@
 import { Module } from "@nestjs/common";
 import { TypeOrmModule } from "@nestjs/typeorm";
-import { HeroSection } from "./entities/hero-section.entity";
-import { NewsletterSection } from "./entities/newsletter-section.entity";               
-import { InvolveSection } from "./entities/involve-section.entity";
-import { InformativeController } from "./informative.controller";
-import { InvolveCard } from "./entities/involve-card.entity";
-import { SectionDescription } from "./entities/section-description.entity";
-import { ValueProposition } from "./entities/value-proposition.entity";
-import { HeroSectionService } from "./services/hero-section.service";
-import { NewsletterSectionService } from "./services/newsletter-section.service";
-import { InvolveSectionService } from "./services/involve-section.service"; 
-import { InvolveCardService } from "./services/involve-card.service";
-import { SectionDescriptionService } from "./services/section-description.service"; 
-import { ValuePropositionService } from "./services/value-proposition.service";
+import { NewsController } from "./controllers/news.controller";
+import { ContactInfoController } from "./controllers/contact-info.controller";
+import { ContentBlockController } from "./controllers/content-block.controller";
+import { NewsService } from "./services/news.service";
+import { ContactInfoService } from "./services/contact-info.service";
+import { ContentBlockService } from "./services/content-block.service";
+import { News } from "./entities/news.entity";
+import { ContactInfo } from "./entities/contact-info.entity";
+import { ContentBlock } from './entities/content-block.entity';
+import { SeedService } from "./services/seed.service";
 
 @Module({
-    imports: [TypeOrmModule.forFeature([HeroSection, SectionDescription, ValueProposition, 
-                                        InvolveCard, InvolveSection, NewsletterSection])],
-    controllers: [InformativeController],
-    providers: [HeroSectionService, ValuePropositionService, 
-                NewsletterSectionService, InvolveSectionService,
-                InvolveCardService, SectionDescriptionService]
+  imports: [
+    TypeOrmModule.forFeature([News, ContactInfo, ContentBlock])
+  ],
+  controllers: [
+    NewsController,
+    ContactInfoController,
+    ContentBlockController
+  ],
+  providers: [
+    NewsService,
+    ContactInfoService,
+    ContentBlockService,
+    SeedService
+  ],
+  exports: [
+    NewsService,
+    ContactInfoService,
+    ContentBlockService
+  ]
 })
 export class InformativeModule { }
