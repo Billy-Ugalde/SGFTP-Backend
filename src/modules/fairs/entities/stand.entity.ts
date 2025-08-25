@@ -7,9 +7,6 @@ export class Stand {
     @PrimaryGeneratedColumn()
     id_stand: number;
 
-    @Column({ type: 'date', nullable: false })
-    assigned_date: Date;
-
     @Column({ type: 'varchar' })
     stand_code: string;
 
