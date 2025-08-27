@@ -7,7 +7,7 @@ import { Column, PrimaryGeneratedColumn, OneToOne, OneToMany, Entity, JoinColumn
 export class Entrepreneur {
 
     @PrimaryGeneratedColumn()
-    id_entreprenuer: number
+    id_entrepreneur: number
 
     @Column({ type: 'date' })
     registration_date: Date;
@@ -15,10 +15,10 @@ export class Entrepreneur {
     @Column({ type: 'float' })
     experience: number;
 
-    @OneToOne(() => Stand, (stand) => stand.entreprenuer)
+    @OneToOne(() => Stand, (stand) => stand.entrepreneur)
     stand: Stand;
 
-    @OneToMany(() => Fair_enrollment, (fairController) => fairController.entreprenuer)
+    @OneToMany(() => Fair_enrollment, (fairController) => fairController.entrepreneur)
     enrollment: Fair_enrollment;
 
     @OneToOne(() => Person, (person) => person.entrepreneur, { nullable: false })
