@@ -33,6 +33,12 @@ export class Entrepreneur {
     @Column({ type: 'boolean', default: true })
     is_active: boolean;
 
+    @Column({ length: 500, nullable: true })
+    facebook_url?: string;
+
+    @Column({ length: 500, nullable: true })
+    instagram_url?: string;
+
     @CreateDateColumn()
     registration_date: Date;
 

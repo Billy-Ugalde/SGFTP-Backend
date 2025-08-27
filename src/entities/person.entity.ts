@@ -1,6 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany, OneToOne, CreateDateColumn, UpdateDateColumn} from 'typeorm';
 import { Entrepreneur } from '../modules/entrepreneurs/entities/entrepreneur.entity';
-
+import { Phone } from './phone.entity';
 @Entity()
 export class Person {
   @PrimaryGeneratedColumn({ name: 'id_person' })
@@ -27,8 +27,11 @@ export class Person {
   @UpdateDateColumn()
   updated_at: Date;
 
-  @Column({ name: 'phone_number', type: 'varchar', length: 20 })
-  phone_number: string;
+  @OneToMany(() => Phone, phone => phone.person, {
+    cascade: true,
+    eager: true
+  })
+  phones: Phone[];
 
   @OneToOne(() => Entrepreneur, (entrepreneur) => entrepreneur.person)
   entrepreneur: Entrepreneur;
