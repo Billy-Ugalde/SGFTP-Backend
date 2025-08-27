@@ -1,10 +1,5 @@
-import { IsBoolean, IsNotEmpty, IsNumber, IsString } from "class-validator"
-
+import { IsNotEmpty, IsNumber } from "class-validator"
 export class EnrollmentFairDto {
-
-    @IsNumber()
-    @IsNotEmpty()
-    id_enrrolment_fair: number;
 
     @IsNumber()
     @IsNotEmpty()
@@ -12,16 +7,9 @@ export class EnrollmentFairDto {
 
     @IsNumber()
     @IsNotEmpty()
-    id_entrepenuer: number;
+    id_entrepreneur: number;
 
     @IsNumber()
     @IsNotEmpty()
     id_stand: number;
-
-    @IsString()
-    @IsNotEmpty()
-    date: Date;
-
-    @IsBoolean()
-    status: boolean;
 }
