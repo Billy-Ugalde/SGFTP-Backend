@@ -29,7 +29,7 @@ export class Fair {
     @Column({ type: 'enum', enum: TypetFair, nullable: false })
     typeFair: TypetFair;
 
-    @Column({ type: 'date' })
+    @Column({ type: 'datetime' })
     date: Date;
 
     @OneToMany(() => Stand, (stand) => stand.fair)
