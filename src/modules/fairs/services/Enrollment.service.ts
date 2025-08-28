@@ -3,7 +3,7 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { DataSource, In, Repository } from "typeorm";
 import { EnrollmentStatus, Fair_enrollment } from "../entities/Fair_enrollment.entity";
 import { EnrollmentFairDto } from "../dto/enrrolmentFair.dto";
-import { Entrepreneur } from "src/modules/entrepreneurs/entities/entrepreneur.entitie";
+import { Entrepreneur } from "src/modules/entrepreneurs/entities/entrepreneur.entity";
 import { Stand } from "../entities/stand.entity";
 import { StatusEnrollmentDto } from "../dto/updatestatusEnrollment";
 import { Fair } from "../entities/fair.entity";
