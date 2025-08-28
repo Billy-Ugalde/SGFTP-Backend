@@ -8,6 +8,7 @@ export enum EnrollmentStatus {
     APPROVED = 'approved',
     REJECTED = 'rejected'
 }
+
 @Entity()
 export class Fair_enrollment {
 
@@ -33,6 +34,6 @@ export class Fair_enrollment {
     stand: Stand
 
     @ManyToOne(() => Entrepreneur, (entrepreneur) => entrepreneur.enrollment, { nullable: false })
-    @JoinColumn({ name: 'id_entrepreneur' })
+    @JoinColumn({ name: 'id_entreprenuer' })
     entrepreneur: Entrepreneur
 }
