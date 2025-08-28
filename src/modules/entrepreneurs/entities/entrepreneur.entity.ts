@@ -60,7 +60,6 @@ export class Entrepreneur {
     })
     entrepreneurship: Entrepreneurship;
 
-
     @OneToOne(() => Stand, (stand) => stand.entrepreneur)
     stand: Stand;
 

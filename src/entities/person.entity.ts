@@ -1,6 +1,7 @@
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany, OneToOne, CreateDateColumn, UpdateDateColumn} from 'typeorm';
 import { Entrepreneur } from '../modules/entrepreneurs/entities/entrepreneur.entity';
 import { Phone } from './phone.entity';
+
 @Entity()
 export class Person {
   @PrimaryGeneratedColumn({ name: 'id_person' })

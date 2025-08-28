@@ -14,22 +14,15 @@ export class FairService {
         private standService: StandService
     ) { }
 
-    async create(createFairDto: fairDto) {
-        const { dateFairs, ...fairData } = createFairDto;
-
-        const newFair = this.fairRepository.create({
-            ...fairData,
-            datefairs: dateFairs.map(d => ({ date: new Date(d) })),
+    async create(createfairDto: fairDto) {
+        const newfair = this.fairRepository.create({
+            ...createfairDto,
+            date: new Date(createfairDto.date) // Convierte el stirng al tipo de dato date antes de enviar a la base de datos
         });
+        const savedfair = await this.fairRepository.save(newfair);
 
-        const savedFair = await this.fairRepository.save(newFair);
-
-        await this.standService.createInitialStands(
-            savedFair.id_fair,
-            savedFair.stand_capacity,
-        );
-
-        return savedFair;
+        await this.standService.createInitialStands(savedfair.id_fair, savedfair.stand_capacity);
+        return savedfair;
     }
 
     async getAll() {
@@ -46,6 +39,7 @@ export class FairService {
     }
 
     async update(id_fair: number, updateFair: UpdatefairDto) {
+
         await this.fairRepository.update({ id_fair }, updateFair);
         if (updateFair.stand_capacity !== undefined) {
             await this.standService.adjustStandsToCapacity(id_fair, updateFair.stand_capacity);
@@ -54,6 +48,11 @@ export class FairService {
     }
 
     async updateStatus(id_fair: number, fairStatus: fairStatusDto) {
+        const fair = await this.fairRepository.findOne({ where: { id_fair } });
+
+        if (!fair) {
+            throw (`La feria con el id ${id_fair} no fue encontrada`);
+        }
         await this.fairRepository.update(id_fair, fairStatus);
         return this.getOne(id_fair);
     }

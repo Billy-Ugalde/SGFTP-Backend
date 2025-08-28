@@ -5,8 +5,6 @@ import { Entrepreneur } from "./entities/entrepreneur.entity";
 import { Entrepreneurship } from './entities/entrepreneurship.entity';
 import { Person } from "src/entities/person.entity";
 import { Phone } from "src/entities/phone.entity";
-
-// Services
 import { EntrepreneurService } from "./services/entrepreneur.service";
 import { PersonService } from "./services/person.service";
 import { EntrepreneurshipService } from "./services/entrepreneurship.service";
