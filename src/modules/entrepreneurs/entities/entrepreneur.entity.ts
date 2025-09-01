@@ -20,7 +20,7 @@ export class Entrepreneur {
     @Column({ nullable: true })
     id_person: number;
 
-    @Column({ type: 'int', default: 0 })
+    @Column({ type: 'int', nullable: false })
     experience: number;
 
     @Column({
