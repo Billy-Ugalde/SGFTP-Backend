@@ -43,6 +43,11 @@ export class EnrollmentController {
         return await this.fair_enrollmentservice.findOne(id);
     }
 
+    @Get('fair/:id')
+    async findByFair(@Param('id', ParseIntPipe) fairId: number): Promise<Fair_enrollment[]> {
+        return await this.fair_enrollmentservice.findByFair(fairId);
+    }
+
     @Patch(':id/status')
     async updateStatus(
         @Param('id', ParseIntPipe) id: number,
