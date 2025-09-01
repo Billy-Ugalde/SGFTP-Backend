@@ -22,54 +22,92 @@ export class EnrrolmentService {
     ) { }
 
     async create(dto: EnrollmentFairDto): Promise<Fair_enrollment> {
+        const queryRunner = this.dataSource.createQueryRunner();
+        await queryRunner.connect();
+        await queryRunner.startTransaction();
 
-        const [fair, stand, entrepreneur] = await Promise.all([
-            this.fairRepository.findOneBy({ id_fair: dto.id_fair }),
-            this.standRepository.findOne({ where: { id_stand: dto.id_stand }, relations: ['entrepreneur', 'fair'] }),
-            this.entrepreneurRepository.findOneBy({ id_entrepreneur: dto.id_entrepreneur }),
-        ]);
-        if (!fair) throw new NotFoundException('La feria no existe');
-        if (!stand) throw new NotFoundException('El stand no existe');
-        if (!entrepreneur) throw new NotFoundException('El emprendedor no existe');
+        try {
+            const [fair, entrepreneur] = await Promise.all([
+                queryRunner.manager.findOneBy(Fair, { id_fair: dto.id_fair }),
+                queryRunner.manager.findOneBy(Entrepreneur, { id_entrepreneur: dto.id_entrepreneur }),
+            ]);
 
+            if (!fair) throw new NotFoundException('La feria no existe');
+            if (!entrepreneur) throw new NotFoundException('El emprendedor no existe');
 
-        if (stand.fair.id_fair !== fair.id_fair) {
-            throw new BadRequestException('El stand no pertenece a la feria indicada');
+            const stand = await queryRunner.manager.findOne(Stand, {
+                where: { id_stand: dto.id_stand },
+                relations: ['entrepreneur', 'fair'],
+                lock: { mode: 'pessimistic_write' } //bloquea por milisegundos para 2 usuarios no den click al mismo tiempo
+            });
+
+            if (!stand) throw new NotFoundException('El stand no existe');
+
+            if (stand.fair.id_fair !== fair.id_fair) {
+                throw new BadRequestException('El stand no pertenece a la feria indicada');
+            }
+
+            if (stand.entrepreneur?.id_entrepreneur === dto.id_entrepreneur) {
+                throw new ConflictException('Ya tienes este stand asignado');
+            }
+
+            const active = [EnrollmentStatus.PENDING, EnrollmentStatus.APPROVED];
+
+            const existingEnrollment = await queryRunner.manager.findOne(Fair_enrollment, {
+                where: {
+                    fair: { id_fair: dto.id_fair },
+                    entrepreneur: { id_entrepreneur: dto.id_entrepreneur },
+                    status: In(active),
+                },
+                relations: ['stand']
+            });
+
+            if (existingEnrollment) {
+                if (existingEnrollment.status === EnrollmentStatus.APPROVED) {
+                    throw new ConflictException(
+                        `Ya tienes un stand asignado en esta feria. No puedes solicitar otro stand.`
+                    );
+                } else {
+                    throw new ConflictException(
+                        `Ya tienes una solicitud pendiente en esta feria. No puedes solicitar otro stand hasta que se resuelva.`
+                    );
+                }
+            }
+
+            if (stand.status === true && stand.entrepreneur) {
+                throw new ConflictException('El stand ya está asignado');
+            }
+
+            const standHasActiveReq = await queryRunner.manager.exists(Fair_enrollment, {
+                where: {
+                    stand: { id_stand: dto.id_stand },
+                    status: In(active)
+                },
+            });
+
+            if (standHasActiveReq) {
+                throw new ConflictException('El stand tiene una solicitud activa');
+            }
+
+            const enrollment = queryRunner.manager.create(Fair_enrollment, {
+                fair,
+                entrepreneur,
+                stand,
+                status: EnrollmentStatus.PENDING,
+                registration_date: new Date(),
+            });
+
+            const savedEnrollment = await queryRunner.manager.save(enrollment);
+
+            await queryRunner.commitTransaction();
+            return savedEnrollment;
+
+        } catch (error) {
+            await queryRunner.rollbackTransaction();
+            throw error;
+        } finally {
+            await queryRunner.release();
         }
-
-        const active = [EnrollmentStatus.PENDING, EnrollmentStatus.APPROVED];
-
-        const hasActiveForUser = await this.fairEnrollmentRepository.exist({
-            where: {
-                fair: { id_fair: dto.id_fair },
-                entrepreneur: { id_entrepreneur: dto.id_entrepreneur },
-                status: In(active),
-            },
-        });
-        if (hasActiveForUser) {
-            throw new ConflictException('Ya tienes una solicitud activa para esta feria');
-        }
-
-        if (stand.status === true && stand.entrepreneur) {
-            throw new ConflictException('El stand ya está asignado');
-        }
-
-        const standHasActiveReq = await this.fairEnrollmentRepository.exist({
-            where: { stand: { id_stand: dto.id_stand }, status: In(active) },
-        });
-        if (standHasActiveReq) {
-            throw new ConflictException('El stand tiene una solicitud activa');
-        }
-
-        const enrollment = this.fairEnrollmentRepository.create({
-            fair,
-            entrepreneur,
-            stand,
-            status: EnrollmentStatus.PENDING,
-            registration_date: new Date(),
-        });
-
-        return this.fairEnrollmentRepository.save(enrollment);
     }
 
     async findAll(): Promise<Fair_enrollment[]> {
@@ -196,5 +234,4 @@ export class EnrrolmentService {
         }
         throw new BadRequestException('Estado no permitido');
     }
-
 }
