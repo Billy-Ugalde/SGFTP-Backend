@@ -17,7 +17,7 @@ export class Stand {
     @JoinColumn({ name: 'id_fair' }) // Esto define el nombre de la columna FK  
     fair: Fair;
 
-    @OneToOne(() => Entrepreneur, (entrepreneur) => entrepreneur.stand, {
+    @ManyToOne(() => Entrepreneur, (entrepreneur) => entrepreneur.stand, {
         nullable: true, 
         eager: true,
     })

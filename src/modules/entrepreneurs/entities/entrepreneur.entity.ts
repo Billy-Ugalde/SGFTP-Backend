@@ -60,8 +60,8 @@ export class Entrepreneur {
     })
     entrepreneurship: Entrepreneurship;
 
-    @OneToOne(() => Stand, (stand) => stand.entrepreneur)
-    stand: Stand;
+    @OneToMany(() => Stand, (stand) => stand.entrepreneur)
+    stand: Stand[];
 
     @OneToMany(() => Fair_enrollment, (fairController) => fairController.entrepreneur)
     enrollment: Fair_enrollment;

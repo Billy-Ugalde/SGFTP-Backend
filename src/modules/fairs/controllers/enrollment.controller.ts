@@ -1,9 +1,9 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Injectable, Param, ParseIntPipe, Patch, Post, Put, ValidationPipe } from "@nestjs/common";
+import { Body, Controller, Get, HttpCode, HttpStatus, Param, ParseIntPipe, Patch, Post } from "@nestjs/common";
 import { Fair_enrollment } from "../entities/Fair_enrollment.entity";
 import { EnrollmentFairDto } from "../dto/enrrolmentFair.dto";
 import { EnrrolmentService } from "../services/Enrollment.service";
 import { StatusEnrollmentDto } from "../dto/updatestatusEnrollment";
-@Controller('enrrolment')
+@Controller('enrollment')
 
 export class EnrollmentController {
 
@@ -12,7 +12,7 @@ export class EnrollmentController {
     @Post()
     @HttpCode(HttpStatus.CREATED)
     async create(
-        @Body(new ValidationPipe({ transform: true, whitelist: true }))
+        @Body()
         createEnrollmentDto: EnrollmentFairDto
     ): Promise<Fair_enrollment> {
         return await this.fair_enrollmentservice.create(createEnrollmentDto);
@@ -24,7 +24,7 @@ export class EnrollmentController {
     }
 
     @Get('approved')
-    async FindAllApproved(): Promise<Fair_enrollment[]> {
+    async findAllApproved(): Promise<Fair_enrollment[]> {
         return await this.fair_enrollmentservice.findAllApproved();
     }
 
@@ -34,7 +34,7 @@ export class EnrollmentController {
     }
 
     @Get('rejected')
-    async FindAllRejected(): Promise<Fair_enrollment[]> {
+    async findAllRejected(): Promise<Fair_enrollment[]> {
         return await this.fair_enrollmentservice.findAllRejected();
     }
 
@@ -46,7 +46,7 @@ export class EnrollmentController {
     @Patch(':id/status')
     async updateStatus(
         @Param('id', ParseIntPipe) id: number,
-        @Body(new ValidationPipe({ transform: true, whitelist: true }))
+        @Body()
         statusDto: StatusEnrollmentDto
     ): Promise<Fair_enrollment> {
         return await this.fair_enrollmentservice.updateStatus(id, statusDto);
