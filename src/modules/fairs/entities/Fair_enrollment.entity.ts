@@ -1,11 +1,7 @@
 import { Column, PrimaryGeneratedColumn, Entity, ManyToOne, JoinColumn, OneToOne, CreateDateColumn, OneToMany } from "typeorm";
 import { Fair } from "./fair.entity";
 import { Stand } from "./stand.entity";
-<<<<<<< HEAD
-import { Entreprenuer } from "src/modules/entrepreneurs/entities/entrepreneur.entity";
-=======
 import { Entrepreneur } from "src/modules/entrepreneurs/entities/entrepreneur.entity";
->>>>>>> origin/development
 
 export enum EnrollmentStatus {
     PENDING = 'pending',
