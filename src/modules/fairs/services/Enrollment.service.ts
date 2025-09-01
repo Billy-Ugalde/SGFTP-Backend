@@ -164,6 +164,22 @@ export class EnrrolmentService {
             order: { registration_date: 'DESC' },
         });
     }
+      async findByFair(fairId: number): Promise<Fair_enrollment[]> {
+        return this.fairEnrollmentRepository.find({
+            where: { fair: { id_fair: fairId } },
+            relations: {
+                fair: true,
+                stand: true,
+                entrepreneur: {
+                    person: true,
+                    entrepreneurship: true
+                },
+            },
+            order: {
+                registration_date: 'DESC',
+            },
+        });
+    }
 
     async findOne(id: number): Promise<Fair_enrollment> {
         const enrollment = await this.fairEnrollmentRepository.findOne({
