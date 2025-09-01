@@ -7,7 +7,6 @@ import {
   Param,
   Body,
   ParseIntPipe,
-  ValidationPipe,
   HttpCode,
   HttpStatus
 } from '@nestjs/common';
@@ -42,9 +41,7 @@ export class EntrepreneurController {
   @Post()
   @HttpCode(HttpStatus.CREATED)
   async create(
-    @Body(new ValidationPipe({ transform: true, whitelist: true }))
-    createDto: CreateCompleteEntrepreneurDto
-  ): Promise<Entrepreneur> {
+    @Body()createDto: CreateCompleteEntrepreneurDto): Promise<Entrepreneur> {
     return await this.entrepreneurService.create(createDto);
   }
 
@@ -52,8 +49,7 @@ export class EntrepreneurController {
   @Put(':id')
   async update(
     @Param('id', ParseIntPipe) id: number,
-    @Body(new ValidationPipe({ transform: true, whitelist: true }))
-    updateDto: UpdateCompleteEntrepreneurDto
+    @Body() updateDto: UpdateCompleteEntrepreneurDto
   ): Promise<Entrepreneur> {
     return await this.entrepreneurService.update(id, updateDto);
   }
@@ -62,8 +58,7 @@ export class EntrepreneurController {
   @Patch(':id/status')
   async updateStatus(
     @Param('id', ParseIntPipe) id: number,
-    @Body(new ValidationPipe({ transform: true, whitelist: true }))
-    statusDto: UpdateStatusDto
+    @Body() statusDto: UpdateStatusDto
   ): Promise<Entrepreneur> {
     return await this.entrepreneurService.updateStatus(id, statusDto);
   }
@@ -72,8 +67,7 @@ export class EntrepreneurController {
    @Patch(':id/toggle-active')
   async toggleActive(
     @Param('id', ParseIntPipe) id: number,
-    @Body(new ValidationPipe({ transform: true, whitelist: true })) 
-    toggleDto: ToggleActiveDto
+    @Body() toggleDto: ToggleActiveDto
   ): Promise<Entrepreneur> {
     return await this.entrepreneurService.toggleActive(id, toggleDto);
   }
