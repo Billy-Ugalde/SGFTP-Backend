@@ -1,6 +1,11 @@
+<<<<<<< HEAD
+import { Entity, PrimaryGeneratedColumn, Column, OneToMany, OneToOne } from 'typeorm';
+import { Entreprenuer } from '../modules/entrepreneurs/entities/entrepreneur.entity';
+=======
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany, OneToOne, CreateDateColumn, UpdateDateColumn} from 'typeorm';
 import { Entrepreneur } from '../modules/entrepreneurs/entities/entrepreneur.entity';
 import { Phone } from './phone.entity';
+>>>>>>> origin/development
 
 @Entity()
 export class Person {
