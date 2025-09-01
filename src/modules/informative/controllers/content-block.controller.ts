@@ -28,7 +28,7 @@ export class ContentBlockController {
     return this.contentService.getPageContent(page);
   }
 
-  @Get('page/:page/section/:section')
+  @Get(':page/:section')
   getSectionContent(
     @Param('page') page: string,
     @Param('section') section: string
@@ -36,15 +36,28 @@ export class ContentBlockController {
     return this.contentService.findByPageAndSection(page, section);
   }
 
-  @Patch(':id')
-  update(
-    @Param('id', ParseIntPipe) id: number, @Body() updateDto: UpdateContentBlockDto) {
-    return this.contentService.update(id, updateDto);
-  }
-
   @Delete(':id')
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.contentService.remove(id);
   }
+
+  @Patch(':page/:section/:block_key')
+updateByNaturalKey(
+  @Param('page') page: string,
+  @Param('section') section: string,
+  @Param('block_key') block_key: string,
+  @Body() updateDto: UpdateContentBlockDto
+) {
+  return this.contentService.updateByNaturalKey(page, section, block_key, updateDto);
+}
+
+@Get(':page/:section/:block_key')
+findByNaturalKey(
+  @Param('page') page: string,
+  @Param('section') section: string,
+  @Param('block_key') block_key: string
+) {
+  return this.contentService.findByNaturalKey(page, section, block_key);
+}
   
 }  

@@ -34,6 +34,7 @@ export class ContactInfo {
         type: 'timestamp',
         default: () => 'CURRENT_TIMESTAMP',     
         onUpdate: 'CURRENT_TIMESTAMP',
+        name: 'last_updated'
     })
     lastUpdated: Date;
 }

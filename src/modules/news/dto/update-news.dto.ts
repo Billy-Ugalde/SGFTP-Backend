@@ -1,4 +1,4 @@
-import { IsString, IsOptional} from 'class-validator'
+import { IsString, IsOptional, IsUrl} from 'class-validator'
 
 export class UpdateNewsDto {
     @IsOptional()
@@ -10,7 +10,7 @@ export class UpdateNewsDto {
     content?: string; 
 
     @IsOptional()
-    @IsString()
+    @IsUrl()
     image_url?: string;    
 
     @IsOptional()

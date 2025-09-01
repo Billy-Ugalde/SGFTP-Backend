@@ -1,11 +1,11 @@
-import { IsString, IsNotEmpty, IsOptional } from 'class-validator';
+import { IsString, IsUrl, IsOptional } from 'class-validator';
 
 export class UpdateContentBlockDto {
   @IsString()
   @IsOptional()
   text_content?: string;
 
-  @IsString()
+  @IsUrl()
   @IsOptional()
   image_url?: string;
 }

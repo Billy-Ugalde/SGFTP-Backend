@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsOptional } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsUrl } from 'class-validator';
 
 export class CreateContentBlockDto {
   @IsString()
@@ -17,7 +17,7 @@ export class CreateContentBlockDto {
   @IsOptional()
   text_content?: string;
 
-  @IsString()
+  @IsUrl()
   @IsOptional()
   image_url?: string;
 }

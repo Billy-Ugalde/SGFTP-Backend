@@ -1,8 +1,8 @@
 import { Controller, Get, Post, Body, Param, Patch, Delete, ParseIntPipe } from '@nestjs/common';
-import { NewsService } from '../services/news.service';
-import { CreateNewsDto } from '../dto/create-news.dto';
-import { UpdateNewsDto } from '../dto/update-news.dto';
-import { NewsStatusDto } from '../dto/news-status.dto';
+import { NewsService } from './news.service';
+import { CreateNewsDto } from './dto/create-news.dto';
+import { UpdateNewsDto } from './dto/update-news.dto';
+import { NewsStatusDto } from './dto/news-status.dto';
 
 @Controller('news')
 export class NewsController {

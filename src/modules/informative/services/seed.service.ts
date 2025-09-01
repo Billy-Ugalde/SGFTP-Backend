@@ -1,24 +1,22 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { ContentBlockService } from './content-block.service';
 import { ContactInfoService } from './contact-info.service';
-import { NewsService } from './news.service';
 
 @Injectable()
 export class SeedService implements OnModuleInit {
   constructor(
     private readonly contentBlockService: ContentBlockService,
     private readonly contactInfoService: ContactInfoService,
-    private readonly newsService: NewsService,
   ) {}
 
   async onModuleInit() {
     await this.seedContentBlocks();
     await this.seedContactInfo();
-    await this.seedNews();
   }
 
   private async seedContentBlocks() {
     const homeBlocks = [
+      // Hero Section
       {
         page: 'home',
         section: 'hero',
@@ -42,7 +40,8 @@ export class SeedService implements OnModuleInit {
         section: 'hero',
         block_key: 'background',
         image_url: '/images/hero-bg.jpg',
-      },
+      }, 
+      // Value Proposition
       {
         page: 'home',
         section: 'value_proposition',
@@ -61,6 +60,13 @@ export class SeedService implements OnModuleInit {
         block_key: 'goal',
         text_content: 'Ser una ONG referente en desarrollo sostenible integral en pro del desarrollo de comunidades o sectores en condición de vulnerabilidad.',
       },
+      // Impact Section
+      {
+        page: 'home',
+        section: 'impact',
+        block_key: 'description',
+        text_content: 'Impactar de todos los enfoques posible a la comunidad por medio de la fundación.',
+      },
       {
         page: 'home',
         section: 'impact',
@@ -76,33 +82,60 @@ export class SeedService implements OnModuleInit {
       {
         page: 'home',
         section: 'impact',
-        block_key: 'enviromental_impact',
+        block_key: 'environmental_impact',
         text_content: 'Impactar de manera ambiental a por medio de la fundación.',
       },
+      // Dimentions Section
       {
         page: 'home',
-        section: 'dimentions',
-        block_key: 'local _development',
+        section: 'dimensions',
+        block_key: 'local_development',
         text_content: 'Promover el desarollo local por medio de la fundación.',
       },
       {
         page: 'home',
-        section: 'dimentions',
+        section: 'dimensions',
         block_key: 'education',
         text_content: 'Educar a por medio de la fundación.',
       },
       {
         page: 'home',
-        section: 'dimentions',
+        section: 'dimensions',
         block_key: 'prevention',
         text_content: 'Prevenir a por medio de la fundación.',
       },
       {
         page: 'home',
-        section: 'dimentions',
+        section: 'dimensions',
         block_key: 'conservation',
         text_content: 'Conservar por medio de la fundación.',
       },
+      // Statistics Section
+      {
+        page: 'home',
+        section: 'statistics',
+        block_key: 'custom_stat_value',
+        text_content: '500+',
+      },
+      {
+        page: 'home',
+        section: 'statistics',
+        block_key: 'custom_stat_name',
+        text_content: 'Arboles plantados',
+      },
+      {
+        page: 'home',
+        section: 'statistics',
+        block_key: 'wokshops_content',
+        text_content: 'Talleres realizados por medio de la fundación',
+      },
+      {
+        page: 'home',
+        section: 'statistics',
+        block_key: 'involved_people',
+        text_content: 'Personas involucradas con la fundación',
+      },
+      // Descriptions Sections
       {
         page: 'home',
         section: 'news',
@@ -126,6 +159,18 @@ export class SeedService implements OnModuleInit {
         section: 'participating_schools',
         block_key: 'description',
         text_content: 'Estas son las escuelas que participan con nosotros',
+      },
+      {
+        page: 'home',
+        section: 'entrepreneurs',
+        block_key: 'description',
+        text_content: 'Estos son los emprendedores ligados a la fundación',
+      },
+      {
+        page: 'home',
+        section: 'fairs',
+        block_key: 'description',
+        text_content: 'Participa en nuestras ferias, estas son las próximas...',
       },
       {
         page: 'home',
@@ -174,7 +219,7 @@ export class SeedService implements OnModuleInit {
       { page: 'home', section: 'board_members', block_key: 'vice_president_name', text_content: 'Lic. Leonel Francisco Peralta Barrantes' },
       { page: 'home', section: 'board_members', block_key: 'vice_president_photo', image_url: '/images/example.jpg' },
 
-      { page: 'home', section: 'board_members', block_key: 'secretary_name', image_url: 'Sr. Owen Héctor Cerdas' },
+      { page: 'home', section: 'board_members', block_key: 'secretary_name', text_content: 'Sr. Owen Héctor Cerdas' },
       { page: 'home', section: 'board_members', block_key: 'secretary_photo', image_url: '/images/example.jpg' },
 
       { page: 'home', section: 'board_members', block_key: 'treasurer_name', text_content: 'Sra. Lizbeth Cerdas Dinarte' },
@@ -185,37 +230,12 @@ export class SeedService implements OnModuleInit {
 
       { page: 'home', section: 'board_members', block_key: 'administrator_name', text_content: 'Sr. Brandon Barrantes Corea' },
       { page: 'home', section: 'board_members', block_key: 'administrator_photo', image_url: '/images/example.jpg' },
-    ]; // Add team page blocks if needed
+    ]; 
     await this.contentBlockService.updateOrCreateBatch(teamBlocks);
     
   }
 
   private async seedContactInfo() {
     await this.contactInfoService.get();
-  }
-
-  private async seedNews() {
-    const news = [
-      {
-        title: 'Lanzamiento de Nueva Plataforma',
-        content: 'Estamos emocionados de anunciar nuestro nuevo sistema...',
-        image_url: '/images/news1.jpg',
-        publicationDate: new Date('2023-01-15'),
-        author: 'Equipo Editorial',
-        status: true,
-      },
-      {
-        title: 'Mantenimiento Programado',
-        content: 'El próximo fin de semana realizaremos mantenimiento...',
-        image_url: '/images/news2.jpg',
-        publicationDate: new Date('2023-02-20'),
-        author: 'Equipo Técnico',
-        status: true,
-      },
-    ];
-
-    for (const newsItem of news) {
-      await this.newsService.create(newsItem);
-    }
   }
 }
