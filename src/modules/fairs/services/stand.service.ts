@@ -3,7 +3,6 @@ import { Stand } from "../entities/stand.entity";
 import { Fair } from "../entities/fair.entity";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
-
 @Injectable()
 export class StandService {
     constructor(
@@ -22,7 +21,6 @@ export class StandService {
         for (let position = 0; position < capacity; position++) {
             standsToCreate.push({
                 stand_code: this.generateCode(position),
-                assigned_date: new Date(),
                 status: false,
                 fair: fair
             });
@@ -50,7 +48,6 @@ export class StandService {
         for (let position = fromPosition; position < toPosition; position++) {
             standsToCreate.push({
                 stand_code: this.generateCode(position),
-                assigned_date: new Date(),
                 status: false,
                 fair: fair
             });

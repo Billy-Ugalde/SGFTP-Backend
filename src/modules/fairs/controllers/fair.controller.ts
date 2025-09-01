@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Patch, Put, Body, Param, ParseIntPipe } from "@nestjs/common";
+import { Controller, Post, Get, Patch, Put, Body, Param, ParseIntPipe, HttpCode, HttpStatus } from "@nestjs/common";
 import { FairService } from "../services/fair.service";
 import { fairDto } from "../dto/createFair.dto";
 import { UpdatefairDto } from "../dto/updateFair.dto";
@@ -11,30 +11,33 @@ export class FairController {
     constructor(private readonly fairService: FairService) { }
 
     @Post()
-    create(@Body() createFair: fairDto): Promise<Fair> {
-        return this.fairService.create(createFair);
+    @HttpCode(HttpStatus.CREATED)
+    async create(
+        @Body()
+        createFair: fairDto): Promise<Fair> {
+        return await this.fairService.create(createFair);
     }
 
     @Get()
-    getall(): Promise<Fair[]> {
-        return this.fairService.getAll();
+    async getall(): Promise<Fair[]> {
+        return await this.fairService.getAll();
     }
 
-    @Get(':id_fair')
-    getOne(@Param('id_fair', ParseIntPipe) id_fair: number) {
-        return this.fairService.getOne(id_fair);
+    @Get(':id')
+    async getOne(@Param('id', ParseIntPipe) id_fair: number): Promise<Fair> {
+        return await this.fairService.getOne(id_fair);
     }
 
     @Put(':id')
-    update(@Param('id', ParseIntPipe) id: number, @Body() updateFair: UpdatefairDto) {
-        return this.fairService.update(id, updateFair);
+    async update(@Param('id', ParseIntPipe) id: number, @Body() updateFair: UpdatefairDto): Promise<Fair> {
+        return await this.fairService.update(id, updateFair);
     }
 
-    @Patch(':id',)
-    updateStatus(
+    @Patch(':id')
+    async updateStatus(
         @Param('id', ParseIntPipe) id: number,
         @Body() fairstatus: fairStatusDto
-    ) {
-        return this.fairService.updateStatus(id, fairstatus);
+    ): Promise<Fair> {
+        return  await this.fairService.updateStatus(id, fairstatus);
     }
 }

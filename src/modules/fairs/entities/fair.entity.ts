@@ -2,6 +2,10 @@ import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from "typeorm";
 import { Stand } from "./stand.entity";
 import { Fair_enrollment } from "./Fair_enrollment.entity";
 
+export enum TypetFair {
+    INTERNAL = 'interna',
+    EXTERNAL = 'externa',
+}
 @Entity()
 export class Fair {
     @PrimaryGeneratedColumn()
@@ -20,7 +24,13 @@ export class Fair {
     stand_capacity: number;
 
     @Column({ default: true })
-    status: boolean; 
+    status: boolean;
+
+    @Column({ type: 'enum', enum: TypetFair, nullable: false })
+    typeFair: TypetFair;
+
+    @Column({ type: 'datetime' })
+    date: Date;
 
     @OneToMany(() => Stand, (stand) => stand.fair)
     stands: Stand[];

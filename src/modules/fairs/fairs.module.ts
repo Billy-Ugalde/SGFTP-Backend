@@ -7,10 +7,12 @@ import { Stand } from "./entities/stand.entity";
 import { Fair_enrollment } from "./entities/Fair_enrollment.entity"
 import { StandService } from "./services/stand.service";
 import { StandController } from "./controllers/stand.controller";
+import { EnrollmentController } from "./controllers/enrollment.controller";
+import { EnrrolmentService } from "./services/Enrollment.service";
+import { Entrepreneur } from "../entrepreneurs/entities/entrepreneur.entity";
 @Module({
-    imports: [TypeOrmModule.forFeature([Fair, Stand, Fair_enrollment])],
-    controllers: [FairController, StandController],
-    providers: [FairService, StandService]
-
+    imports: [TypeOrmModule.forFeature([Fair, Stand, Fair_enrollment,Entrepreneur])],
+    controllers: [FairController, StandController, EnrollmentController],
+    providers: [FairService, StandService,EnrrolmentService]
 })
 export class FairModule { }
