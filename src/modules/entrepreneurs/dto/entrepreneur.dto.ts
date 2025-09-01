@@ -6,6 +6,7 @@ import { EntrepreneurStatus } from '../entities/entrepreneur.entity';
 export class CreateEntrepreneurDto {
   @IsNumber()
   @Type(() => Number)
+  @IsNotEmpty()
   @Min(0)
   @Max(100)
   experience: number;
@@ -25,6 +26,7 @@ export class CreateEntrepreneurDto {
 export class UpdateEntrepreneurDto {
   @IsNumber()
   @Type(() => Number)
+  @IsNotEmpty()
   @Min(0)
   @Max(100)
   @IsOptional()

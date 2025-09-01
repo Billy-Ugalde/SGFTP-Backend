@@ -1,6 +1,32 @@
 import { Person } from "src/entities/person.entity";
 import { Fair_enrollment } from "src/modules/fairs/entities/Fair_enrollment.entity";
 import { Stand } from "src/modules/fairs/entities/stand.entity";
+<<<<<<< HEAD
+import { Column, PrimaryGeneratedColumn, OneToOne, OneToMany, Entity, JoinColumn } from "typeorm";
+
+@Entity()
+export class Entreprenuer {
+
+    @PrimaryGeneratedColumn()
+    id_entreprenuer: number
+
+    @Column({ type: 'date' })
+    registration_date: Date;
+
+    @Column({ type: 'float' })
+    experience: number;
+
+    @OneToOne(() => Stand, (stand) => stand.entreprenuer)
+    stand: Stand;
+
+    @OneToMany(() => Fair_enrollment, (fairController) => fairController.entreprenuer)
+    enrollment: Fair_enrollment;
+
+    @OneToOne(() => Person, (person) => person.entrepreneur, { nullable: false })
+    @JoinColumn({ name: 'id_person' })
+    person: Person;
+
+=======
 import { Column, PrimaryGeneratedColumn, OneToOne, OneToMany, Entity, JoinColumn, CreateDateColumn, UpdateDateColumn } from "typeorm";
 import { Entrepreneurship } from './entrepreneurship.entity';
 
@@ -20,7 +46,7 @@ export class Entrepreneur {
     @Column({ nullable: true })
     id_person: number;
 
-    @Column({ type: 'int', default: 0 })
+    @Column({ type: 'int', nullable: false })
     experience: number;
 
     @Column({
@@ -66,4 +92,5 @@ export class Entrepreneur {
     @OneToMany(() => Fair_enrollment, (fairController) => fairController.entrepreneur)
     enrollment: Fair_enrollment;
 
+>>>>>>> origin/development
 }
