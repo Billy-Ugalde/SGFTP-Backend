@@ -7,7 +7,8 @@ export enum EntrepreneurshipCategory {
   VESTIMENTA = 'Vestimenta',
   ACCESORIOS = 'Accesorios',
   DECORACION = 'Decoración',
-  DEMOSTRACION = 'Demostración'
+  DEMOSTRACION = 'Demostración',
+  OTRA = 'Otra categoría' 
 }
 
 export enum EntrepreneurshipApproach {
