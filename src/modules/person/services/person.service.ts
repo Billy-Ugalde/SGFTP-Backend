@@ -1,4 +1,4 @@
-import { Injectable, ConflictException } from '@nestjs/common';
+import { Injectable, ConflictException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, QueryRunner } from 'typeorm';
 import { Person } from '../../../entities/person.entity';
@@ -84,4 +84,23 @@ export class PersonService {
       relations: ['phones']
     });
   }
+
+  async findAll(): Promise<Person[]> {
+    return await this.personRepository.find({
+      relations: ['phones'],
+      order: {
+        created_at: 'DESC'
+      }
+    });
+  }
+
+  async delete(id: number): Promise<void> {
+    const person = await this.findById(id);
+
+    if (!person) {
+      throw new NotFoundException(`Persona con ID ${id} no encontrada`);
+    }
+    await this.personRepository.delete(id);
+  }
+
 }
