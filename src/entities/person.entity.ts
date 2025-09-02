@@ -1,7 +1,7 @@
-import { Entity, PrimaryGeneratedColumn, Column, OneToMany, OneToOne, CreateDateColumn, UpdateDateColumn} from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, OneToMany, OneToOne, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 import { Entrepreneur } from '../modules/entrepreneurs/entities/entrepreneur.entity';
 import { Phone } from './phone.entity';
-
+import { User } from 'src/modules/users/entities/user.entity';
 
 @Entity()
 export class Person {
@@ -37,4 +37,9 @@ export class Person {
 
   @OneToOne(() => Entrepreneur, (entrepreneur) => entrepreneur.person)
   entrepreneur: Entrepreneur;
+
+  @OneToOne(() => User, (user) => user.person, {
+    nullable: true
+  })
+  user: User
 }

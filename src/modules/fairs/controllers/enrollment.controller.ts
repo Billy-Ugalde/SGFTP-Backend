@@ -4,6 +4,7 @@ import { EnrollmentFairDto } from "../dto/enrrolmentFair.dto";
 import { EnrrolmentService } from "../services/Enrollment.service";
 import { StatusEnrollmentDto } from "../dto/updatestatusEnrollment";
 @Controller('enrollment')
+// @UseGuards(JwtAuthGuard)
 
 export class EnrollmentController {
 

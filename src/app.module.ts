@@ -7,6 +7,7 @@ import { EntrepreneurModule } from './modules/entrepreneurs/entrepreneur.module'
 import { InformativeModule } from './modules/informative/informative.module';
 import { SubscribersModule } from './modules/subscribers/subscribers.module';
 import { NewsModule } from './modules/news/news.module';
+import { UserModule } from './modules/users/user.module';
 
 @Module({
   imports: [TypeOrmModule.forRoot({
@@ -19,7 +20,7 @@ import { NewsModule } from './modules/news/news.module';
     ssl: false,
     autoLoadEntities: true,    //llama todas las entidades
     synchronize: true,
-  }), FairModule, EntrepreneurModule, InformativeModule, SubscribersModule,NewsModule],
+  }), FairModule, EntrepreneurModule, InformativeModule, SubscribersModule,NewsModule, UserModule],
   controllers: [AppController],
   providers: [AppService],
 })
