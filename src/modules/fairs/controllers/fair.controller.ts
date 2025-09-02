@@ -1,11 +1,13 @@
-import { Controller, Post, Get, Patch, Put, Body, Param, ParseIntPipe, HttpCode, HttpStatus } from "@nestjs/common";
+import { Controller, Post, Get, Patch, Put, Body, Param, ParseIntPipe, HttpCode, HttpStatus, UseGuards } from "@nestjs/common";
 import { FairService } from "../services/fair.service";
 import { fairDto } from "../dto/createFair.dto";
 import { UpdatefairDto } from "../dto/updateFair.dto";
 import { Fair } from "../entities/fair.entity";
 import { fairStatusDto } from "../dto/fair-status.dto";
 
+
 @Controller('fairs')
+// @UseGuards(JwtAuthGuard)
 export class FairController {
 
     constructor(private readonly fairService: FairService) { }
@@ -38,6 +40,6 @@ export class FairController {
         @Param('id', ParseIntPipe) id: number,
         @Body() fairstatus: fairStatusDto
     ): Promise<Fair> {
-        return  await this.fairService.updateStatus(id, fairstatus);
+        return await this.fairService.updateStatus(id, fairstatus);
     }
 }
