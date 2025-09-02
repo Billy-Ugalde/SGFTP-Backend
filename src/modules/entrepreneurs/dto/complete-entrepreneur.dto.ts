@@ -1,6 +1,6 @@
 import { ValidateNested, IsNotEmpty } from 'class-validator';
 import { Type } from 'class-transformer';
-import { CreatePersonDto, UpdatePersonDto } from './person.dto';
+import { CreatePersonDto, UpdatePersonDto } from '../../person/dto/person.dto';
 import { CreateEntrepreneurDto, UpdateEntrepreneurDto } from './entrepreneur.dto';
 import { CreateEntrepreneurshipDto, UpdateEntrepreneurshipDto } from './entrepreneurship.dto';
 

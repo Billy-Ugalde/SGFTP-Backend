@@ -6,9 +6,9 @@ import { Entrepreneurship } from './entities/entrepreneurship.entity';
 import { Person } from "src/entities/person.entity";
 import { Phone } from "src/entities/phone.entity";
 import { EntrepreneurService } from "./services/entrepreneur.service";
-import { PersonService } from "./services/person.service";
+import { PersonService } from "../person/services/person.service";
 import { EntrepreneurshipService } from "./services/entrepreneurship.service";
-import { PhoneService } from "./services/phone.service";
+import { PhoneService } from "../person/services/phone.service";
 
 @Module({
     imports: [

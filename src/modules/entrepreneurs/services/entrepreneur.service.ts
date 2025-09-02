@@ -4,7 +4,7 @@ import { Repository, DataSource } from 'typeorm';
 import { Entrepreneur, EntrepreneurStatus } from '../entities/entrepreneur.entity';
 import { CreateCompleteEntrepreneurDto, UpdateCompleteEntrepreneurDto } from '../dto/complete-entrepreneur.dto';
 import { ToggleActiveDto, UpdateStatusDto } from '../dto/entrepreneur.dto';
-import { PersonService } from './person.service';
+import { PersonService } from '../../person/services/person.service';
 import { EntrepreneurshipService } from './entrepreneurship.service';
 
 @Injectable()

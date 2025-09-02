@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, QueryRunner } from 'typeorm';
 import { Phone } from '../../../entities/phone.entity';
-import { CreatePhoneDto, UpdatePhoneDto } from '../dto/phone.dto';
+import { CreatePhoneDto, UpdatePhoneDto } from '../../person/dto/phone.dto';
 
 @Injectable()
 export class PhoneService {
