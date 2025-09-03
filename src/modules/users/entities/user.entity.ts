@@ -11,6 +11,9 @@ export class User {
     @Column({ type: 'varchar', length: 50 })
     password: string;
 
+    @Column({ type: 'varchar', length: 50 })
+    status: boolean;
+
     @OneToOne(() => Person, (person) => person.user, {
         nullable: false,
         eager: true,
