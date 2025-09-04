@@ -4,6 +4,7 @@ import {
   Post,
   Put,
   Patch,
+  Delete,
   Param,
   Body,
   ParseIntPipe,
@@ -71,4 +72,11 @@ export class EntrepreneurController {
   ): Promise<Entrepreneur> {
     return await this.entrepreneurService.toggleActive(id, toggleDto);
   }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async remove(@Param('id', ParseIntPipe) id: number): Promise<void> {
+    return await this.entrepreneurService.remove(id);
+  }
+
 }
