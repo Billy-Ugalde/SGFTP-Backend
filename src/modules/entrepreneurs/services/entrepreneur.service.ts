@@ -9,6 +9,8 @@ import { EntrepreneurshipService } from './entrepreneurship.service';
 import { User } from '../../users/entities/user.entity';
 import { Role } from '../../users/entities/role.entity';
 import { PasswordService } from '../../auth/services/password.service';
+import { Person } from '../../../entities/person.entity';
+import { Entrepreneurship } from '../entities/entrepreneurship.entity';
 
 @Injectable()
 export class EntrepreneurService {
@@ -266,4 +268,44 @@ private generateTemporaryPassword(): string {
 
     return await this.findOne(id);
   }
+
+  async remove(id: number): Promise<void> {
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+    try {
+      const entrepreneur = await this.entrepreneurRepository
+        .createQueryBuilder('entrepreneur')
+        .leftJoinAndSelect('entrepreneur.person', 'person')
+        .leftJoinAndSelect('entrepreneur.entrepreneurship', 'entrepreneurship')
+        .where('entrepreneur.id_entrepreneur = :id', { id })
+        .getOne();
+
+      if (!entrepreneur) {
+        throw new NotFoundException(`Emprendedor con ID ${id} no encontrado`);
+      }
+
+      if (entrepreneur.status !== EntrepreneurStatus.PENDING) {
+        throw new BadRequestException(`Solo se pueden eliminar emprendedores con estado 'pending'`);
+      }
+
+      if (entrepreneur.entrepreneurship) {
+        await queryRunner.manager.delete(Entrepreneurship, entrepreneur.entrepreneurship.id_entrepreneurship);
+      }
+      if (entrepreneur.person) {
+        await queryRunner.manager.delete(Person, entrepreneur.person.id_person);
+      }
+
+      await queryRunner.manager.delete(Entrepreneur, entrepreneur.id_entrepreneur);
+      await queryRunner.commitTransaction();
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
+  }
+
+
+
 }

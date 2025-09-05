@@ -11,7 +11,7 @@ export class User {
     @Column({ type: 'text', select: false }) // Nunca retornar el password en consultas
     password: string;
 
-    @Column({ type: 'varchar', length: 50 })
+    @Column({ default: true })
     status: boolean;
 
     @OneToOne(() => Person, (person) => person.user, {
