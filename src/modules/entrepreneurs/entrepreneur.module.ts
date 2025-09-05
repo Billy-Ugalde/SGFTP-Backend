@@ -6,12 +6,17 @@ import { Entrepreneurship } from './entities/entrepreneurship.entity';
 import { EntrepreneurService } from "./services/entrepreneur.service";
 import { EntrepreneurshipService } from "./services/entrepreneurship.service";
 import { PersonModule } from "../person/person.module";
+import { PasswordService } from "../auth/services/password.service";
+import { User } from "../users/entities/user.entity";
+import { Role } from "../users/entities/role.entity";
 
 @Module({
     imports: [
         TypeOrmModule.forFeature([
             Entrepreneur, 
             Entrepreneurship, 
+            User, 
+            Role
         ]),
         PersonModule
     ],
@@ -19,6 +24,8 @@ import { PersonModule } from "../person/person.module";
     providers: [
         EntrepreneurService,
         EntrepreneurshipService,
+        PasswordService, 
+        
     ]
 })
 export class EntrepreneurModule { }
