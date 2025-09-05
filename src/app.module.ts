@@ -15,7 +15,7 @@ import { UserModule } from './modules/users/user.module';
     host: 'localhost',
     port: 3306,
     username: 'root',
-    password: 'Andres2005PZ',
+    password: 'admin',
     database: 'data_prueba',
     ssl: false,
     autoLoadEntities: true,    //llama todas las entidades
