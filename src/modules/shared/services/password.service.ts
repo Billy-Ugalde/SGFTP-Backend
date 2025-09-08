@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
+import { randomBytes } from 'crypto'; 
 
 @Injectable()
 export class PasswordService {
@@ -58,4 +59,31 @@ export class PasswordService {
       errors
     };
   }
+
+  generateTemporaryPassword(): string {
+    // Generar contraseña temporal segura usando crypto
+    const randomBuffer = randomBytes(12);
+    
+    // Convertir a base64 y limpiar caracteres problemáticos
+    let password = randomBuffer.toString('base64')
+      .replace(/[+/=]/g, '')  // Remover caracteres problemáticos para URLs
+      .substring(0, 10);      // Longitud manejable
+    
+    // Asegurar que cumple políticas mínimas
+    password = password + 'A1!'; // Garantizar mayúscula, número y símbolo
+    
+    return password;
+  }
+
+  // ===== MÉTODOS FUTUROS (COMENTADOS) =====
+  /*
+  generatePasswordResetToken(): string {
+    return randomBytes(32).toString('hex');
+  }
+
+  generateEmailVerificationToken(): string {
+    return randomBytes(32).toString('hex');
+  }
+  */
+
 }

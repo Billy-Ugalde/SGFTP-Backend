@@ -1,13 +1,14 @@
 import { ConflictException, Injectable, UnauthorizedException } from '@nestjs/common';
-import { UserAuthService } from './user-auth.service';
 import { JwtTokenService } from './jwt.service';
 import { User } from '../../users/entities/user.entity';
 import { AuthResponseDto } from '../dto/auth-response.dto';
 import { RegisterDto } from '../dto/register.dto';
-import { DataSource } from 'typeorm';
-import { Person }  from '../../../entities/person.entity';
-import { Role } from '../../users/entities/role.entity';
-import { PasswordService } from './password.service';
+import { DataSource, QueryRunner } from 'typeorm';
+import { Person } from '../../../entities/person.entity';
+import { PasswordService } from '../../shared/services/password.service';
+import { IUserAuthService } from '../../users/interfaces/user-auth.interface';
+import { UserAuthService } from '../../users/services/user-auth.service'; // ← Importación temporal
+import { UserRole } from '../enums/user-role.enum';
 
 @Injectable()
 export class AuthService {
@@ -84,32 +85,22 @@ export class AuthService {
                 first_name: registerDto.first_name,
                 second_name: registerDto.second_name || '',
                 first_lastname: registerDto.first_lastname,
-                second_lastname: registerDto.second_lastname || '', // ← Person.entity requiere string, no null
+                second_lastname: registerDto.second_lastname || '',
                 email: registerDto.email,
             });
 
             const savedPerson = await queryRunner.manager.save(Person, person);
 
-            // 3. Buscar rol voluntario
-            const voluntarioRole = await queryRunner.manager.findOne(Role, {
-                where: { name: 'voluntario' }
-            });
-
-            if (!voluntarioRole) {
-                throw new Error('Rol de voluntario no encontrado en la base de datos');
-            }
-
-            // 4. Hash password
+            // 3. Hash password
             const hashedPassword = await this.passwordService.hashPassword(registerDto.password);
 
-            // 5. Crear User
-            const user = queryRunner.manager.create(User, {
-                password: hashedPassword,
-                status: true,
-                person: savedPerson, // ← Usar la instancia guardada
-                role: voluntarioRole, // ← Usar la instancia encontrada
-            });
-            const savedUser = await queryRunner.manager.save(user);
+            // 4. Crear User usando UserAuthService
+            const savedUser = await this.userAuthService.createUserWithRole(
+                savedPerson.id_person,
+                UserRole.VOLUNTEER,
+                hashedPassword,
+                queryRunner
+            );
 
             await queryRunner.commitTransaction();
 
@@ -123,6 +114,29 @@ export class AuthService {
             throw error;
         } finally {
             await queryRunner.release();
+        }
+    }
+
+    async createAccountForApprovedEntrepreneur(personId: number, queryRunner?: QueryRunner): Promise<void> {
+        const existingUser = await this.userAuthService.findUserByPersonId(personId);
+        
+        if (existingUser) {
+            // Usuario existe - solo activar
+            await this.userAuthService.activateUserAccount(existingUser.id_user, queryRunner);
+        } else {
+            // Usuario no existe - crear nuevo
+            const tempPassword = this.passwordService.generateTemporaryPassword();
+            const hashedPassword = await this.passwordService.hashPassword(tempPassword);
+            
+            await this.userAuthService.createUserWithRole(
+                personId,
+                UserRole.ENTREPRENEUR,
+                hashedPassword,
+                queryRunner
+            );
+
+            // TODO: Enviar email con credenciales temporales
+            // await this.emailService.sendTemporaryCredentials(email, tempPassword);
         }
     }
 }

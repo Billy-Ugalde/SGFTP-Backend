@@ -6,7 +6,7 @@ import { Role } from "../entities/role.entity";
 import { CreateUserDto } from "../dto/user.dto";
 import { Person } from "src/entities/person.entity";
 import { UpdateUserDto } from "../dto/userUpdateDto";
-import { PasswordService } from "src/modules/auth/services/password.service";
+import { PasswordService } from "src/modules/shared/services/password.service";
 
 @Injectable()
 export class UserService {

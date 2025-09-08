@@ -10,6 +10,8 @@ import { NewsModule } from './modules/news/news.module';
 import { UserModule } from './modules/users/user.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { SharedModule } from './modules/shared/shared.module';
+import { GlobalSeedService } from './database/services/global-seed.service';
 
 @Module({
   imports: [
@@ -30,8 +32,8 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
         ssl: false,
       }),
       inject: [ConfigService],
-    }),FairModule, EntrepreneurModule, InformativeModule, SubscribersModule,NewsModule, UserModule, AuthModule],
+    }),FairModule, EntrepreneurModule, InformativeModule, SubscribersModule,NewsModule, UserModule, AuthModule, SharedModule],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, GlobalSeedService],
 })
 export class AppModule { }
