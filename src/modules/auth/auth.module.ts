@@ -1,20 +1,18 @@
 import { Module } from '@nestjs/common';
-import { TypeOrmModule } from '@nestjs/typeorm';
 import { JwtModule } from '@nestjs/jwt';
-import { ConfigService } from '@nestjs/config';
-import { User } from '../users/entities/user.entity';
-import { UserAuthService } from './services/user-auth.service';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { AuthController } from './controllers/auth.controller';
+import { AuthService } from './services/auth.service';
 import { JwtTokenService } from './services/jwt.service';
-import { PasswordService } from './services/password.service';
-import { AuthService } from './services/auth.service'; 
-import { AuthController } from './controllers/auth.controller'; 
-import { Person } from '../../entities/person.entity';
-import { Role } from '../users/entities/role.entity';
+import { UserModule} from '../users/user.module'; // ← Importar Users module
+import { SharedModule } from '../shared/shared.module'; // ← Importar shared
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User, Person, Role]),
+    UserModule,
+    SharedModule,
     JwtModule.registerAsync({
+      imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({
         secret: configService.get<string>('JWT_ACCESS_SECRET'),
         signOptions: { expiresIn: '30m' },
@@ -23,17 +21,10 @@ import { Role } from '../users/entities/role.entity';
     }),
   ],
   providers: [
-    UserAuthService,
-    JwtTokenService,
-    PasswordService,
-    AuthService,     
-  ],
-  controllers: [
-    AuthController,   
-  ],
-  exports: [
-    AuthService,     
+    AuthService,
     JwtTokenService,
   ],
+  controllers: [AuthController],
+  exports: [AuthService, JwtTokenService],
 })
 export class AuthModule {}

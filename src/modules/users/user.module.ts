@@ -5,10 +5,14 @@ import { UserController } from "./controllers/user.controller";
 import { UserService } from "./services/user.service";
 import { Role } from "./entities/role.entity";
 import { Person } from "src/entities/person.entity";
-import { PasswordService } from "../auth/services/password.service";
+import { UserAuthService } from "./services/user-auth.service";
+import { SharedModule } from "../shared/shared.module";
+import { RoleSeedService } from "./services/role-seed.service";
+
 @Module({
-    imports: [TypeOrmModule.forFeature([User, Role, Person])],
+    imports: [TypeOrmModule.forFeature([User, Role, Person]), SharedModule],
     controllers: [UserController],
-    providers: [UserService, PasswordService]
+    providers: [UserAuthService, UserService, RoleSeedService],
+    exports: [UserAuthService, RoleSeedService],
 })
 export class UserModule { }
