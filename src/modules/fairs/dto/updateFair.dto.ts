@@ -12,6 +12,10 @@ export class UpdatefairDto {
 
     @IsOptional()
     @IsString()
+    conditions?: string;
+
+    @IsOptional()
+    @IsString()
     location?: string;
 
     @IsOptional()
