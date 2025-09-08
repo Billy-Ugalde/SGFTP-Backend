@@ -11,9 +11,9 @@ export class StandController {
         return this.standService.getAllStandsOrdered();
     }
 
-    @Get(':id_stand')
+    @Get(':id_fair')
     async getStandsByFair(
-        @Param('id_stand', ParseIntPipe) id_fair: number
+        @Param('id_fair', ParseIntPipe) id_fair: number
     ): Promise<Stand[]> {
         return this.standService.getStandsByFair(id_fair);
     }

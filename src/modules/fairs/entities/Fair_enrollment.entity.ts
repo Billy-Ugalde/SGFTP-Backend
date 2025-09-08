@@ -1,28 +1,39 @@
-import { Column, PrimaryGeneratedColumn, Entity, ManyToOne, JoinColumn, OneToOne } from "typeorm";
+import { Column, PrimaryGeneratedColumn, Entity, ManyToOne, JoinColumn, OneToOne, CreateDateColumn, OneToMany } from "typeorm";
 import { Fair } from "./fair.entity";
 import { Stand } from "./stand.entity";
-import { Entrepreneur } from "src/modules/entrepreneurs/entities/entrepreneur.entitie";
+import { Entrepreneur } from "src/modules/entrepreneurs/entities/entrepreneur.entity";
+
+export enum EnrollmentStatus {
+    PENDING = 'pending',
+    APPROVED = 'approved',
+    REJECTED = 'rejected'
+}
+
 @Entity()
 export class Fair_enrollment {
 
     @PrimaryGeneratedColumn()
     id_enrrolment_fair: number
 
-    @Column({ type: 'datetime' })
-    date: Date;
+    @CreateDateColumn()
+    registration_date: Date;
 
-    @Column({ type: 'boolean' })
-    status: boolean;
+    @Column({
+        type: 'enum',
+        enum: EnrollmentStatus,
+        default: EnrollmentStatus.PENDING
+    })
+    status: EnrollmentStatus;
 
     @ManyToOne(() => Fair, (fair) => fair.enrollments, { nullable: false })
     @JoinColumn({ name: 'id_fair' })
     fair: Fair;
 
-    @OneToOne(() => Stand, (stand) => stand.enrollment, { nullable: false })
+    @ManyToOne(() => Stand, (stand) => stand.enrollment, { nullable: false })
     @JoinColumn({ name: 'id_stand' })
     stand: Stand
 
     @ManyToOne(() => Entrepreneur, (entrepreneur) => entrepreneur.enrollment, { nullable: false })
     @JoinColumn({ name: 'id_entreprenuer' })
-    entreprenuer: Entrepreneur
+    entrepreneur: Entrepreneur
 }

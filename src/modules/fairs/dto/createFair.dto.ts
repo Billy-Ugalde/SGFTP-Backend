@@ -1,4 +1,5 @@
-import { IsArray, isArray, IsBoolean, IsDateString, IsNotEmpty, IsNumber, IsString, Min } from "class-validator"
+import { IsBoolean, IsDateString, IsEnum, IsNotEmpty, IsNumber, IsString, Min } from "class-validator"
+import { TypetFair } from "../entities/fair.entity";
 
 export class fairDto {
     @IsNotEmpty()
@@ -18,8 +19,13 @@ export class fairDto {
     @Min(1)
     stand_capacity: number;
 
+    @IsDateString()
     @IsNotEmpty()
-    readonly dateFairs: string[];
+    date: string;
+
+    @IsEnum(TypetFair)
+    @IsNotEmpty()
+    typeFair: TypetFair;
 
     @IsNotEmpty()
     @IsBoolean()

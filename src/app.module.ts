@@ -4,6 +4,11 @@ import { AppService } from './app.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { FairModule } from './modules/fairs/fairs.module';
 import { EntrepreneurModule } from './modules/entrepreneurs/entrepreneur.module';
+import { InformativeModule } from './modules/informative/informative.module';
+import { SubscribersModule } from './modules/subscribers/subscribers.module';
+import { NewsModule } from './modules/news/news.module';
+import { UserModule } from './modules/users/user.module';
+
 @Module({
   imports: [TypeOrmModule.forRoot({
     type: 'mysql',
@@ -15,7 +20,7 @@ import { EntrepreneurModule } from './modules/entrepreneurs/entrepreneur.module'
     ssl: false,
     autoLoadEntities: true,    //llama todas las entidades
     synchronize: true,
-  }), FairModule, EntrepreneurModule],
+  }), FairModule, EntrepreneurModule, InformativeModule, SubscribersModule,NewsModule, UserModule],
   controllers: [AppController],
   providers: [AppService],
 })
