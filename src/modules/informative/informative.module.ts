@@ -6,7 +6,7 @@ import { ContactInfoService } from "./services/contact-info.service";
 import { ContentBlockService } from "./services/content-block.service";
 import { ContactInfo } from "./entities/contact-info.entity";
 import { ContentBlock } from './entities/content-block.entity';
-import { SeedService } from "./services/seed.service";
+import { InformativeSeedService } from "./services/informative-seed.service";
 
 @Module({
   imports: [
@@ -19,11 +19,12 @@ import { SeedService } from "./services/seed.service";
   providers: [
     ContactInfoService,
     ContentBlockService,
-    SeedService
+    InformativeSeedService
   ],
   exports: [
     ContactInfoService,
-    ContentBlockService
+    ContentBlockService,
+    InformativeSeedService
   ]
 })
 export class InformativeModule { }

@@ -6,6 +6,7 @@ import { CreateCompleteEntrepreneurDto, UpdateCompleteEntrepreneurDto } from '..
 import { ToggleActiveDto, UpdateStatusDto } from '../dto/entrepreneur.dto';
 import { PersonService } from '../../person/services/person.service';
 import { EntrepreneurshipService } from './entrepreneurship.service';
+import { AuthService } from '../../auth/services/auth.service';
 import { Person } from '../../../entities/person.entity';
 import { Entrepreneurship } from '../entities/entrepreneurship.entity';
 
@@ -17,6 +18,7 @@ export class EntrepreneurService {
     private personService: PersonService,
     private entrepreneurshipService: EntrepreneurshipService,
     private dataSource: DataSource,
+    private authService: AuthService,
   ) { }
 
 
@@ -145,8 +147,7 @@ export class EntrepreneurService {
     }
   }
 
-
-  async updateStatus(id: number, statusDto: UpdateStatusDto): Promise<Entrepreneur> {
+/** async updateStatus(id: number, statusDto: UpdateStatusDto): Promise<Entrepreneur> {
     const entrepreneur = await this.findOne(id);
 
     if (entrepreneur.status !== EntrepreneurStatus.PENDING) {
@@ -162,8 +163,46 @@ export class EntrepreneurService {
     await this.entrepreneurRepository.save(entrepreneur);
 
     return await this.findOne(id);
-  }
+  }*/
+  
+  async updateStatus(id: number, statusDto: UpdateStatusDto): Promise<Entrepreneur> {
+      const entrepreneur = await this.findOne(id);
 
+      if (entrepreneur.status !== EntrepreneurStatus.PENDING) {
+          throw new BadRequestException(`Solo se pueden aprobar o rechazar solicitudes pendientes`);
+      }
+
+      // ===== TRANSACCIÓN PARA MANTENER CONSISTENCIA =====
+      const queryRunner = this.dataSource.createQueryRunner();
+      await queryRunner.connect();
+      await queryRunner.startTransaction();
+
+      try {
+          // 1. Actualizar estado de entrepreneur
+          entrepreneur.status = statusDto.status;
+
+          if (statusDto.status === EntrepreneurStatus.APPROVED) {
+              entrepreneur.is_active = true;
+          }
+          await queryRunner.manager.save(Entrepreneur, entrepreneur);
+
+          // 2. Crear o actualizar usuario SI es aprovado
+          if (statusDto.status === EntrepreneurStatus.APPROVED) {
+            // LINEA IMPORTANTE: Crear cuenta de usuario para el emprendedor aprobado
+              await this.authService.createAccountForApprovedEntrepreneur(
+                entrepreneur.person.id_person, queryRunner);
+          }
+
+          await queryRunner.commitTransaction();
+          return await this.findOne(id);
+
+      } catch (error) {
+          await queryRunner.rollbackTransaction();
+          throw error;
+      } finally {
+          await queryRunner.release();
+      }
+  }
 
   async toggleActive(id: number, toggleDto: ToggleActiveDto): Promise<Entrepreneur> {
     const entrepreneur = await this.findOne(id);

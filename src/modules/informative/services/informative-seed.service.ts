@@ -1,15 +1,15 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { ContentBlockService } from './content-block.service';
 import { ContactInfoService } from './contact-info.service';
 
 @Injectable()
-export class SeedService implements OnModuleInit {
+export class InformativeSeedService {
   constructor(
     private readonly contentBlockService: ContentBlockService,
     private readonly contactInfoService: ContactInfoService,
   ) {}
 
-  async onModuleInit() {
+  async seedInformativeContent(): Promise<void> {
     await this.seedContentBlocks();
     await this.seedContactInfo();
   }
