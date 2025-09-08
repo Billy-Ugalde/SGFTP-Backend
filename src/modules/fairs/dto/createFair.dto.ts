@@ -12,6 +12,10 @@ export class fairDto {
 
     @IsNotEmpty()
     @IsString()
+    conditions: string;
+
+    @IsNotEmpty()
+    @IsString()
     location: string;
 
     @IsNotEmpty()

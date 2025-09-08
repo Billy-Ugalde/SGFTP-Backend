@@ -17,6 +17,9 @@ export class Fair {
     @Column({ type: 'text' })
     description: string;
 
+    @Column({ type: 'text' })
+    conditions: string;
+
     @Column({ type: 'varchar', length: 150 })
     location: string;
 
