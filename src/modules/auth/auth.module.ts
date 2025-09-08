@@ -6,6 +6,9 @@ import { AuthService } from './services/auth.service';
 import { JwtTokenService } from './services/jwt.service';
 import { UserModule} from '../users/user.module'; // ← Importar Users module
 import { SharedModule } from '../shared/shared.module'; // ← Importar shared
+import { AuthGuard } from './guards/auth.guard';
+import { Role } from '../users/entities/role.entity';
+import { RoleGuard } from './guards/role.guard';
 
 @Module({
   imports: [
@@ -23,8 +26,10 @@ import { SharedModule } from '../shared/shared.module'; // ← Importar shared
   providers: [
     AuthService,
     JwtTokenService,
+    AuthGuard,
+    RoleGuard,
   ],
   controllers: [AuthController],
-  exports: [AuthService, JwtTokenService],
+  exports: [AuthService, JwtTokenService, AuthGuard,RoleGuard,],
 })
 export class AuthModule {}
