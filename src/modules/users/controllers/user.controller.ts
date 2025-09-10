@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Param, ParseIntPipe, Patch, Post, Put } from "@nestjs/common";
+import { Body, Controller, Get, HttpCode, HttpStatus, Param, ParseIntPipe, Patch, Post, Put, UseGuards } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import { UserService } from "../services/user.service";
@@ -6,9 +6,15 @@ import { User } from "../entities/user.entity";
 import { Role } from "../entities/role.entity";
 import { CreateUserDto } from "../dto/user.dto";
 import { UpdateUserDto } from "../dto/userUpdateDto";
+import { RoleGuard } from "src/modules/auth/guards/role.guard";
+import { Roles } from "src/modules/auth/decorators/roles.decorator";
+import { UserRole } from "src/modules/auth/enums/user-role.enum";
+import { AuthGuard } from "src/modules/auth/guards/auth.guard";
 
 @Controller('users')
-// @UseGuards(JwtAuthGuard)
+@UseGuards(AuthGuard)
+@UseGuards(RoleGuard)
+@Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN)
 export class UserController {
 
   constructor(

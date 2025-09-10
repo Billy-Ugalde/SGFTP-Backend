@@ -10,8 +10,9 @@ import { StandController } from "./controllers/stand.controller";
 import { EnrollmentController } from "./controllers/enrollment.controller";
 import { EnrrolmentService } from "./services/Enrollment.service";
 import { Entrepreneur } from "../entrepreneurs/entities/entrepreneur.entity";
+import { AuthModule } from "../auth/auth.module";
 @Module({
-    imports: [TypeOrmModule.forFeature([Fair, Stand, Fair_enrollment,Entrepreneur])],
+    imports: [TypeOrmModule.forFeature([Fair, Stand, Fair_enrollment,Entrepreneur]), AuthModule],
     controllers: [FairController, StandController, EnrollmentController],
     providers: [FairService, StandService,EnrrolmentService]
 })
