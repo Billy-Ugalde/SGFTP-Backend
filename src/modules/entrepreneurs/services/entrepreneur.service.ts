@@ -74,7 +74,7 @@ export class EntrepreneurService {
         facebook_url: createDto.entrepreneur.facebook_url,
         instagram_url: createDto.entrepreneur.instagram_url,
         status: EntrepreneurStatus.PENDING,
-        is_active: true,
+        is_active: false,
         person: savedPerson,
       });
 
@@ -146,24 +146,6 @@ export class EntrepreneurService {
       await queryRunner.release();
     }
   }
-
-/** async updateStatus(id: number, statusDto: UpdateStatusDto): Promise<Entrepreneur> {
-    const entrepreneur = await this.findOne(id);
-
-    if (entrepreneur.status !== EntrepreneurStatus.PENDING) {
-      throw new BadRequestException(`Solo se pueden aprobar o rechazar solicitudes pendientes`);
-    }
-
-    entrepreneur.status = statusDto.status;
-
-    if (statusDto.status === EntrepreneurStatus.APPROVED) {
-      entrepreneur.is_active = true;
-    }
-
-    await this.entrepreneurRepository.save(entrepreneur);
-
-    return await this.findOne(id);
-  }*/
   
   async updateStatus(id: number, statusDto: UpdateStatusDto): Promise<Entrepreneur> {
       const entrepreneur = await this.findOne(id);
@@ -181,9 +163,6 @@ export class EntrepreneurService {
           // 1. Actualizar estado de entrepreneur
           entrepreneur.status = statusDto.status;
 
-          if (statusDto.status === EntrepreneurStatus.APPROVED) {
-              entrepreneur.is_active = true;
-          }
           await queryRunner.manager.save(Entrepreneur, entrepreneur);
 
           // 2. Crear o actualizar usuario SI es aprovado
