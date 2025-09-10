@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, UseGuards } from '@nestjs/common';
+import { Controller, Post, Body, Get, UseGuards, Res, Req } from '@nestjs/common';
 import { AuthService } from '../services/auth.service';
 import { LoginDto } from '../dto/login.dto';
 import { RegisterDto } from '../dto/register.dto';
@@ -12,6 +12,7 @@ import { RoleGuard } from '../guards/role.guard';
 import { UserRole } from '../enums/user-role.enum';
 import { RateLimit } from '../decorators/rate-limit.decorator';
 import { RateLimitGuard } from '../guards/rate-limit.guard';
+import { Response, Request } from 'express';
 
 @Controller('auth')
 @UseGuards(AuthGuard)
@@ -34,6 +35,30 @@ export class AuthController {
     @Post('register')
     async register(@Body() registerDto: RegisterDto): Promise<{ message: string; userId: number }> {
         return await this.authService.register(registerDto);
+    }
+
+    @Public()
+    @UseGuards(RateLimitGuard)
+    @RateLimit(5, 15 * 60 * 1000) 
+    @Post('login-cookies')
+    async loginWithCookies(
+    @Body() loginDto: LoginDto, 
+    @Res({ passthrough: true }) response: Response
+    ): Promise<Omit<AuthResponseDto, 'accessToken' | 'refreshToken'>> {
+        return await this.authService.loginWithCookies(loginDto.email, loginDto.password, response);
+    }
+
+    @Public()
+    @Post('refresh')
+    async refreshToken(
+    @Req() request: Request, 
+    @Res({ passthrough: true }) response: Response): Promise<{ message: string }> {
+        return await this.authService.refreshTokenFromCookie(request, response);
+    }
+
+    @Post('logout')
+    async logout(@Res({ passthrough: true }) response: Response): Promise<{ message: string }> {
+        return await this.authService.logout(response);
     }
 
     @Get('profile')

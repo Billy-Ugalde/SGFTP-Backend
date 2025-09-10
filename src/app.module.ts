@@ -12,6 +12,9 @@ import { AuthModule } from './modules/auth/auth.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { SharedModule } from './modules/shared/shared.module';
 import { GlobalSeedService } from './database/services/global-seed.service';
+import { MiddlewareConsumer, NestModule } from '@nestjs/common';
+import { SecurityHeadersMiddleware } from './middleware/security-headers.middleware';
+import { CorsMiddleware } from './middleware/cors.middleware';
 
 @Module({
   imports: [
@@ -36,4 +39,11 @@ import { GlobalSeedService } from './database/services/global-seed.service';
   controllers: [AppController],
   providers: [AppService, GlobalSeedService],
 })
-export class AppModule { }
+
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer
+      .apply(SecurityHeadersMiddleware)
+      .forRoutes('*');
+  }
+}

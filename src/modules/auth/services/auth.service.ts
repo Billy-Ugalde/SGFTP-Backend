@@ -139,4 +139,117 @@ export class AuthService {
             // await this.emailService.sendTemporaryCredentials(email, tempPassword);
         }
     }
+
+    // Método privado para configuración de cookies
+    private getCookieOptions(isRefreshToken = false) {
+        const isProduction = process.env.NODE_ENV === 'production';
+        const cookieConfig = {
+            httpOnly: true,                    // Previene acceso desde JavaScript
+            secure: process.env.COOKIE_SECURE === 'true',
+            sameSite: (process.env.COOKIE_SAME_SITE || 'lax') as 'strict' | 'lax' | 'none',
+            domain: process.env.COOKIE_DOMAIN,
+            path: '/',
+        };
+
+        return {
+            ...cookieConfig,
+            maxAge: isRefreshToken 
+            ? 7 * 24 * 60 * 60 * 1000    // 7 días para refresh token
+            : 15 * 60 * 1000,            // 15 minutos para access token
+        };
+    }
+
+    /**
+     * LOGIN con cookies seguras
+     */
+    async loginWithCookies(email: string, password: string, response: any): Promise<Omit<AuthResponseDto, 'accessToken' | 'refreshToken'>> {
+        // 1. Validar credenciales (mismo código)
+        const user = await this.userAuthService.validateUserCredentials(email, password);
+        
+        if (!user) {
+            throw new UnauthorizedException('Credenciales inválidas');
+        }
+
+        // 2. Generar tokens
+        const accessToken = this.jwtTokenService.generateAccessToken(user);
+        const refreshToken = this.jwtTokenService.generateRefreshToken(user);
+
+        // 3. Establecer cookies seguras
+        response.cookie('accessToken', accessToken, this.getCookieOptions(false));
+        response.cookie('refreshToken', refreshToken, this.getCookieOptions(true));
+
+        // 4. Retornar solo datos del usuario (sin tokens)
+        return {
+            user: {
+            id: user.id_user,
+            email: user.person.email,
+            firstName: user.person.first_name,
+            firstLastname: user.person.first_lastname,
+            role: user.role.name,
+            isEmailVerified: user.isEmailVerified,
+            }
+        };
+    }
+
+    /**
+     * REFRESH TOKEN desde cookies
+     */
+    async refreshTokenFromCookie(request: any, response: any): Promise<{ message: string }> {
+        const refreshToken = request.cookies?.refreshToken;
+        
+        if (!refreshToken) {
+            throw new UnauthorizedException('Refresh token no encontrado');
+        }
+
+        try {
+            const payload = await this.jwtTokenService.verifyRefreshToken(refreshToken);
+            const user = await this.userAuthService.findByEmailForAuth(payload.email);
+            
+            if (!user) {
+            throw new UnauthorizedException('Usuario no encontrado');
+            }
+
+            const newAccessToken = this.jwtTokenService.generateAccessToken(user);
+            response.cookie('accessToken', newAccessToken, this.getCookieOptions(false));
+            
+            return { message: 'Token renovado exitosamente' };
+            
+        } catch (error) {
+            response.clearCookie('accessToken');
+            response.clearCookie('refreshToken');
+            throw new UnauthorizedException('Refresh token inválido');
+        }
+    }
+
+    /**
+     * LOGOUT - limpiar cookies
+     */
+    async logout(response: any): Promise<{ message: string }> {
+        response.clearCookie('accessToken');
+        response.clearCookie('refreshToken');
+    
+        return { message: 'Sesión cerrada exitosamente' };
+    }
+
+    /**
+     * Validar token desde cookies O headers (DUAL)
+     */
+    async validateTokenFromRequest(request: any): Promise<User | null> {
+        // Intentar obtener token de cookies primero (más seguro)
+        let token = request.cookies?.accessToken;
+        
+        // Si no hay cookie, intentar desde Authorization header
+        if (!token) {
+            const authHeader = request.headers.authorization;
+            token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
+        }
+
+        // Si no hay token en ningún lugar
+        if (!token) {
+            return null;
+        }
+
+        // Usar método de validación existente
+        return await this.validateAccessToken(token);
+    }
 }
