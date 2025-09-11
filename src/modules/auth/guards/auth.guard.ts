@@ -17,16 +17,10 @@ export class AuthGuard implements CanActivate {
     }
 
     const request = context.switchToHttp().getRequest();
-    const authHeader = request.headers.authorization;
-
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      throw new UnauthorizedException('Token de acceso requerido');
-    }
-
-    const token = authHeader.substring(7); // Remover "Bearer "
 
     try {
-      const user = await this.authService.validateAccessToken(token);
+      // Usar el método que lee cookies Y headers (ya implementado en AuthService)
+      const user = await this.authService.validateTokenFromRequest(request);
       
       if (!user) {
         throw new UnauthorizedException('Token inválido o expirado');

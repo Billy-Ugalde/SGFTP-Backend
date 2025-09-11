@@ -45,6 +45,13 @@ export class UserSeedService {
         first_name: 'Test',
         first_lastname: 'Entrepreneur', 
         role: UserRole.ENTREPRENEUR
+      },
+      {
+        email: 'content@test.com',
+        password: 'Test123!@#',
+        first_name: 'Test',
+        first_lastname: 'Content', 
+        role: UserRole.CONTENT_ADMIN
       }
     ];
 
