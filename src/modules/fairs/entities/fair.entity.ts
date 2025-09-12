@@ -1,4 +1,4 @@
-import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, OneToMany, PrimaryGeneratedColumn, Index } from "typeorm";
 import { Stand } from "./stand.entity";
 import { Fair_enrollment } from "./Fair_enrollment.entity";
 
@@ -6,6 +6,8 @@ export enum TypetFair {
     INTERNAL = 'interna',
     EXTERNAL = 'externa',
 }
+
+@Index(['name', 'date'], { unique: true })
 @Entity()
 export class Fair {
     @PrimaryGeneratedColumn()
