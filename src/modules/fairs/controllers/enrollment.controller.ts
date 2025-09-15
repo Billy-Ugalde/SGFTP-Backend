@@ -11,13 +11,12 @@ import { RateLimitGuard } from "src/modules/auth/guards/rate-limit.guard";
 import { RateLimit } from "src/modules/auth/decorators/rate-limit.decorator";
 @Controller('enrollment')
 @UseGuards(AuthGuard)
-@UseGuards(RoleGuard)
-@Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN, UserRole.FAIR_ADMIN, UserRole.AUDITOR)
 export class EnrollmentController {
 
     constructor(private readonly fair_enrollmentservice: EnrrolmentService) { }
 
     @Post()
+    @UseGuards(RoleGuard)
     @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN,
         UserRole.FAIR_ADMIN, UserRole.ENTREPRENEUR)
     @UseGuards(RateLimitGuard)
@@ -31,36 +30,49 @@ export class EnrollmentController {
     }
 
     @Get()
+    @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN,
+        UserRole.FAIR_ADMIN, UserRole.AUDITOR)
     async findAll(): Promise<Fair_enrollment[]> {
         return await this.fair_enrollmentservice.findAll();
     }
 
     @Get('approved')
+    @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN,
+        UserRole.FAIR_ADMIN, UserRole.AUDITOR)
     async findAllApproved(): Promise<Fair_enrollment[]> {
         return await this.fair_enrollmentservice.findAllApproved();
     }
 
     @Get('pending')
+    @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN,
+        UserRole.FAIR_ADMIN, UserRole.AUDITOR)
     async findAllPending(): Promise<Fair_enrollment[]> {
         return await this.fair_enrollmentservice.findAllPending();
     }
 
     @Get('rejected')
+    @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN,
+        UserRole.FAIR_ADMIN, UserRole.AUDITOR)
     async findAllRejected(): Promise<Fair_enrollment[]> {
         return await this.fair_enrollmentservice.findAllRejected();
     }
 
     @Get(':id')
+    @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN,
+        UserRole.FAIR_ADMIN, UserRole.AUDITOR)
     async findOne(@Param('id', ParseIntPipe) id: number): Promise<Fair_enrollment> {
         return await this.fair_enrollmentservice.findOne(id);
     }
 
     @Get('fair/:id')
+    @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN,
+        UserRole.FAIR_ADMIN, UserRole.AUDITOR)
     async findByFair(@Param('id', ParseIntPipe) fairId: number): Promise<Fair_enrollment[]> {
         return await this.fair_enrollmentservice.findByFair(fairId);
     }
 
     @Patch(':id/status')
+    @UseGuards(RoleGuard)
     @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN,
         UserRole.FAIR_ADMIN)
     async updateStatus(
