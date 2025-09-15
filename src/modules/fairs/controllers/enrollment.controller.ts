@@ -19,7 +19,7 @@ export class EnrollmentController {
 
     @Post()
     @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN,
-        UserRole.FAIR_ADMIN, UserRole.AUDITOR, UserRole.ENTREPRENEUR)
+        UserRole.FAIR_ADMIN, UserRole.ENTREPRENEUR)
     @UseGuards(RateLimitGuard)
     @RateLimit(5, 15 * 60 * 1000)
     @HttpCode(HttpStatus.CREATED)
@@ -61,6 +61,8 @@ export class EnrollmentController {
     }
 
     @Patch(':id/status')
+    @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN,
+        UserRole.FAIR_ADMIN)
     async updateStatus(
         @Param('id', ParseIntPipe) id: number,
         @Body()

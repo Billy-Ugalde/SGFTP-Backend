@@ -18,7 +18,7 @@ export class FairController {
 
     @Post()
     @UseGuards(RoleGuard)
-    @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN, UserRole.FAIR_ADMIN, UserRole.AUDITOR)
+    @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN, UserRole.FAIR_ADMIN)
     @HttpCode(HttpStatus.CREATED)
     async create(
         @Body()
@@ -41,14 +41,14 @@ export class FairController {
 
     @Put(':id')
     @UseGuards(RoleGuard)
-    @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN, UserRole.FAIR_ADMIN, UserRole.AUDITOR)
+    @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN, UserRole.FAIR_ADMIN)
     async update(@Param('id', ParseIntPipe) id: number, @Body() updateFair: UpdatefairDto): Promise<Fair> {
         return await this.fairService.update(id, updateFair);
     }
 
     @Patch(':id')
     @UseGuards(RoleGuard)
-    @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN, UserRole.FAIR_ADMIN, UserRole.AUDITOR)
+    @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN, UserRole.FAIR_ADMIN)
     async updateStatus(
         @Param('id', ParseIntPipe) id: number,
         @Body() fairstatus: fairStatusDto
