@@ -61,6 +61,7 @@ export class AuthController {
             message: `Hola ${user.person.first_name}`,
             user: {
                 id: user.id_user,
+                firstName: user.person.first_name,
                 email: user.person.email,
                 roles: user.getAllRoleNames(),
                 primaryRole: user.primaryRole.name,
