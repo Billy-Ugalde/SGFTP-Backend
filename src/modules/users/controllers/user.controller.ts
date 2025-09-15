@@ -14,7 +14,7 @@ import { AuthGuard } from "src/modules/auth/guards/auth.guard";
 @Controller('users')
 @UseGuards(AuthGuard)
 @UseGuards(RoleGuard)
-@Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN)
+@Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN, UserRole.AUDITOR)
 export class UserController {
 
   constructor(
@@ -34,6 +34,7 @@ export class UserController {
   }
 
   @Put('update/:id')
+  @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN)
   async update(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateUserDto: UpdateUserDto
@@ -42,6 +43,7 @@ export class UserController {
   }
 
   @Patch('status/:id')
+  @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN)
   async updateStatus(
     @Param('id', ParseIntPipe) id: number,
     @Body() updatestatus: UpdateUserDto
@@ -50,6 +52,7 @@ export class UserController {
   }
 
   @Post()
+  @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN)
   @HttpCode(HttpStatus.CREATED)
   async create(
     @Body() createUserDto: CreateUserDto): Promise<User> {
