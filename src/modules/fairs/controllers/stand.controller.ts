@@ -7,19 +7,21 @@ import { Roles } from "src/modules/auth/decorators/roles.decorator";
 import { UserRole } from "src/modules/auth/enums/user-role.enum";
 @Controller('stand')
 @UseGuards(AuthGuard)
-@UseGuards(RoleGuard)
-@Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN, UserRole.FAIR_ADMIN, UserRole.AUDITOR)
 export class StandController {
     constructor(private readonly standService: StandService) { }
 
     @Get()
+    @UseGuards(RoleGuard)
+    @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN, UserRole.FAIR_ADMIN,
+        UserRole.AUDITOR)
     async getAllStands(): Promise<Stand[]> {
         return this.standService.getAllStandsOrdered();
     }
 
     @Get(':id_fair')
+    @UseGuards(RoleGuard)
     @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN, UserRole.FAIR_ADMIN,
-        UserRole.AUDITOR, UserRole.ENTREPRENEUR)
+        UserRole.AUDITOR,UserRole.ENTREPRENEUR)
     async getStandsByFair(
         @Param('id_fair', ParseIntPipe) id_fair: number
     ): Promise<Stand[]> {
