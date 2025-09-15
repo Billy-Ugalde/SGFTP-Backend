@@ -20,9 +20,7 @@ export class AuthService {
     ) {}
 
 
-    /**
-     * VERIFY TOKEN - para guards
-     */
+    //VERIFY TOKEN - para guards
     async validateAccessToken(token: string): Promise<User | null> {
         try {
             const payload = await this.jwtTokenService.verifyAccessToken(token);
@@ -151,8 +149,8 @@ export class AuthService {
             email: user.person.email,
             firstName: user.person.first_name,
             firstLastname: user.person.first_lastname,
-            roles: user.getAllRoleNames(), // ✅ CAMBIO: Array de roles
-            primaryRole: user.primaryRole.name, // ✅ CAMBIO: Rol principal
+            primaryRole: user.primaryRole.name, 
+            roles: user.getAllRoleNames(), 
             isEmailVerified: user.isEmailVerified,
         }
     };

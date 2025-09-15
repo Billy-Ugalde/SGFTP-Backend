@@ -102,8 +102,8 @@ export class UserSeedService {
         isEmailVerified: true,
         failedLoginAttempts: 0,
         person: savedPerson,
-        roles: [role], // ✅ CAMBIO: Array de roles
-        primaryRole: role, // ✅ CAMBIO: Rol primario
+        primaryRole: role,
+        roles: [role], 
     });
 
     await this.userRepository.save(user);
