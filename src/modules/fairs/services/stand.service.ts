@@ -2,18 +2,18 @@ import { Injectable } from "@nestjs/common";
 import { Stand } from "../entities/stand.entity";
 import { Fair } from "../entities/fair.entity";
 import { InjectRepository } from "@nestjs/typeorm";
-import { Repository } from "typeorm";
+import { QueryRunner, Repository } from "typeorm";
 @Injectable()
 export class StandService {
     constructor(
         @InjectRepository(Stand)
         private standRepository: Repository<Stand>,
         @InjectRepository(Fair)
-        private fairRepository: Repository<Fair>
+        private fairRepository: Repository<Fair>,
     ) { }
 
-    async createInitialStands(fairId: number, capacity: number) {
-        const fair = await this.fairRepository.findOne({ where: { id_fair: fairId } });
+    async createInitialStands(fairId: number, capacity: number, queryRunner: QueryRunner) {
+        const fair = await queryRunner.manager.findOne(Fair,{ where: { id_fair: fairId } });
         if (!fair) {
             throw new Error(`Feria con ID ${fairId} no encontrada`);
         }
@@ -25,7 +25,7 @@ export class StandService {
                 fair: fair
             });
         }
-        return await this.standRepository.save(standsToCreate);
+        return await queryRunner.manager.save(Stand, standsToCreate);
     }
 
     async adjustStandsToCapacity(fairId: number, newCapacity: number) {
