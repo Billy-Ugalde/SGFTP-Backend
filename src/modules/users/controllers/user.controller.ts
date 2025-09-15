@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Param, ParseIntPipe, Patch, Post, Put } from "@nestjs/common";
+import { Body, Controller, Get, HttpCode, HttpStatus, Param, ParseIntPipe, Patch, Post, Put, UseGuards } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import { UserService } from "../services/user.service";
@@ -6,9 +6,12 @@ import { User } from "../entities/user.entity";
 import { Role } from "../entities/role.entity";
 import { CreateUserDto } from "../dto/user.dto";
 import { UpdateUserDto } from "../dto/userUpdateDto";
-
+import { RoleGuard } from "src/modules/auth/guards/role.guard";
+import { Roles } from "src/modules/auth/decorators/roles.decorator";
+import { UserRole } from "src/modules/auth/enums/user-role.enum";
+import { AuthGuard } from "src/modules/auth/guards/auth.guard";
 @Controller('users')
-// @UseGuards(JwtAuthGuard)
+@UseGuards(AuthGuard)
 export class UserController {
 
   constructor(
@@ -18,16 +21,22 @@ export class UserController {
   ) { }
 
   @Get()
+  @UseGuards(RoleGuard)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.AUDITOR)
   async findAll(): Promise<User[]> {
     return await this.userService.findAll();
   }
 
   @Get(':id')
+  @UseGuards(RoleGuard)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.AUDITOR)
   async findOne(@Param('id', ParseIntPipe) id: number): Promise<User> {
     return await this.userService.findOne(id);
   }
 
   @Put('update/:id')
+  @UseGuards(RoleGuard)
+  @Roles(UserRole.SUPER_ADMIN)
   async update(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateUserDto: UpdateUserDto
@@ -36,6 +45,8 @@ export class UserController {
   }
 
   @Patch('status/:id')
+  @UseGuards(RoleGuard)
+  @Roles(UserRole.SUPER_ADMIN)
   async updateStatus(
     @Param('id', ParseIntPipe) id: number,
     @Body() updatestatus: UpdateUserDto
@@ -44,13 +55,18 @@ export class UserController {
   }
 
   @Post()
+  @UseGuards(RoleGuard)
+  @Roles(UserRole.SUPER_ADMIN)
   @HttpCode(HttpStatus.CREATED)
   async create(
     @Body() createUserDto: CreateUserDto): Promise<User> {
     return await this.userService.create(createUserDto);
   }
 
+
   @Get('roles/all')
+  @UseGuards(RoleGuard)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.AUDITOR)
   async getAllRoles(): Promise<Role[]> {
     return await this.roleRepository.find({
       order: { name: 'ASC' }
