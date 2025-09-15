@@ -60,47 +60,50 @@ export class UserSeedService {
     }
   }
 
+  // En user-seed.service.ts - Actualizar el método createTestUser:
+
   private async createTestUser(userData: any): Promise<void> {
     // Verificar si ya existe
     const existingPerson = await this.personRepository.findOne({
-      where: { email: userData.email }
+        where: { email: userData.email }
     });
 
     if (existingPerson) {
-      console.log(`User ${userData.email} already exists`);
-      return;
+        console.log(`User ${userData.email} already exists`);
+        return;
     }
 
     // Crear Person
     const person = this.personRepository.create({
-      first_name: userData.first_name,
-      second_name: '',
-      first_lastname: userData.first_lastname,
-      second_lastname: '',
-      email: userData.email,
+        first_name: userData.first_name,
+        second_name: '',
+        first_lastname: userData.first_lastname,
+        second_lastname: '',
+        email: userData.email,
     });
     const savedPerson = await this.personRepository.save(person);
 
     // Buscar rol
     const role = await this.roleRepository.findOne({
-      where: { name: userData.role }
+        where: { name: userData.role }
     });
 
     if (!role) {
-      throw new Error(`Role ${userData.role} not found`);
+        throw new Error(`Role ${userData.role} not found`);
     }
 
     // Hash password
     const hashedPassword = await this.passwordService.hashPassword(userData.password);
 
-    // Crear User
+    // ✅ CREAR USER CON NUEVA ESTRUCTURA:
     const user = this.userRepository.create({
-      password: hashedPassword,
-      status: true,
-      isEmailVerified: true, // Pre-verificado para testing
-      failedLoginAttempts: 0,
-      person: savedPerson,
-      role: role,
+        password: hashedPassword,
+        status: true,
+        isEmailVerified: true,
+        failedLoginAttempts: 0,
+        person: savedPerson,
+        primaryRole: role,
+        roles: [role], 
     });
 
     await this.userRepository.save(user);
