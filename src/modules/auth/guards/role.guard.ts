@@ -6,33 +6,34 @@ import { User } from '../../users/entities/user.entity';
 
 @Injectable()
 export class RoleGuard implements CanActivate {
-  constructor(private reflector: Reflector) {}
+    constructor(private reflector: Reflector) {}
 
-  canActivate(context: ExecutionContext): boolean {
-    const requiredRoles = this.reflector.getAllAndOverride<UserRole[]>(ROLES_KEY, [
-      context.getHandler(),
-      context.getClass(),
-    ]);
+    canActivate(context: ExecutionContext): boolean {
+        const requiredRoles = this.reflector.getAllAndOverride<UserRole[]>(ROLES_KEY, [
+            context.getHandler(),
+            context.getClass(),
+        ]);
 
-    if (!requiredRoles) {
-      return true; // No hay restricciones de rol
+        if (!requiredRoles) {
+            return true;
+        }
+
+        const request = context.switchToHttp().getRequest();
+        const user: User = request.user;
+
+        if (!user) {
+            throw new ForbiddenException('Usuario no autenticado');
+        }
+
+        // ✅ CAMBIO CRÍTICO: Verificar contra todos los roles del usuario
+        const hasRole = requiredRoles.some(role => user.hasRole(role));
+        
+        if (!hasRole) {
+            throw new ForbiddenException(
+                `Acceso denegado. Roles requeridos: ${requiredRoles.join(', ')}`
+            );
+        }
+
+        return true;
     }
-
-    const request = context.switchToHttp().getRequest();
-    const user: User = request.user;
-
-    if (!user) {
-      throw new ForbiddenException('Usuario no autenticado');
-    }
-
-    const hasRole = requiredRoles.some(role => user.role.name === role);
-    
-    if (!hasRole) {
-      throw new ForbiddenException(
-        `Acceso denegado. Roles requeridos: ${requiredRoles.join(', ')}`
-      );
-    }
-
-    return true;
-  }
 }

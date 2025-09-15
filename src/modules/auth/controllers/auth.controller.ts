@@ -13,21 +13,15 @@ import { UserRole } from '../enums/user-role.enum';
 import { RateLimit } from '../decorators/rate-limit.decorator';
 import { RateLimitGuard } from '../guards/rate-limit.guard';
 import { Response, Request } from 'express';
+import { PermissionService } from '../services/permission.service';
 
 @Controller('auth')
 @UseGuards(AuthGuard)
 export class AuthController {
     constructor(
-        private authService: AuthService,  // ← USA EL PRINCIPAL
+        private authService: AuthService,  
+        private permissionService: PermissionService,
     ) {}
-
-    @Public()
-    @UseGuards(RateLimitGuard)
-    @RateLimit(5, 15 * 60 * 1000) 
-    @Post('login')
-    async login(@Body() loginDto: LoginDto): Promise<AuthResponseDto> {
-        return await this.authService.login(loginDto.email, loginDto.password);
-    }
 
     @Public()
     @UseGuards(RateLimitGuard)
@@ -40,7 +34,7 @@ export class AuthController {
     @Public()
     @UseGuards(RateLimitGuard)
     @RateLimit(5, 15 * 60 * 1000) 
-    @Post('login-cookies')
+    @Post('login')
     async loginWithCookies(
     @Body() loginDto: LoginDto, 
     @Res({ passthrough: true }) response: Response
@@ -68,7 +62,8 @@ export class AuthController {
             user: {
                 id: user.id_user,
                 email: user.person.email,
-                role: user.role.name,
+                roles: user.getAllRoleNames(),
+                primaryRole: user.primaryRole.name,
             }
         };
     }
@@ -89,7 +84,8 @@ export class AuthController {
         return {
             message: 'Información del sistema',
             accessedBy: user.person.first_name,
-            role: user.role.name
+            roles: user.getAllRoleNames(),
+            primaryRole: user.primaryRole.name
         };
     }
 
@@ -100,8 +96,9 @@ export class AuthController {
     async getAdminDashboard(@CurrentUser() user: User) {
         return {
             message: 'Dashboard administrativo',
-            userRole: user.role.name,
-            permissions: this.getPermissionsByRole(user.role.name)
+            userRoles: user.getAllRoleNames(),
+            primaryRole: user.primaryRole.name,
+            permissions: this.getPermissionsByRoles(user.getAllRoleNames()) // ← Método actualizado
         };
     }
 
@@ -116,7 +113,9 @@ export class AuthController {
         };
     }
 
-    private getPermissionsByRole(role: string): string[] {
+    private getPermissionsByRoles(roleNames: string[]): string[] {
+        const allPermissions = new Set<string>();
+        
         const permissions = {
             [UserRole.SUPER_ADMIN]: ['all'],
             [UserRole.GENERAL_ADMIN]: ['users', 'reports', 'settings'],
@@ -126,7 +125,13 @@ export class AuthController {
             [UserRole.ENTREPRENEUR]: ['own_profile', 'apply_events'],
             [UserRole.VOLUNTEER]: ['register_activities', 'view_events']
         };
-        return permissions[role] || [];
+
+        roleNames.forEach(roleName => {
+            const rolePermissions = permissions[roleName] || [];
+            rolePermissions.forEach(permission => allPermissions.add(permission));
+        });
+
+        return Array.from(allPermissions);
     }
 
 }

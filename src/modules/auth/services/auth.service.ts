@@ -19,36 +19,6 @@ export class AuthService {
         private dataSource: DataSource,
     ) {}
 
-    /**
-     * LOGIN básico - funcional
-     */
-    async login(email: string, password: string): Promise<AuthResponseDto> {
-        // 1. Validar credenciales
-        const user = await this.userAuthService.validateUserCredentials(email, password);
-        
-        if (!user) {
-            throw new UnauthorizedException('Credenciales inválidas');
-        }
-
-        // 2. Generar tokens
-        const jwtPayload = user.toJwtPayload();
-        const accessToken = this.jwtTokenService.generateAccessToken(user);
-        const refreshToken = this.jwtTokenService.generateRefreshToken(user);
-
-        // 3. Preparar respuesta
-        return {
-            accessToken,
-            refreshToken,
-            user: {
-                id: user.id_user,
-                email: user.person.email,
-                firstName: user.person.first_name,
-                firstLastname: user.person.first_lastname,
-                role: user.role.name,
-                isEmailVerified: user.isEmailVerified,
-            }
-        };
-    }
 
     /**
      * VERIFY TOKEN - para guards
@@ -147,7 +117,7 @@ export class AuthService {
             httpOnly: true,                    // Previene acceso desde JavaScript
             secure: process.env.COOKIE_SECURE === 'true',
             sameSite: (process.env.COOKIE_SAME_SITE || 'lax') as 'strict' | 'lax' | 'none',
-            domain: process.env.COOKIE_DOMAIN,
+            domain: process.env.COOKIE_DOMAIN || 'localhost',
             path: '/',
         };
 
@@ -163,33 +133,30 @@ export class AuthService {
      * LOGIN con cookies seguras
      */
     async loginWithCookies(email: string, password: string, response: any): Promise<Omit<AuthResponseDto, 'accessToken' | 'refreshToken'>> {
-        // 1. Validar credenciales (mismo código)
-        const user = await this.userAuthService.validateUserCredentials(email, password);
-        
-        if (!user) {
-            throw new UnauthorizedException('Credenciales inválidas');
-        }
+    const user = await this.userAuthService.validateUserCredentials(email, password);
+    
+    if (!user) {
+        throw new UnauthorizedException('Credenciales inválidas');
+    }
 
-        // 2. Generar tokens
-        const accessToken = this.jwtTokenService.generateAccessToken(user);
-        const refreshToken = this.jwtTokenService.generateRefreshToken(user);
+    const accessToken = this.jwtTokenService.generateAccessToken(user);
+    const refreshToken = this.jwtTokenService.generateRefreshToken(user);
 
-        // 3. Establecer cookies seguras
-        response.cookie('accessToken', accessToken, this.getCookieOptions(false));
-        response.cookie('refreshToken', refreshToken, this.getCookieOptions(true));
+    response.cookie('accessToken', accessToken, this.getCookieOptions(false));
+    response.cookie('refreshToken', refreshToken, this.getCookieOptions(true));
 
-        // 4. Retornar solo datos del usuario (sin tokens)
-        return {
-            user: {
+    return {
+        user: {
             id: user.id_user,
             email: user.person.email,
             firstName: user.person.first_name,
             firstLastname: user.person.first_lastname,
-            role: user.role.name,
+            roles: user.getAllRoleNames(), // ✅ CAMBIO: Array de roles
+            primaryRole: user.primaryRole.name, // ✅ CAMBIO: Rol principal
             isEmailVerified: user.isEmailVerified,
-            }
-        };
-    }
+        }
+    };
+}
 
     /**
      * REFRESH TOKEN desde cookies
