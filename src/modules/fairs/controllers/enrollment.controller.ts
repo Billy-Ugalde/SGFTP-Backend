@@ -1,16 +1,27 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Param, ParseIntPipe, Patch, Post } from "@nestjs/common";
+import { Body, Controller, Get, HttpCode, HttpStatus, Param, ParseIntPipe, Patch, Post, UseGuards } from "@nestjs/common";
 import { Fair_enrollment } from "../entities/Fair_enrollment.entity";
 import { EnrollmentFairDto } from "../dto/enrrolmentFair.dto";
 import { EnrrolmentService } from "../services/Enrollment.service";
 import { StatusEnrollmentDto } from "../dto/updatestatusEnrollment";
+import { AuthGuard } from "src/modules/auth/guards/auth.guard";
+import { RoleGuard } from "src/modules/auth/guards/role.guard";
+import { Roles } from "src/modules/auth/decorators/roles.decorator";
+import { UserRole } from "src/modules/auth/enums/user-role.enum";
+import { RateLimitGuard } from "src/modules/auth/guards/rate-limit.guard";
+import { RateLimit } from "src/modules/auth/decorators/rate-limit.decorator";
 @Controller('enrollment')
-// @UseGuards(JwtAuthGuard)
-
+@UseGuards(AuthGuard)
+@UseGuards(RoleGuard)
+@Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN, UserRole.FAIR_ADMIN, UserRole.AUDITOR)
 export class EnrollmentController {
 
     constructor(private readonly fair_enrollmentservice: EnrrolmentService) { }
 
     @Post()
+    @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN,
+        UserRole.FAIR_ADMIN, UserRole.ENTREPRENEUR)
+    @UseGuards(RateLimitGuard)
+    @RateLimit(5, 15 * 60 * 1000)
     @HttpCode(HttpStatus.CREATED)
     async create(
         @Body()
@@ -50,6 +61,8 @@ export class EnrollmentController {
     }
 
     @Patch(':id/status')
+    @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN,
+        UserRole.FAIR_ADMIN)
     async updateStatus(
         @Param('id', ParseIntPipe) id: number,
         @Body()
