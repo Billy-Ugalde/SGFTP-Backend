@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, QueryRunner } from 'typeorm';
 import { User } from '../entities/user.entity';
@@ -17,6 +17,14 @@ export class UserAuthService implements IUserAuthService {
         private passwordService: PasswordService,
     ) {}
 
+    // Método básico para encontrar usuario por ID
+    async findOne(id: number): Promise<User | null> {
+        return await this.userRepository.findOne({  
+            where: { id_user: id },
+            relations: ['person', 'roles', 'primaryRole']
+        });
+    }
+
     /**
      * Busca usuario por email para login
      */
@@ -24,7 +32,8 @@ export class UserAuthService implements IUserAuthService {
         return await this.userRepository
             .createQueryBuilder('user')
             .innerJoinAndSelect('user.person', 'person')
-            .innerJoinAndSelect('user.role', 'role')
+            .leftJoinAndSelect('user.roles', 'roles')  
+            .leftJoinAndSelect('user.primaryRole', 'primaryRole') 
             .addSelect('user.password') // Incluir password para verificación
             .where('person.email = :email', { email })
             .andWhere('user.status = :status', { status: true }) // Solo usuarios activos
@@ -54,7 +63,7 @@ export class UserAuthService implements IUserAuthService {
     async findUserByPersonId(personId: number): Promise<User | null> {
         return await this.userRepository.findOne({
             where: { person: { id_person: personId } },
-            relations: ['person', 'role']
+            relations: ['person', 'roles', 'primaryRole']
         });
     }
 
@@ -74,7 +83,8 @@ export class UserAuthService implements IUserAuthService {
             isEmailVerified: false, // Requiere verificación
             failedLoginAttempts: 0,
             person: { id_person: personId },
-            role: userRole,
+            roles: [userRole],      
+            primaryRole: userRole, 
         });
 
         return await manager.save(User, user);
@@ -99,7 +109,7 @@ export class UserAuthService implements IUserAuthService {
         });
     }
 
-    // ===== MÉTODOS AVANZADOS COMENTADOS (para después) =====
+        // ===== MÉTODOS AVANZADOS COMENTADOS (para después) =====
     
     /*
     // Estos métodos requieren primero migrar la BD con los campos nuevos
