@@ -13,7 +13,6 @@ export class NotificationService {
   private transporter: any;
 
   constructor(private configService: ConfigService) {
-    console.log('Inicializando NotificationService...');
     this.initializeTransporter();
   }
 
@@ -33,10 +32,9 @@ export class NotificationService {
 
       this.transporter.verify()
         .then(() => {
-          console.log('Servidor SMTP listo para enviar emails');
         })
         .catch((error: any) => {
-          console.error('Error de configuración SMTP:', error.message);
+          console.error('Error SMTP:', error.message);
         });
 
     } catch (error: any) {
@@ -44,7 +42,7 @@ export class NotificationService {
     }
   }
 
-  //MÉTODO PARA CAMBIOS DE ESTADO (Cancelación/Reactivación)
+  // MÉTODO PARA CAMBIOS DE ESTADO (Cancelación/Reactivación)
   async sendStatusChangeEmail(
     recipientEmail: string,
     recipientName: string,
@@ -52,10 +50,6 @@ export class NotificationService {
     statusType: string,
     statusMessage: string
   ): Promise<void> {
-    console.log(`\n=== ENVIANDO EMAIL DE ESTADO ===`);
-    console.log(`Tipo: ${statusType}`);
-    console.log(`Destinatario: ${recipientEmail}`);
-
     if (!this.transporter) {
       this.initializeTransporter();
       await new Promise(resolve => setTimeout(resolve, 1000));
@@ -64,43 +58,227 @@ export class NotificationService {
     const subject = `IMPORTANTE - ${statusType}: ${fairName}`;
     
     // Color según el tipo de cambio
-    const statusColor = statusType.includes('Cancelada') ? '#dc3545' : '#28a745';
-    const statusIcon = statusType.includes('Cancelada') ? '❌' : '✅';
+    const isCancellation = statusType.includes('Cancelada');
+    const statusColor = isCancellation ? '#e74c3c' : '#27ae60';
+    const statusIcon = isCancellation ? '⚠️' : '✅';
+    const statusBgColor = isCancellation ? '#fdeeee' : '#edf7ed';
     
     const htmlContent = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #ffffff;">
-        <div style="text-align: center; padding: 20px 0; border-bottom: 2px solid #2c5530;">
-          <h2 style="color: #2c5530; margin: 0;">Fundación Tamarindo Park</h2>
-        </div>
-        
-        <div style="padding: 30px 0;">
-          <p style="font-size: 16px; color: #333;">Estimado/a <strong>${recipientName}</strong>,</p>
+      <!DOCTYPE html>
+      <html lang="es">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>${statusType}</title>
+        <style>
+          * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+          }
           
-          <div style="background-color: ${statusColor}; color: white; padding: 20px; border-radius: 8px; margin: 25px 0; text-align: center;">
-            <h2 style="margin: 0; font-size: 24px;">${statusIcon} ${statusType}</h2>
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: #2c3e50;
+            background-color: #f8fafc;
+          }
+          
+          .email-container {
+            max-width: 600px;
+            margin: 40px auto;
+            background: #ffffff;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+          }
+          
+          .header {
+            background: linear-gradient(135deg, #2c5530 0%, #3d7340 100%);
+            padding: 40px 30px;
+            text-align: center;
+          }
+          
+          .logo h1 {
+            color: #ffffff;
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 8px;
+          }
+          
+          .logo p {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 14px;
+          }
+          
+          .content {
+            padding: 30px 25px;
+          }
+          
+          .greeting {
+            font-size: 16px;
+            margin-bottom: 30px;
+            color: #34495e;
+          }
+          
+          .status-alert {
+            background: ${statusBgColor};
+            border: 2px solid ${statusColor};
+            border-radius: 12px;
+            padding: 25px;
+            text-align: center;
+            margin: 30px 0;
+          }
+          
+          .status-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+            display: block;
+          }
+          
+          .status-title {
+            color: ${statusColor};
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 10px;
+          }
+          
+          .fair-info {
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 25px;
+            margin: 30px 0;
+            border-left: 4px solid #3498db;
+          }
+          
+          .fair-name {
+            color: #2c5530;
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 15px;
+          }
+          
+          .status-message {
+            color: #5a6c7d;
+            font-size: 16px;
+            line-height: 1.7;
+            margin: 0;
+          }
+          
+          .important-note {
+            background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+            border: 1px solid #f39c12;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 30px 0;
+            text-align: center;
+          }
+          
+          .important-note p {
+            color: #856404;
+            font-size: 14px;
+            font-weight: 500;
+            margin: 0;
+          }
+          
+          .footer {
+            background: #f8fafc;
+            border-top: 1px solid #e9ecef;
+            padding: 30px;
+            text-align: center;
+          }
+          
+          .footer-content {
+            color: #6c757d;
+            font-size: 13px;
+            line-height: 1.5;
+          }
+          
+          .footer-title {
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 5px;
+          }
+          
+          .divider {
+            height: 1px;
+            background: linear-gradient(90deg, transparent, #e9ecef, transparent);
+            margin: 25px 0;
+          }
+          
+          @media (max-width: 600px) {
+            .email-container {
+              margin: 20px;
+              border-radius: 12px;
+            }
+            
+            .header {
+              padding: 30px 20px;
+            }
+            
+            .content {
+              padding: 30px 20px;
+            }
+            
+            .status-title {
+              font-size: 20px;
+            }
+            
+            .fair-name {
+              font-size: 18px;
+            }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="email-container">
+          <div class="header">
+            <div class="logo">
+              <h1>Fundación Tamarindo Park</h1>
+              <p>Sistema de Gestión de Ferias</p>
+            </div>
           </div>
           
-          <div style="background-color: #f8f9fa; padding: 20px; border-radius: 4px; margin: 25px 0;">
-            <h3 style="margin-top: 0; margin-bottom: 15px; color: #2c5530; font-size: 18px;">Feria: "${fairName}"</h3>
-            <p style="margin-bottom: 0; color: #495057; font-size: 16px; line-height: 1.6;">${statusMessage}</p>
+          <div class="content">
+            <p class="greeting">Estimado/a <strong>${recipientName}</strong>,</p>
+            
+            <div class="status-alert">
+              <span class="status-icon">${statusIcon}</span>
+              <h2 class="status-title">${statusType}</h2>
+            </div>
+            
+            <div class="fair-info">
+              <h3 class="fair-name">🎪 ${fairName}</h3>
+              <p class="status-message">${statusMessage}</p>
+            </div>
+            
+            <div class="important-note">
+              <p><strong>💡 Importante:</strong> Te contactaremos con información adicional muy pronto. Mantente atento a futuras comunicaciones.</p>
+            </div>
+            
+            <div class="divider"></div>
+            
+            <p style="font-size: 15px; color: #5a6c7d; line-height: 1.6;">
+              Si tienes alguna pregunta o consulta, no dudes en contactarnos. Estamos aquí para apoyarte.
+            </p>
           </div>
           
-          <p style="font-size: 14px; color: #666; margin-top: 30px;">
-            Cualquier consulta, no dudes en contactarnos.
-          </p>
+          <div class="footer">
+            <div class="footer-content">
+              <p class="footer-title">Fundación Tamarindo Park</p>
+              <p>Sistema Automatizado de Notificaciones</p>
+              <p style="margin-top: 10px; font-size: 12px; color: #95a5a6;">
+                Este es un mensaje automático, por favor no responder a este correo.
+              </p>
+            </div>
+          </div>
         </div>
-        
-        <div style="border-top: 1px solid #dee2e6; padding-top: 20px; text-align: center;">
-          <p style="color: #6c757d; font-size: 12px; margin: 5px 0;">
-            <strong>Fundación Tamarindo Park</strong><br>
-            Sistema de notificaciones
-          </p>
-        </div>
-      </div>
+      </body>
+      </html>
     `;
 
     const mailOptions = {
-      from: this.configService.get('EMAIL_FROM'),
+      from: `"Fundación Tamarindo Park" <${this.configService.get('EMAIL_FROM')}>`,
       to: recipientEmail,
       subject: subject,
       html: htmlContent,
@@ -109,17 +287,12 @@ export class NotificationService {
     return await this.sendEmail(mailOptions, recipientEmail, 'ESTADO');
   }
 
-  //MÉTODO PARA CAMBIOS DE CONTENIDO CONSOLIDADOS
   async sendContentChangesEmail(
     recipientEmail: string,
     recipientName: string,
     fairName: string,
     changes: ChangeInfo[]
   ): Promise<void> {
-    console.log(`\n=== ENVIANDO EMAIL CONSOLIDADO ===`);
-    console.log(`Total cambios: ${changes.length}`);
-    console.log(`Destinatario: ${recipientEmail}`);
-
     if (!this.transporter) {
       this.initializeTransporter();
       await new Promise(resolve => setTimeout(resolve, 1000));
@@ -127,53 +300,238 @@ export class NotificationService {
 
     const subject = `Actualizaciones en feria: ${fairName}`;
     
-    // Generar HTML para cada cambio
-    const changesHtml = changes.map(change => `
-      <div style="background-color: #f8f9fa; padding: 15px; border-left: 4px solid #007bff; margin: 15px 0; border-radius: 4px;">
-        <h4 style="margin-top: 0; margin-bottom: 10px; color: #2c5530; font-size: 16px;">📝 ${change.field}</h4>
-        <p style="margin: 8px 0; color: #495057; font-size: 14px;"><strong>Antes:</strong> ${change.oldValue}</p>
-        <p style="margin: 8px 0; color: #495057; font-size: 14px;"><strong>Ahora:</strong> ${change.newValue}</p>
-        <p style="margin-bottom: 0; color: #6c757d; font-size: 13px; font-style: italic;">${change.description}</p>
-      </div>
+    const getFieldIcon = (field: string): string => {
+      const icons: { [key: string]: string } = {
+        'Nombre de la Feria': '🏷️',
+        'Descripción': '📝',
+        'Fecha': '📅',
+        'Ubicación': '📍',
+        'Condiciones': '📋',
+        'Tipo de Feria': '🏪',
+        'Capacidad de Stands': '🏬'
+      };
+      return icons[field] || '🔄';
+    };
+
+    const changesHtml = changes.map((change, index) => `
+      <tr style="border-bottom: 1px solid #e9ecef;">
+        <td style="padding: 15px 10px; vertical-align: top; width: 40px;">
+          <span style="font-size: 20px;">${getFieldIcon(change.field)}</span>
+        </td>
+        <td style="padding: 15px 10px; vertical-align: top;">
+          <div>
+            <h4 style="margin: 0 0 8px 0; color: #2c5530; font-size: 16px; font-weight: 600;">${change.field}</h4>
+            <div style="margin-bottom: 5px;">
+              <span style="color: #6c757d; font-size: 13px; font-weight: 500;">Anterior:</span>
+              <span style="color: #dc3545; font-size: 14px; margin-left: 5px;">${change.oldValue}</span>
+            </div>
+            <div style="margin-bottom: 8px;">
+              <span style="color: #6c757d; font-size: 13px; font-weight: 500;">Nuevo:</span>
+              <span style="color: #28a745; font-size: 14px; font-weight: 500; margin-left: 5px;">${change.newValue}</span>
+            </div>
+            <p style="margin: 0; color: #5a6c7d; font-size: 12px; font-style: italic;">${change.description}</p>
+          </div>
+        </td>
+      </tr>
     `).join('');
     
     const htmlContent = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #ffffff;">
-        <div style="text-align: center; padding: 20px 0; border-bottom: 2px solid #2c5530;">
-          <h2 style="color: #2c5530; margin: 0;">Fundación Tamarindo Park</h2>
-        </div>
-        
-        <div style="padding: 30px 0;">
-          <p style="font-size: 16px; color: #333;">Estimado/a <strong>${recipientName}</strong>,</p>
+      <!DOCTYPE html>
+      <html lang="es">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Actualizaciones de Feria</title>
+        <style>
+          * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+          }
           
-          <p style="font-size: 16px; color: #333; line-height: 1.6;">
-            Te informamos que se han realizado actualizaciones en la feria <strong>"${fairName}"</strong>:
-          </p>
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: #2c3e50;
+            background-color: #f8fafc;
+          }
           
-          <div style="background-color: #e3f2fd; padding: 15px; border-radius: 4px; margin: 20px 0; text-align: center;">
-            <h3 style="margin: 0; color: #1565c0; font-size: 18px;">🔄 ${changes.length} Cambio${changes.length > 1 ? 's' : ''} Detectado${changes.length > 1 ? 's' : ''}</h3>
+          .email-container {
+            max-width: 650px;
+            margin: 40px auto;
+            background: #ffffff;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+          }
+          
+          .header {
+            background: linear-gradient(135deg, #2c5530 0%, #3d7340 100%);
+            padding: 40px 30px;
+            text-align: center;
+          }
+          
+          .logo h1 {
+            color: #ffffff;
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 8px;
+          }
+          
+          .logo p {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 14px;
+          }
+          
+          .content {
+            padding: 30px 25px;
+          }
+          
+          .greeting {
+            font-size: 16px;
+            margin-bottom: 25px;
+            color: #34495e;
+          }
+          
+          .intro-text {
+            font-size: 15px;
+            color: #34495e;
+            line-height: 1.6;
+            margin-bottom: 20px;
+          }
+          
+          .changes-summary {
+            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+            border: 2px solid #2196f3;
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            margin: 20px 0;
+          }
+          
+          .changes-count {
+            color: #1565c0;
+            font-size: 18px;
+            font-weight: 600;
+            margin: 0;
+          }
+          
+          .reminder-box {
+            background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+            border: 1px solid #f39c12;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px 0;
+            text-align: center;
+          }
+          
+          .reminder-box p {
+            color: #856404;
+            font-size: 15px;
+            font-weight: 500;
+            margin: 0;
+            line-height: 1.6;
+          }
+          
+          .footer {
+            background: #f8fafc;
+            border-top: 1px solid #e9ecef;
+            padding: 30px;
+            text-align: center;
+          }
+          
+          .footer-content {
+            color: #6c757d;
+            font-size: 13px;
+            line-height: 1.5;
+          }
+          
+          .footer-title {
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 5px;
+          }
+          
+          .divider {
+            height: 1px;
+            background: linear-gradient(90deg, transparent, #e9ecef, transparent);
+            margin: 25px 0;
+          }
+          
+          @media (max-width: 650px) {
+            .email-container {
+              margin: 20px;
+              border-radius: 12px;
+            }
+            
+            .header {
+              padding: 30px 20px;
+            }
+            
+            .content {
+              padding: 25px 20px;
+            }
+            
+            .changes-count {
+              font-size: 16px;
+            }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="email-container">
+          <div class="header">
+            <div class="logo">
+              <h1>Fundación Tamarindo Park</h1>
+              <p>Sistema de Gestión de Ferias</p>
+            </div>
           </div>
           
-          ${changesHtml}
-          
-          <div style="background-color: #fff3cd; padding: 15px; border-radius: 4px; margin: 25px 0; border: 1px solid #ffeaa7;">
-            <p style="margin: 0; color: #856404; font-size: 14px; text-align: center;">
-              <strong>💡 Recuerda:</strong> Revisa estos cambios y ajusta tus planes según sea necesario.
+          <div class="content">
+            <p class="greeting">Estimado/a <strong>${recipientName}</strong>,</p>
+            
+            <p class="intro-text">
+              Hemos realizado las siguientes actualizaciones en la feria <strong>"${fairName}"</strong>. A continuación te detallamos los cambios:
+            </p>
+            
+            <div class="changes-summary">
+              <span style="font-size: 24px; display: block; margin-bottom: 5px;">🔄</span>
+              <h3 class="changes-count">${changes.length} Cambio${changes.length > 1 ? 's' : ''} Realizado${changes.length > 1 ? 's' : ''}</h3>
+            </div>
+            
+            <div style="background: #ffffff; border: 1px solid #e9ecef; border-radius: 8px; overflow: hidden; margin: 25px 0;">
+              <table style="width: 100%; border-collapse: collapse;">
+                ${changesHtml}
+              </table>
+            </div>
+            
+            <div class="reminder-box">
+              <p><strong>📌 Importante:</strong> Revisa estos cambios y ajusta tus planes según sea necesario.</p>
+            </div>
+            
+            <div class="divider"></div>
+            
+            <p style="font-size: 15px; color: #5a6c7d; line-height: 1.6;">
+              Para cualquier consulta sobre estos cambios, puedes contactarnos.
             </p>
           </div>
+          
+          <div class="footer">
+            <div class="footer-content">
+              <p class="footer-title">Fundación Tamarindo Park</p>
+              <p>Sistema Automatizado de Notificaciones</p>
+              <p style="margin-top: 10px; font-size: 12px; color: #95a5a6;">
+                Este es un mensaje automático, por favor no responder a este correo.
+              </p>
+            </div>
+          </div>
         </div>
-        
-        <div style="border-top: 1px solid #dee2e6; padding-top: 20px; text-align: center;">
-          <p style="color: #6c757d; font-size: 12px; margin: 5px 0;">
-            <strong>Fundación Tamarindo Park</strong><br>
-            Sistema de notificaciones
-          </p>
-        </div>
-      </div>
+      </body>
+      </html>
     `;
 
     const mailOptions = {
-      from: this.configService.get('EMAIL_FROM'),
+      from: `"Fundación Tamarindo Park" <${this.configService.get('EMAIL_FROM')}>`,
       to: recipientEmail,
       subject: subject,
       html: htmlContent,
@@ -182,7 +540,6 @@ export class NotificationService {
     return await this.sendEmail(mailOptions, recipientEmail, 'CAMBIOS CONSOLIDADOS');
   }
 
-  //MÉTODO ORIGINAL
   async sendFairChangeEmail(
     recipientEmail: string,
     recipientName: string,
@@ -190,10 +547,6 @@ export class NotificationService {
     changeType: string,
     changeDetails: string
   ): Promise<void> {
-    console.log(`\n=== ENVIANDO EMAIL INDIVIDUAL (LEGACY) ===`);
-    console.log(`Tipo: ${changeType}`);
-    console.log(`Destinatario: ${recipientEmail}`);
-
     if (changeType.includes('Cancelada') || changeType.includes('Reactivada')) {
       return await this.sendStatusChangeEmail(recipientEmail, recipientName, fairName, changeType, changeDetails);
     } else {
@@ -207,43 +560,19 @@ export class NotificationService {
     }
   }
 
-  // MÉTODO AUXILIAR PARA ENVÍO
   private async sendEmail(mailOptions: any, recipientEmail: string, type: string): Promise<any> {
-    console.log(`Configuración del email ${type}:`);
-    console.log(`- From: ${mailOptions.from}`);
-    console.log(`- To: ${mailOptions.to}`);
-    console.log(`- Subject: ${mailOptions.subject}`);
-
     try {
-      console.log('Verificando transporter...');
       await this.transporter.verify();
-      console.log('Transporter verificado OK');
-
-      console.log(`Enviando email ${type}...`);
       const result = await this.transporter.sendMail(mailOptions);
-      
-      console.log(`\n=== RESULTADO ${type} ===`);
-      console.log('- Message ID:', result.messageId);
-      console.log('- Response:', result.response);
-      console.log(`✅ EMAIL ${type} ENVIADO EXITOSAMENTE a: ${recipientEmail}`);
-      
       return result;
       
     } catch (error: any) {
-      console.error(`\n❌ ERROR EN ENVÍO ${type}:`);
-      console.error('- Message:', error.message || 'No message');
-      console.error('- Code:', error.code || 'No code');
-      
-      // Reintentar una vez
       try {
-        console.log(`\n🔄 REINTENTANDO ENVÍO ${type}...`);
         this.initializeTransporter();
         await new Promise(resolve => setTimeout(resolve, 2000));
         const retryResult = await this.transporter.sendMail(mailOptions);
-        console.log(`✅ REINTENTO ${type} EXITOSO para: ${recipientEmail}`);
         return retryResult;
       } catch (retryError: any) {
-        console.error(`❌ REINTENTO ${type} FALLÓ: ${retryError.message}`);
         throw error;
       }
     }

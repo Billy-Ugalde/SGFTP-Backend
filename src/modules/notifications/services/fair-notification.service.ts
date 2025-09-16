@@ -20,116 +20,117 @@ export class FairNotificationService {
     private userRepository: Repository<User>,
   ) {}
 
+  async sendFairChangeEmailsAsync(oldFair: Fair, newFair: Fair): Promise<void> {
+    setImmediate(() => {
+      this.sendFairChangeEmails(oldFair, newFair).catch(error => {
+        console.error('Error en notificaciones background:', error);
+      });
+    });
+  }
+
   async sendFairChangeEmails(oldFair: Fair, newFair: Fair): Promise<void> {
-    console.log('\n=== INICIANDO SISTEMA DE NOTIFICACIONES CONSOLIDADAS ===');
-    console.log(`Feria: ${newFair.name}`);
-    console.log(`ID: ${newFair.id_fair}`);
-
     try {
-      const allUsers = await this.userRepository.find();
-      console.log(`Total usuarios en sistema: ${allUsers.length}`);
-
-      const entrepreneurs = allUsers.filter(user => 
-        user.role?.id_role === 10 && user.status === true
-      );
-
-      console.log(`Total emprendedores activos: ${entrepreneurs.length}`);
+      const entrepreneurs = await this.userRepository.find({
+        where: { 
+          role: { id_role: 10 }, 
+          status: true 
+        },
+        relations: ['role', 'person']
+      });
       
-      if (entrepreneurs.length === 0) {
-        console.log('No hay emprendedores activos registrados');
-        return;
-      }
+      if (entrepreneurs.length === 0) return;
 
       const hasStatusChange = this.hasStatusChange(oldFair, newFair);
-      
       const contentChanges = this.detectAllContentChanges(oldFair, newFair);
       
-      console.log(`\n=== RESUMEN DE CAMBIOS ===`);
-      console.log(`¿Cambio de estado?: ${hasStatusChange ? 'SÍ' : 'NO'}`);
-      console.log(`Cambios de contenido: ${contentChanges.length}`);
+      if (!hasStatusChange && contentChanges.length === 0) return;
 
-      let totalEmailsSent = 0;
-      let totalEmailsFailed = 0;
-
-      // ENVÍO 1: Email de ESTADO (solo si cambió el status)
-      if (hasStatusChange) {
-        const statusType = oldFair.status === true && newFair.status === false ? 'Feria Cancelada' : 'Feria Reactivada';
-        const statusMessage = statusType === 'Feria Cancelada' 
-          ? 'Lamentamos informarte que la feria ha sido cancelada. Te contactaremos con más información pronto.'
-          : 'La feria ha sido reactivada. Te invitamos a participar nuevamente.';
-
-        console.log(`\n=== ENVIANDO EMAIL DE ESTADO: ${statusType} ===`);
-        
-        for (const user of entrepreneurs) {
-          const person = user.person;
-          
-          if (person?.email && person.first_name) {
-            try {
-              const fullName = `${person.first_name} ${person.first_lastname || ''}`.trim();
-              
-              await this.notificationService.sendStatusChangeEmail(
-                person.email,
-                fullName,
-                newFair.name,
-                statusType,
-                statusMessage
-              );
-              
-              console.log(`✅ Email de estado enviado a: ${person.email}`);
-              totalEmailsSent++;
-              
-            } catch (error: any) {
-              console.error(`❌ Error enviando email de estado a ${person.email}: ${error.message}`);
-              totalEmailsFailed++;
-            }
-          }
-        }
-      }
-
-      // ENVÍO 2: Email CONSOLIDADO de cambios de contenido (solo si hay cambios)
-      if (contentChanges.length > 0) {
-        console.log(`\n=== ENVIANDO EMAIL CONSOLIDADO CON ${contentChanges.length} CAMBIOS ===`);
-        
-        for (const user of entrepreneurs) {
-          const person = user.person;
-          
-          if (person?.email && person.first_name) {
-            try {
-              const fullName = `${person.first_name} ${person.first_lastname || ''}`.trim();
-              
-              await this.notificationService.sendContentChangesEmail(
-                person.email,
-                fullName,
-                newFair.name,
-                contentChanges
-              );
-              
-              console.log(`✅ Email consolidado enviado a: ${person.email}`);
-              totalEmailsSent++;
-              
-            } catch (error: any) {
-              console.error(`❌ Error enviando email consolidado a ${person.email}: ${error.message}`);
-              totalEmailsFailed++;
-            }
-          } else {
-            console.log(`⚠️ Usuario con datos incompletos: User ID ${user.id_user}`);
-            totalEmailsFailed++;
-          }
-        }
-      }
-
-      console.log(`\n=== PROCESO COMPLETADO ===`);
-      console.log(`Emprendedores encontrados: ${entrepreneurs.length}`);
-      console.log(`¿Envió email de estado?: ${hasStatusChange ? 'SÍ' : 'NO'}`);
-      console.log(`¿Envió email consolidado?: ${contentChanges.length > 0 ? 'SÍ' : 'NO'}`);
-      console.log(`Emails enviados: ${totalEmailsSent}`);
-      console.log(`Emails fallidos: ${totalEmailsFailed}`);
+      await this.sendEmailsInBatches(entrepreneurs, oldFair, newFair, hasStatusChange, contentChanges);
 
     } catch (error: any) {
-      console.error('\n❌ ERROR EN EL SISTEMA DE NOTIFICACIONES:');
-      console.error(`Error: ${error.message}`);
-      console.error(`Stack: ${error.stack}`);
+      console.error(`Error en notificaciones: ${error.message}`);
     }
+  }
+
+  private async sendEmailsInBatches(
+    entrepreneurs: User[], 
+    oldFair: Fair, 
+    newFair: Fair, 
+    hasStatusChange: boolean, 
+    contentChanges: ChangeInfo[]
+  ): Promise<void> {
+    const BATCH_SIZE = 5;
+    const DELAY_MS = 2000; 
+    
+    console.log(`Enviando emails a ${entrepreneurs.length} usuarios en lotes de ${BATCH_SIZE}`);
+    
+    let totalSent = 0;
+    let totalFailed = 0;
+    
+    for (let i = 0; i < entrepreneurs.length; i += BATCH_SIZE) {
+      const batch = entrepreneurs.slice(i, i + BATCH_SIZE);
+      const batchNumber = Math.floor(i / BATCH_SIZE) + 1;
+      const totalBatches = Math.ceil(entrepreneurs.length / BATCH_SIZE);
+      
+      console.log(`Procesando lote ${batchNumber}/${totalBatches} (${batch.length} emails)`);
+      
+      const batchPromises: Promise<void>[] = [];
+      
+      for (const user of batch) {
+        const person = user.person;
+        
+        if (person?.email && person.first_name) {
+          const fullName = `${person.first_name} ${person.first_lastname || ''}`.trim();
+          
+          if (hasStatusChange) {
+            const statusType = oldFair.status === true && newFair.status === false ? 'Feria Cancelada' : 'Feria Reactivada';
+            const statusMessage = statusType === 'Feria Cancelada' 
+              ? 'Lamentamos informarte que la feria ha sido cancelada. Te contactaremos con más información pronto.'
+              : 'La feria ha sido reactivada. Te invitamos a participar nuevamente.';
+              
+            const statusPromise = this.notificationService.sendStatusChangeEmail(
+              person.email, 
+              fullName, 
+              newFair.name, 
+              statusType, 
+              statusMessage
+            ).then(() => {
+              totalSent++;
+            }).catch(() => {
+              totalFailed++;
+            });
+            
+            batchPromises.push(statusPromise);
+          }
+          
+          if (contentChanges.length > 0) {
+            const changesPromise = this.notificationService.sendContentChangesEmail(
+              person.email, 
+              fullName, 
+              newFair.name, 
+              contentChanges
+            ).then(() => {
+              totalSent++;
+            }).catch(() => {
+              totalFailed++;
+            });
+            
+            batchPromises.push(changesPromise);
+          }
+        } else {
+          totalFailed++;
+        }
+      }
+      
+      await Promise.allSettled(batchPromises);
+      
+      if (i + BATCH_SIZE < entrepreneurs.length) {
+        console.log(`Esperando ${DELAY_MS}ms antes del siguiente lote...`);
+        await new Promise(resolve => setTimeout(resolve, DELAY_MS));
+      }
+    }
+    
+    console.log(`Proceso completado: ${totalSent} enviados, ${totalFailed} fallidos`);
   }
 
   private hasStatusChange(oldFair: Fair, newFair: Fair): boolean {
@@ -139,8 +140,6 @@ export class FairNotificationService {
   private detectAllContentChanges(oldFair: Fair, newFair: Fair): ChangeInfo[] {
     const changes: ChangeInfo[] = [];
 
-    console.log('\n=== DETECTANDO TODOS LOS CAMBIOS DE CONTENIDO ===');
-
     // 1. CAMBIO DE NOMBRE
     if (oldFair.name !== newFair.name) {
       changes.push({
@@ -149,7 +148,6 @@ export class FairNotificationService {
         newValue: newFair.name || 'Sin nombre',
         description: 'El nombre de la feria ha cambiado'
       });
-      console.log(`✅ Cambio detectado: Nombre "${oldFair.name}" → "${newFair.name}"`);
     }
 
     // 2. CAMBIO DE DESCRIPCIÓN
@@ -162,7 +160,6 @@ export class FairNotificationService {
         newValue: newDesc.length > 150 ? newDesc.substring(0, 150) + '...' : newDesc,
         description: 'La descripción de la feria ha sido actualizada'
       });
-      console.log(`✅ Cambio detectado: Descripción actualizada`);
     }
 
     // 3. CAMBIO DE FECHA
@@ -187,7 +184,6 @@ export class FairNotificationService {
         newValue: newDate,
         description: 'La fecha de la feria ha cambiado. Por favor ajusta tu calendario'
       });
-      console.log(`✅ Cambio detectado: Fecha "${oldDate}" → "${newDate}"`);
     }
 
     // 4. CAMBIO DE UBICACIÓN
@@ -198,7 +194,6 @@ export class FairNotificationService {
         newValue: newFair.location || 'Sin ubicación definida',
         description: 'La ubicación de la feria ha cambiado. Asegúrate de dirigirte al lugar correcto'
       });
-      console.log(`✅ Cambio detectado: Ubicación "${oldFair.location}" → "${newFair.location}"`);
     }
 
     // 5. CAMBIO DE CONDICIONES
@@ -211,7 +206,6 @@ export class FairNotificationService {
         newValue: newCond.length > 150 ? newCond.substring(0, 150) + '...' : newCond,
         description: 'Las condiciones de participación han sido actualizadas. Revisa los nuevos requisitos'
       });
-      console.log(`✅ Cambio detectado: Condiciones actualizadas`);
     }
 
     // 6. CAMBIO DE TIPO DE FERIA
@@ -225,7 +219,6 @@ export class FairNotificationService {
         newValue: newTypeDisplay,
         description: 'El tipo de feria ha cambiado'
       });
-      console.log(`✅ Cambio detectado: Tipo "${oldTypeDisplay}" → "${newTypeDisplay}"`);
     }
 
     // 7. CAMBIO DE CAPACIDAD DE STANDS
@@ -235,17 +228,6 @@ export class FairNotificationService {
         oldValue: oldFair.stand_capacity?.toString() || 'No especificado',
         newValue: newFair.stand_capacity?.toString() || 'No especificado',
         description: 'La capacidad total de stands disponibles ha cambiado'
-      });
-      console.log(`✅ Cambio detectado: Capacidad "${oldFair.stand_capacity}" → "${newFair.stand_capacity}"`);
-    }
-
-    console.log(`\n📊 TOTAL CAMBIOS DE CONTENIDO DETECTADOS: ${changes.length}`);
-    
-    if (changes.length === 0) {
-      console.log('ℹ️ No se detectaron cambios de contenido, solo se enviará email si hay cambio de estado');
-    } else {
-      changes.forEach((change, index) => {
-        console.log(`${index + 1}. ${change.field}: ${change.oldValue} → ${change.newValue}`);
       });
     }
 
