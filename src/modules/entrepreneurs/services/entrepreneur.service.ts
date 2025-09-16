@@ -60,7 +60,7 @@ export class EntrepreneurService {
   }
 
 
-  async create(createDto: CreateCompleteEntrepreneurDto): Promise<Entrepreneur> {
+  async create(createDto: CreateCompleteEntrepreneurDto, request?: any): Promise<Entrepreneur> {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
@@ -69,11 +69,25 @@ export class EntrepreneurService {
 
       const savedPerson = await this.personService.create(createDto.person, queryRunner);
 
+      // Determinar estado inicial basado en si hay usuario autenticado y sus roles
+    let initialStatus = EntrepreneurStatus.PENDING; 
+    
+    if (request?.user) {
+      const user = request.user;
+      const userRoles = user.getAllRoleNames();
+      
+      // Si es admin, aprobar automáticamente
+      if (userRoles.some(role => ['super_admin', 'general_admin', 'fair_admin'].includes(role))) {
+        initialStatus = EntrepreneurStatus.APPROVED;
+      }
+    }
+
+
       const entrepreneur = this.entrepreneurRepository.create({
         experience: createDto.entrepreneur.experience,
         facebook_url: createDto.entrepreneur.facebook_url,
         instagram_url: createDto.entrepreneur.instagram_url,
-        status: EntrepreneurStatus.PENDING,
+        status: initialStatus,
         is_active: false,
         person: savedPerson,
       });
