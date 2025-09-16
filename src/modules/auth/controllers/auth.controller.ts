@@ -64,7 +64,6 @@ export class AuthController {
                 firstName: user.person.first_name,
                 email: user.person.email,
                 roles: user.getAllRoleNames(),
-                primaryRole: user.primaryRole.name,
             }
         };
     }
@@ -86,7 +85,6 @@ export class AuthController {
             message: 'Información del sistema',
             accessedBy: user.person.first_name,
             roles: user.getAllRoleNames(),
-            primaryRole: user.primaryRole.name
         };
     }
 
@@ -98,7 +96,6 @@ export class AuthController {
         return {
             message: 'Dashboard administrativo',
             userRoles: user.getAllRoleNames(),
-            primaryRole: user.primaryRole.name,
             permissions: this.getPermissionsByRoles(user.getAllRoleNames()) // ← Método actualizado
         };
     }

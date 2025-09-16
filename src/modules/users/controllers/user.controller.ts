@@ -6,6 +6,8 @@ import { User } from "../entities/user.entity";
 import { Role } from "../entities/role.entity";
 import { CreateUserDto } from "../dto/user.dto";
 import { UpdateUserDto } from "../dto/userUpdateDto";
+import { CreateInvitationDto } from "../dto/invitation.dto";
+import { CreateCompleteInvitationDto } from "../dto/complete-invitation.dto";
 import { RoleGuard } from "src/modules/auth/guards/role.guard";
 import { Roles } from "src/modules/auth/decorators/roles.decorator";
 import { UserRole } from "src/modules/auth/enums/user-role.enum";
@@ -65,7 +67,6 @@ export class UserController {
       return await this.userService.create(createUserDto); 
   }
 
-
   @Get('roles/all')
   @UseGuards(RoleGuard)
   @Roles(UserRole.SUPER_ADMIN, UserRole.AUDITOR)
@@ -76,35 +77,57 @@ export class UserController {
   }
 
   @Post(':id/roles')
-@UseGuards(RoleGuard)
-@Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN)
-async addRole(
-    @Param('id', ParseIntPipe) userId: number,
-    @Body() { roleId }: { roleId: number },
-    @CurrentUser() admin: User
-): Promise<User> {
-    return await this.userService.addRoleToUser(userId, roleId, admin.id_user);
-}
+  @UseGuards(RoleGuard)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN)
+  async addRole(
+      @Param('id', ParseIntPipe) userId: number,
+      @Body() { roleId }: { roleId: number },
+      @CurrentUser() admin: User
+  ): Promise<User> {
+      return await this.userService.addRoleToUser(userId, roleId, admin.id_user);
+  }
 
-@Delete(':id/roles/:roleId')
-@UseGuards(RoleGuard)
-@Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN)
-async removeRole(
-    @Param('id', ParseIntPipe) userId: number,
-    @Param('roleId', ParseIntPipe) roleId: number,
-    @CurrentUser() admin: User
-): Promise<User> {
-    return await this.userService.removeRoleFromUser(userId, roleId, admin.id_user);
-}
+  @Delete(':id/roles/:roleId')
+  @UseGuards(RoleGuard)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN)
+  async removeRole(
+      @Param('id', ParseIntPipe) userId: number,
+      @Param('roleId', ParseIntPipe) roleId: number,
+      @CurrentUser() admin: User
+  ): Promise<User> {
+      return await this.userService.removeRoleFromUser(userId, roleId, admin.id_user);
+  }
 
-@Patch(':id/primary-role')
-@UseGuards(RoleGuard)
-@Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN)
-async changePrimaryRole(
-    @Param('id', ParseIntPipe) userId: number,
-    @Body() { roleId }: { roleId: number },
+  @Post('invite')
+  @UseGuards(RoleGuard)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN)
+  @HttpCode(HttpStatus.CREATED)
+  async inviteUser(
+    @Body() createInvitationDto: CreateInvitationDto,
     @CurrentUser() admin: User
-): Promise<User> {
-    return await this.userService.changePrimaryRole(userId, roleId, admin.id_user);
-}
+  ): Promise<{ message: string; invitationId: number }> {
+      return await this.userService.createUserInvitation(createInvitationDto, admin.id_user);
+  }
+
+  // NUEVO ENDPOINT en UserController:
+  @Post('invite-complete')
+  @UseGuards(RoleGuard)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN)
+  async inviteUserComplete(
+    @Body() createCompleteInvitationDto: CreateCompleteInvitationDto,
+    @CurrentUser() admin: User
+  ): Promise<{ message: string; invitationId: number }> {
+      return await this.userService.createCompleteUserInvitation(createCompleteInvitationDto, admin.id_user);
+  }
+
+  @Patch(':id/roles')
+  @UseGuards(RoleGuard)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN)
+  async updateUserRoles(
+      @Param('id', ParseIntPipe) userId: number,
+      @Body() { id_roles }: { id_roles: number[] },
+      @CurrentUser() admin: User
+  ): Promise<User> {
+      return await this.userService.updateUserRoles(userId, id_roles, admin.id_user);
+  }
 }
