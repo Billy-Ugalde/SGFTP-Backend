@@ -16,7 +16,4 @@ export class UpdateUserDto {
     @IsBoolean()
     status: boolean
 
-    @IsOptional({ message: 'El id_role es obligatorio' })
-    @IsNumber({}, { message: 'El id_role debe ser numérico' })
-    id_role: number;
 }
