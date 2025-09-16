@@ -105,7 +105,7 @@ export class ReportFairService implements IReportFairService {
       { header: 'Experiencia (años)',           key: 'entrepreneur_experience',     width: 16 },
 
       // Emprendimiento
-      { header: 'Emprendimiento',               key: 'business_name',               width: 28 },
+      { header: 'Nombre de emprendimiento',               key: 'business_name',               width: 28 },
       { header: 'Ubicación del emprendimiento', key: 'business_location',           width: 28 },
       { header: 'Categoría',                    key: 'business_category',           width: 16 },
       { header: 'Enfoque',                      key: 'business_approach',           width: 14 },
