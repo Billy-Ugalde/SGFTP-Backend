@@ -16,7 +16,7 @@ export class NotificationService {
     this.initializeTransporter();
   }
 
-  private initializeTransporter() {
+  private async initializeTransporter() {
     try {
       const nodemailer = require('nodemailer');
       
@@ -42,7 +42,6 @@ export class NotificationService {
     }
   }
 
-  // MÉTODO PARA CAMBIOS DE ESTADO (Cancelación/Reactivación)
   async sendStatusChangeEmail(
     recipientEmail: string,
     recipientName: string,
@@ -51,13 +50,12 @@ export class NotificationService {
     statusMessage: string
   ): Promise<void> {
     if (!this.transporter) {
-      this.initializeTransporter();
+      await this.initializeTransporter();
       await new Promise(resolve => setTimeout(resolve, 1000));
     }
 
     const subject = `IMPORTANTE - ${statusType}: ${fairName}`;
     
-    // Color según el tipo de cambio
     const isCancellation = statusType.includes('Cancelada');
     const statusColor = isCancellation ? '#e74c3c' : '#27ae60';
     const statusIcon = isCancellation ? '⚠️' : '✅';
@@ -294,7 +292,7 @@ export class NotificationService {
     changes: ChangeInfo[]
   ): Promise<void> {
     if (!this.transporter) {
-      this.initializeTransporter();
+      await this.initializeTransporter();
       await new Promise(resolve => setTimeout(resolve, 1000));
     }
 
@@ -310,7 +308,7 @@ export class NotificationService {
         'Tipo de Feria': '🏪',
         'Capacidad de Stands': '🏬'
       };
-      return icons[field] || '🔄';
+      return icons[field] || '📄';
     };
 
     const changesHtml = changes.map((change, index) => `
@@ -495,7 +493,7 @@ export class NotificationService {
             </p>
             
             <div class="changes-summary">
-              <span style="font-size: 24px; display: block; margin-bottom: 5px;">🔄</span>
+              <span style="font-size: 24px; display: block; margin-bottom: 5px;">📄</span>
               <h3 class="changes-count">${changes.length} Cambio${changes.length > 1 ? 's' : ''} Realizado${changes.length > 1 ? 's' : ''}</h3>
             </div>
             
@@ -568,7 +566,7 @@ export class NotificationService {
       
     } catch (error: any) {
       try {
-        this.initializeTransporter();
+        await this.initializeTransporter();
         await new Promise(resolve => setTimeout(resolve, 2000));
         const retryResult = await this.transporter.sendMail(mailOptions);
         return retryResult;
