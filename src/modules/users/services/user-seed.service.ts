@@ -102,7 +102,6 @@ export class UserSeedService {
         isEmailVerified: true,
         failedLoginAttempts: 0,
         person: savedPerson,
-        primaryRole: role,
         roles: [role], 
     });
 

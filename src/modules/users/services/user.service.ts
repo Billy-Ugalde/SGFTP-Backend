@@ -1,12 +1,16 @@
 import { ConflictException, Injectable, NotFoundException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { User } from "../entities/user.entity";
-import { Repository } from "typeorm";
+import { Repository, In  } from "typeorm";
 import { Role } from "../entities/role.entity";
 import { CreateUserDto } from "../dto/user.dto";
 import { Person } from "src/entities/person.entity";
 import { UpdateUserDto } from "../dto/userUpdateDto";
+import { CreateInvitationDto } from "../dto/invitation.dto";
 import { PasswordService } from "src/modules/shared/services/password.service";
+import { CreateCompleteInvitationDto } from "../dto/complete-invitation.dto";
+import { Phone } from "src/entities/phone.entity";
+import { DataSource } from "typeorm";   
 
 @Injectable()
 export class UserService {
@@ -18,6 +22,7 @@ export class UserService {
         @InjectRepository(Role)
         private roleRepository: Repository<Role>,
         private passwordService: PasswordService,
+        private dataSource: DataSource,
     ) { }
     async create(createUserDto: CreateUserDto) {
         const person = await this.personRepository.findOne({
@@ -51,7 +56,6 @@ export class UserService {
             status: createUserDto.status ?? true,
             person: { id_person: createUserDto.id_person } as Person,
             roles: [role],        
-            primaryRole: role,    
             isEmailVerified: false,
             failedLoginAttempts: 0,
         });
@@ -61,7 +65,7 @@ export class UserService {
 
     async findAll(): Promise<User[]> {
         return this.userRepository.find({ 
-            relations: ['roles', 'primaryRole', 'person'], 
+            relations: ['roles', 'person'], 
             order: { createdAt: 'DESC' }
         });
     }
@@ -76,26 +80,9 @@ export class UserService {
             }
             updateUserDto.password = await this.passwordService.hashPassword(updateUserDto.password);
         }
-        if (updateUserDto.id_role && updateUserDto.id_role !== user.primaryRole.id_role) { 
-            const role = await this.roleRepository.findOne({
-                where: { id_role: updateUserDto.id_role }
-            });
 
-            if (!role) {
-                throw new NotFoundException('El rol especificado no existe');
-            }
-        }
-
-        const { id_role, ...dataWithoutIdRole } = updateUserDto;
-        const updateData: any = { ...dataWithoutIdRole };
-
-        if (id_role) {
-            const newRole = await this.roleRepository.findOne({ where: { id_role: id_role } });
-            updateData.roles = [newRole];      
-            updateData.primaryRole = newRole; 
-        }
-
-        await this.userRepository.update(id, updateData);
+        // SIMPLIFICADO: Solo actualizar datos básicos
+        await this.userRepository.update(id, updateUserDto);
         return this.findOne(id);
     }
 
@@ -112,7 +99,7 @@ export class UserService {
     async findOne(id: number): Promise<User> {
         const user = await this.userRepository.findOne({
             where: { id_user: id },
-            relations: ['roles', 'primaryRole', 'person'], 
+            relations: ['roles', 'person'], 
         });
         if (!user) throw new NotFoundException('Usuario no encontrado');
         return user;
@@ -124,7 +111,6 @@ export class UserService {
             .createQueryBuilder('user')
             .innerJoinAndSelect('user.person', 'person')
             .leftJoinAndSelect('user.roles', 'roles')           
-            .leftJoinAndSelect('user.primaryRole', 'primaryRole') 
             .where('person.email = :email', { email })
             .getOne();
     }
@@ -160,7 +146,7 @@ export class UserService {
         return this.findOne(userId);
     }
 
-    // Cambiar rol de ususario
+    // Lógica de permisos para cambiar roles
     async changeUserRole(userId: number, newRoleId: number, changedBy: number): Promise<User> {
         const user = await this.findOne(userId);
         const newRole = await this.roleRepository.findOne({ where: { id_role: newRoleId } });
@@ -170,26 +156,18 @@ export class UserService {
         }
 
         const admin = await this.findOne(changedBy);
-        if (!this.canChangeRole(admin.primaryRole.name, newRole.name)) { 
+        if (!this.canAssignRole(this.getHighestRole(admin.roles), newRole.name)) {
             throw new ConflictException('No tienes permisos para asignar este rol');
         }
 
-        user.roles = [newRole];
-        user.primaryRole = newRole;
+        if (!user.hasRole(newRole.name)) {
+            user.roles.push(newRole);
+        } else {
+            throw new ConflictException('El usuario ya tiene este rol asignado');
+        }
+
         await this.userRepository.save(user);
-
         return this.findOne(userId);
-    }
-
-    // Lógica de permisos para cambiar roles
-    private canChangeRole(adminRole: string, targetRole: string): boolean {
-        const roleHierarchy = {
-            'super_admin': ['admin_general', 'admin_ferias', 'fiscalizador', 'emprendedor'],
-            'admin_general': ['admin_ferias', 'fiscalizador', 'emprendedor'],
-            'admin_ferias': ['emprendedor'],
-        };
-
-        return roleHierarchy[adminRole]?.includes(targetRole) || false;
     }
 
     
@@ -204,14 +182,13 @@ export class UserService {
             this.userRepository.count(),
             this.userRepository
                 .createQueryBuilder('user')
-                .innerJoin('user.primaryRole', 'role')
+                .innerJoin('user.roles', 'role')   
                 .select('role.name', 'role')
                 .addSelect('COUNT(*)', 'count')
                 .groupBy('role.name')
                 .getRawMany(),
             this.userRepository.count({ 
                 where: { status: false },
-                relations: ['primaryRole'],
             }),
             this.userRepository.count({
                 where: {
@@ -233,9 +210,7 @@ export class UserService {
         };
     }
 
-    /**
-     * Soft delete (mejor que delete permanente)
-     */
+    //Soft delete (mejor que delete permanente)    
     async softDelete(id: number): Promise<void> {
         const user = await this.findOne(id);
         
@@ -247,92 +222,269 @@ export class UserService {
     }
 
     // Validación de jerarquía de roles
-private canAssignRole(adminRole: string, targetRole: string): boolean {
-    const hierarchy = {
-        'super_admin': ['general_admin', 'fair_admin', 'content_admin', 'entrepreneur', 'volunteer'],
-        'general_admin': ['fair_admin', 'content_admin', 'entrepreneur', 'volunteer'],
-        'fair_admin': ['entrepreneur', 'volunteer']
-    };
+    private canAssignRole(adminRole: string, targetRole: string): boolean {
+        const roleHierarchy = {
+            'super_admin': ['general_admin', 'fair_admin', 'content_admin', 'auditor', 'entrepreneur', 'volunteer'],
+            'general_admin': ['fair_admin', 'content_admin', 'auditor', 'entrepreneur', 'volunteer'],
+            'fair_admin': ['entrepreneur', 'volunteer'],
+            'content_admin': ['entrepreneur', 'volunteer'],
+            'auditor': [] // Solo lectura
+        };
 
-    return hierarchy[adminRole]?.includes(targetRole) || false;
+        return roleHierarchy[adminRole]?.includes(targetRole) || false;
+    }
+
+    // Validación crítica de seguridad
+    private async validateRoleAssignment(adminUserId: number, targetRoleId: number): Promise<void> {
+        const admin = await this.findOne(adminUserId);
+        const targetRole = await this.roleRepository.findOne({ where: { id_role: targetRoleId } });
+        
+        if (!targetRole) {
+            throw new NotFoundException('El rol especificado no existe');
+        }
+        
+        // SUPER_ADMIN solo por seeds/migración
+        if (targetRole.name === 'super_admin') {
+            throw new ConflictException('No se pueden crear usuarios SUPER_ADMIN mediante API');
+        }
+        
+        if (!this.canAssignRole(this.getHighestRole(admin.roles), targetRole.name)) {
+            throw new ConflictException(`No tienes permisos para asignar el rol ${targetRole.name}`);
+        }
+    }
+
+    // Agregar rol adicional
+    async addRoleToUser(userId: number, roleId: number, adminUserId: number): Promise<User> {
+        await this.validateRoleAssignment(adminUserId, roleId);
+        
+        const user = await this.findOne(userId);
+        const newRole = await this.roleRepository.findOne({ where: { id_role: roleId } });
+        
+        if (!newRole) {
+            throw new NotFoundException('Rol no encontrado');
+        }
+        // Verificar si ya tiene el rol
+        if (user.hasRole(newRole.name)) {
+            throw new ConflictException('El usuario ya tiene este rol asignado');
+        }
+        
+        user.roles.push(newRole);
+        return await this.userRepository.save(user);
+    }
+
+    // Remover rol (mantener al menos uno)
+    async removeRoleFromUser(userId: number, roleId: number, adminUserId: number): Promise<User> {
+        const user = await this.findOne(userId);
+        
+        if (user.roles.length <= 1) {
+            throw new ConflictException('El usuario debe tener al menos un rol');
+        }
+        
+        // No se puede remover el rol primario si es el único
+        if (user.roles.length === 1) {
+            throw new ConflictException('No se puede remover el rol si es el único rol del usuario');
+        }
+        
+        user.roles = user.roles.filter(role => role.id_role !== roleId);
+        
+        return await this.userRepository.save(user);
+    }
+
+    // AGREGAR este método al final de la clase:
+    private getHighestRole(roles: Role[]): string {
+        const hierarchy = ['super_admin', 'general_admin', 'fair_admin', 'content_admin', 'auditor', 'entrepreneur', 'volunteer'];
+        
+        for (const roleHierarchy of hierarchy) {
+            if (roles.some(role => role.name === roleHierarchy)) {
+                return roleHierarchy;
+            }
+        }
+        return 'volunteer'; // Fallback
+    }
+
+    async createUserInvitation(createInvitationDto: CreateInvitationDto, adminId: number): Promise<{ message: string; invitationId: number }> {
+        // Validar que la persona existe
+        const person = await this.personRepository.findOne({
+            where: { id_person: createInvitationDto.id_person },
+            relations: ['user']
+        });
+
+        if (!person) {
+            throw new NotFoundException('La persona especificada no existe');
+        }
+
+        if (person.user) {
+            throw new ConflictException('Esta persona ya tiene un usuario asociado');
+        }
+
+        // Validar TODOS los roles
+        const roles = await this.roleRepository.find({
+            where: { id_role: In(createInvitationDto.id_roles) }
+        });
+
+        if (roles.length !== createInvitationDto.id_roles.length) {
+            throw new NotFoundException('Uno o más roles no existen');
+        }
+
+        // Verificar que no incluye super_admin
+        if (roles.some(role => role.name === 'super_admin')) {
+            throw new ConflictException('No se pueden crear invitaciones para SUPER_ADMIN');
+        }
+
+        // Validar permisos del admin para TODOS los roles
+        const admin = await this.findOne(adminId);
+        const adminHighestRole = this.getHighestRole(admin.roles);
+        
+        for (const role of roles) {
+            if (!this.canAssignRole(adminHighestRole, role.name)) {
+                throw new ConflictException(`No tienes permisos para asignar el rol ${role.name}`);
+            }
+        }
+
+        // Crear usuario con múltiples roles
+        const tempPassword = this.passwordService.generateTemporaryPassword();
+        const hashedPassword = await this.passwordService.hashPassword(tempPassword);
+
+        const user = this.userRepository.create({
+            password: hashedPassword,
+            status: createInvitationDto.status ?? true,
+            person: { id_person: createInvitationDto.id_person } as Person,
+            roles: roles, // ← MÚLTIPLES ROLES
+            isEmailVerified: false,
+            failedLoginAttempts: 0,
+        });
+
+        const savedUser = await this.userRepository.save(user);
+
+        // TODO: Enviar email con instrucciones de activación
+        console.log(`Usuario creado con contraseña temporal: ${tempPassword}`);
+        console.log(`Roles asignados: ${roles.map(r => r.name).join(', ')}`);
+        console.log(`Enviar email a: ${person.email}`);
+
+        return {
+            message: 'Invitación creada exitosamente',
+            invitationId: savedUser.id_user
+        };
+    }
+
+    async createCompleteUserInvitation(dto: CreateCompleteInvitationDto, adminId: number): Promise<{ message: string; invitationId: number }> {
+        // USAR TRANSACCIÓN PARA ATOMICIDAD
+        const queryRunner = this.dataSource.createQueryRunner();
+        await queryRunner.connect();
+        await queryRunner.startTransaction();
+
+        try {
+            // 1. Verificar email único
+            const existingPerson = await queryRunner.manager.findOne(Person, { 
+                where: { email: dto.email } 
+            });
+            
+            if (existingPerson) {
+                throw new ConflictException('Ya existe una persona con este email');
+            }
+
+            // 2. Validar roles
+            const roles = await queryRunner.manager.find(Role, {
+                where: { id_role: In(dto.id_roles) }
+            });
+            
+            if (roles.length !== dto.id_roles.length) {
+                throw new NotFoundException('Uno o más roles no existen');
+            }
+
+            // 3. Validar permisos admin
+            const admin = await this.findOne(adminId);
+            // ... validaciones de permisos
+
+            // 4. Crear Person
+            const person = queryRunner.manager.create(Person, {
+                first_name: dto.first_name,
+                second_name: dto.second_name,
+                first_lastname: dto.first_lastname,
+                second_lastname: dto.second_lastname,
+                email: dto.email,
+            });
+            
+            const savedPerson = await queryRunner.manager.save(Person, person);
+
+            // 5. Crear phones
+            for (const phoneData of dto.phones) {
+                const phone = queryRunner.manager.create(Phone, {
+                    ...phoneData,
+                    person: savedPerson
+                });
+                await queryRunner.manager.save(Phone, phone);
+            }
+
+            // 6. Crear User
+            const tempPassword = this.passwordService.generateTemporaryPassword();
+            const hashedPassword = await this.passwordService.hashPassword(tempPassword);
+
+            const user = queryRunner.manager.create(User, {
+                password: hashedPassword,
+                status: dto.status ?? true,
+                person: savedPerson,
+                roles: roles,
+                isEmailVerified: false,
+                failedLoginAttempts: 0,
+            });
+
+            const savedUser = await queryRunner.manager.save(User, user);
+
+            // 7. Commit si todo salió bien
+            await queryRunner.commitTransaction();
+
+            console.log(`Usuario creado con contraseña temporal: ${tempPassword}`);
+            console.log(`Enviar email a: ${savedPerson.email}`);
+
+            return {
+                message: 'Invitación creada exitosamente',
+                invitationId: savedUser.id_user
+            };
+
+        } catch (error) {
+            // Rollback si algo falla
+            await queryRunner.rollbackTransaction();
+            throw error;
+        } finally {
+            await queryRunner.release();
+        }
+    }
+
+    async updateUserRoles(userId: number, newRoleIds: number[], adminId: number): Promise<User> {
+        if (newRoleIds.length === 0) {
+            throw new ConflictException('El usuario debe tener al menos un rol');
+        }
+
+        const user = await this.findOne(userId);
+        
+        // Validar que todos los roles existen
+        const newRoles = await this.roleRepository.find({
+            where: { id_role: In(newRoleIds) }
+        });
+        
+        if (newRoles.length !== newRoleIds.length) {
+            throw new NotFoundException('Uno o más roles no existen');
+        }
+        
+        // Verificar que no incluye super_admin
+        if (newRoles.some(role => role.name === 'super_admin')) {
+            throw new ConflictException('No se pueden asignar roles SUPER_ADMIN mediante API');
+        }
+        
+        // Validar permisos del admin para TODOS los nuevos roles
+        const admin = await this.findOne(adminId);
+        const adminHighestRole = this.getHighestRole(admin.roles);
+        
+        for (const role of newRoles) {
+            if (!this.canAssignRole(adminHighestRole, role.name)) {
+                throw new ConflictException(`No tienes permisos para asignar el rol ${role.name}`);
+            }
+        }
+        
+        // Reemplazar todos los roles
+        user.roles = newRoles;
+        return await this.userRepository.save(user);
+    }
 }
 
-// Validación crítica de seguridad
-private async validateRoleAssignment(adminUserId: number, targetRoleId: number): Promise<void> {
-    const admin = await this.findOne(adminUserId);
-    const targetRole = await this.roleRepository.findOne({ where: { id_role: targetRoleId } });
-    
-    if (!targetRole) {
-        throw new NotFoundException('El rol especificado no existe');
-    }
-    
-    // SUPER_ADMIN solo por seeds/migración
-    if (targetRole.name === 'super_admin') {
-        throw new ConflictException('No se pueden crear usuarios SUPER_ADMIN mediante API');
-    }
-    
-    if (!this.canAssignRole(admin.primaryRole.name, targetRole.name)) {
-        throw new ConflictException(`No tienes permisos para asignar el rol ${targetRole.name}`);
-    }
-}
-
-// Agregar rol adicional
-async addRoleToUser(userId: number, roleId: number, adminUserId: number): Promise<User> {
-    await this.validateRoleAssignment(adminUserId, roleId);
-    
-    const user = await this.findOne(userId);
-    const newRole = await this.roleRepository.findOne({ where: { id_role: roleId } });
-    
-    if (!newRole) {
-        throw new NotFoundException('Rol no encontrado');
-    }
-    // Verificar si ya tiene el rol
-    if (user.hasRole(newRole.name)) {
-        throw new ConflictException('El usuario ya tiene este rol asignado');
-    }
-    
-    user.roles.push(newRole);
-    return await this.userRepository.save(user);
-}
-
-// Remover rol (mantener al menos uno)
-async removeRoleFromUser(userId: number, roleId: number, adminUserId: number): Promise<User> {
-    const user = await this.findOne(userId);
-    
-    if (user.roles.length <= 1) {
-        throw new ConflictException('El usuario debe tener al menos un rol');
-    }
-    
-    // No se puede remover el rol primario si es el único
-    if (user.primaryRole.id_role === roleId && user.roles.length === 1) {
-        throw new ConflictException('No se puede remover el rol primario si es el único rol del usuario');
-    }
-    
-    user.roles = user.roles.filter(role => role.id_role !== roleId);
-    
-    // Si removemos el rol primario, asignar el primer rol disponible como primario
-    if (user.primaryRole.id_role === roleId) {
-        user.primaryRole = user.roles[0];
-    }
-    
-    return await this.userRepository.save(user);
-}
-
-// Cambiar rol primario
-async changePrimaryRole(userId: number, newPrimaryRoleId: number, adminUserId: number): Promise<User> {
-    const user = await this.findOne(userId);
-    
-    // Verificar que el nuevo rol primario esté en la lista de roles
-    if (!user.roles.some(role => role.id_role === newPrimaryRoleId)) {
-        throw new ConflictException('El rol primario debe estar incluido en los roles del usuario');
-    }
-    
-    const newPrimaryRole = await this.roleRepository.findOne({ where: { id_role: newPrimaryRoleId } });
-    if (!newPrimaryRole) {
-        throw new NotFoundException('Rol no encontrado');
-    }
-    user.primaryRole = newPrimaryRole;
-    
-    return await this.userRepository.save(user);
-}
-}
