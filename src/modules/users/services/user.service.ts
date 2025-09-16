@@ -51,7 +51,6 @@ export class UserService {
             status: createUserDto.status ?? true,
             person: { id_person: createUserDto.id_person } as Person,
             roles: [role],        
-            primaryRole: role,    
             isEmailVerified: false,
             failedLoginAttempts: 0,
         });
@@ -61,7 +60,7 @@ export class UserService {
 
     async findAll(): Promise<User[]> {
         return this.userRepository.find({ 
-            relations: ['roles', 'primaryRole', 'person'], 
+            relations: ['roles', 'person'], 
             order: { createdAt: 'DESC' }
         });
     }
@@ -76,7 +75,7 @@ export class UserService {
             }
             updateUserDto.password = await this.passwordService.hashPassword(updateUserDto.password);
         }
-        if (updateUserDto.id_role && updateUserDto.id_role !== user.primaryRole.id_role) { 
+        if (updateUserDto.id_role) { 
             const role = await this.roleRepository.findOne({
                 where: { id_role: updateUserDto.id_role }
             });
@@ -92,7 +91,6 @@ export class UserService {
         if (id_role) {
             const newRole = await this.roleRepository.findOne({ where: { id_role: id_role } });
             updateData.roles = [newRole];      
-            updateData.primaryRole = newRole; 
         }
 
         await this.userRepository.update(id, updateData);
@@ -112,7 +110,7 @@ export class UserService {
     async findOne(id: number): Promise<User> {
         const user = await this.userRepository.findOne({
             where: { id_user: id },
-            relations: ['roles', 'primaryRole', 'person'], 
+            relations: ['roles', 'person'], 
         });
         if (!user) throw new NotFoundException('Usuario no encontrado');
         return user;
@@ -124,7 +122,6 @@ export class UserService {
             .createQueryBuilder('user')
             .innerJoinAndSelect('user.person', 'person')
             .leftJoinAndSelect('user.roles', 'roles')           
-            .leftJoinAndSelect('user.primaryRole', 'primaryRole') 
             .where('person.email = :email', { email })
             .getOne();
     }
@@ -160,7 +157,7 @@ export class UserService {
         return this.findOne(userId);
     }
 
-    // Cambiar rol de ususario
+    // Lógica de permisos para cambiar roles
     async changeUserRole(userId: number, newRoleId: number, changedBy: number): Promise<User> {
         const user = await this.findOne(userId);
         const newRole = await this.roleRepository.findOne({ where: { id_role: newRoleId } });
@@ -170,26 +167,18 @@ export class UserService {
         }
 
         const admin = await this.findOne(changedBy);
-        if (!this.canChangeRole(admin.primaryRole.name, newRole.name)) { 
+        if (!this.canAssignRole(this.getHighestRole(admin.roles), newRole.name)) {
             throw new ConflictException('No tienes permisos para asignar este rol');
         }
 
-        user.roles = [newRole];
-        user.primaryRole = newRole;
+        if (!user.hasRole(newRole.name)) {
+            user.roles.push(newRole);
+        } else {
+            throw new ConflictException('El usuario ya tiene este rol asignado');
+        }
+
         await this.userRepository.save(user);
-
         return this.findOne(userId);
-    }
-
-    // Lógica de permisos para cambiar roles
-    private canChangeRole(adminRole: string, targetRole: string): boolean {
-        const roleHierarchy = {
-            'super_admin': ['admin_general', 'admin_ferias', 'fiscalizador', 'emprendedor'],
-            'admin_general': ['admin_ferias', 'fiscalizador', 'emprendedor'],
-            'admin_ferias': ['emprendedor'],
-        };
-
-        return roleHierarchy[adminRole]?.includes(targetRole) || false;
     }
 
     
@@ -204,14 +193,13 @@ export class UserService {
             this.userRepository.count(),
             this.userRepository
                 .createQueryBuilder('user')
-                .innerJoin('user.primaryRole', 'role')
+                .innerJoin('user.roles', 'role')   
                 .select('role.name', 'role')
                 .addSelect('COUNT(*)', 'count')
                 .groupBy('role.name')
                 .getRawMany(),
             this.userRepository.count({ 
                 where: { status: false },
-                relations: ['primaryRole'],
             }),
             this.userRepository.count({
                 where: {
@@ -233,9 +221,7 @@ export class UserService {
         };
     }
 
-    /**
-     * Soft delete (mejor que delete permanente)
-     */
+    //Soft delete (mejor que delete permanente)    
     async softDelete(id: number): Promise<void> {
         const user = await this.findOne(id);
         
@@ -247,92 +233,85 @@ export class UserService {
     }
 
     // Validación de jerarquía de roles
-private canAssignRole(adminRole: string, targetRole: string): boolean {
-    const hierarchy = {
-        'super_admin': ['general_admin', 'fair_admin', 'content_admin', 'entrepreneur', 'volunteer'],
-        'general_admin': ['fair_admin', 'content_admin', 'entrepreneur', 'volunteer'],
-        'fair_admin': ['entrepreneur', 'volunteer']
-    };
+    private canAssignRole(adminRole: string, targetRole: string): boolean {
+        const roleHierarchy = {
+            'super_admin': ['general_admin', 'fair_admin', 'content_admin', 'auditor', 'entrepreneur', 'volunteer'],
+            'general_admin': ['fair_admin', 'content_admin', 'auditor', 'entrepreneur', 'volunteer'],
+            'fair_admin': ['entrepreneur', 'volunteer'],
+            'content_admin': ['entrepreneur', 'volunteer'],
+            'auditor': [] // Solo lectura
+        };
 
-    return hierarchy[adminRole]?.includes(targetRole) || false;
+        return roleHierarchy[adminRole]?.includes(targetRole) || false;
+    }
+
+    // Validación crítica de seguridad
+    private async validateRoleAssignment(adminUserId: number, targetRoleId: number): Promise<void> {
+        const admin = await this.findOne(adminUserId);
+        const targetRole = await this.roleRepository.findOne({ where: { id_role: targetRoleId } });
+        
+        if (!targetRole) {
+            throw new NotFoundException('El rol especificado no existe');
+        }
+        
+        // SUPER_ADMIN solo por seeds/migración
+        if (targetRole.name === 'super_admin') {
+            throw new ConflictException('No se pueden crear usuarios SUPER_ADMIN mediante API');
+        }
+        
+        if (!this.canAssignRole(this.getHighestRole(admin.roles), targetRole.name)) {
+            throw new ConflictException(`No tienes permisos para asignar el rol ${targetRole.name}`);
+        }
+    }
+
+    // Agregar rol adicional
+    async addRoleToUser(userId: number, roleId: number, adminUserId: number): Promise<User> {
+        await this.validateRoleAssignment(adminUserId, roleId);
+        
+        const user = await this.findOne(userId);
+        const newRole = await this.roleRepository.findOne({ where: { id_role: roleId } });
+        
+        if (!newRole) {
+            throw new NotFoundException('Rol no encontrado');
+        }
+        // Verificar si ya tiene el rol
+        if (user.hasRole(newRole.name)) {
+            throw new ConflictException('El usuario ya tiene este rol asignado');
+        }
+        
+        user.roles.push(newRole);
+        return await this.userRepository.save(user);
+    }
+
+    // Remover rol (mantener al menos uno)
+    async removeRoleFromUser(userId: number, roleId: number, adminUserId: number): Promise<User> {
+        const user = await this.findOne(userId);
+        
+        if (user.roles.length <= 1) {
+            throw new ConflictException('El usuario debe tener al menos un rol');
+        }
+        
+        // No se puede remover el rol primario si es el único
+        if (user.roles.length === 1) {
+            throw new ConflictException('No se puede remover el rol si es el único rol del usuario');
+        }
+        
+        user.roles = user.roles.filter(role => role.id_role !== roleId);
+        
+        return await this.userRepository.save(user);
+    }
+
+    // AGREGAR este método al final de la clase:
+    private getHighestRole(roles: Role[]): string {
+        const hierarchy = ['super_admin', 'general_admin', 'fair_admin', 'content_admin', 'auditor', 'entrepreneur', 'volunteer'];
+        
+        for (const roleHierarchy of hierarchy) {
+            if (roles.some(role => role.name === roleHierarchy)) {
+                return roleHierarchy;
+            }
+        }
+        return 'volunteer'; // Fallback
+    }
+
 }
 
-// Validación crítica de seguridad
-private async validateRoleAssignment(adminUserId: number, targetRoleId: number): Promise<void> {
-    const admin = await this.findOne(adminUserId);
-    const targetRole = await this.roleRepository.findOne({ where: { id_role: targetRoleId } });
-    
-    if (!targetRole) {
-        throw new NotFoundException('El rol especificado no existe');
-    }
-    
-    // SUPER_ADMIN solo por seeds/migración
-    if (targetRole.name === 'super_admin') {
-        throw new ConflictException('No se pueden crear usuarios SUPER_ADMIN mediante API');
-    }
-    
-    if (!this.canAssignRole(admin.primaryRole.name, targetRole.name)) {
-        throw new ConflictException(`No tienes permisos para asignar el rol ${targetRole.name}`);
-    }
-}
-
-// Agregar rol adicional
-async addRoleToUser(userId: number, roleId: number, adminUserId: number): Promise<User> {
-    await this.validateRoleAssignment(adminUserId, roleId);
-    
-    const user = await this.findOne(userId);
-    const newRole = await this.roleRepository.findOne({ where: { id_role: roleId } });
-    
-    if (!newRole) {
-        throw new NotFoundException('Rol no encontrado');
-    }
-    // Verificar si ya tiene el rol
-    if (user.hasRole(newRole.name)) {
-        throw new ConflictException('El usuario ya tiene este rol asignado');
-    }
-    
-    user.roles.push(newRole);
-    return await this.userRepository.save(user);
-}
-
-// Remover rol (mantener al menos uno)
-async removeRoleFromUser(userId: number, roleId: number, adminUserId: number): Promise<User> {
-    const user = await this.findOne(userId);
-    
-    if (user.roles.length <= 1) {
-        throw new ConflictException('El usuario debe tener al menos un rol');
-    }
-    
-    // No se puede remover el rol primario si es el único
-    if (user.primaryRole.id_role === roleId && user.roles.length === 1) {
-        throw new ConflictException('No se puede remover el rol primario si es el único rol del usuario');
-    }
-    
-    user.roles = user.roles.filter(role => role.id_role !== roleId);
-    
-    // Si removemos el rol primario, asignar el primer rol disponible como primario
-    if (user.primaryRole.id_role === roleId) {
-        user.primaryRole = user.roles[0];
-    }
-    
-    return await this.userRepository.save(user);
-}
-
-// Cambiar rol primario
-async changePrimaryRole(userId: number, newPrimaryRoleId: number, adminUserId: number): Promise<User> {
-    const user = await this.findOne(userId);
-    
-    // Verificar que el nuevo rol primario esté en la lista de roles
-    if (!user.roles.some(role => role.id_role === newPrimaryRoleId)) {
-        throw new ConflictException('El rol primario debe estar incluido en los roles del usuario');
-    }
-    
-    const newPrimaryRole = await this.roleRepository.findOne({ where: { id_role: newPrimaryRoleId } });
-    if (!newPrimaryRole) {
-        throw new NotFoundException('Rol no encontrado');
-    }
-    user.primaryRole = newPrimaryRole;
-    
-    return await this.userRepository.save(user);
-}
-}

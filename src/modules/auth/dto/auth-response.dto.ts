@@ -9,7 +9,6 @@ export class AuthResponseDto {
         firstName: string;
         firstLastname: string;
         roles: string[];
-        primaryRole: string;
         isEmailVerified: boolean;
     };
 }

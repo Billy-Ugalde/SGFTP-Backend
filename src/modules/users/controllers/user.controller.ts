@@ -65,7 +65,6 @@ export class UserController {
       return await this.userService.create(createUserDto); 
   }
 
-
   @Get('roles/all')
   @UseGuards(RoleGuard)
   @Roles(UserRole.SUPER_ADMIN, UserRole.AUDITOR)
@@ -76,35 +75,25 @@ export class UserController {
   }
 
   @Post(':id/roles')
-@UseGuards(RoleGuard)
-@Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN)
-async addRole(
-    @Param('id', ParseIntPipe) userId: number,
-    @Body() { roleId }: { roleId: number },
-    @CurrentUser() admin: User
-): Promise<User> {
-    return await this.userService.addRoleToUser(userId, roleId, admin.id_user);
-}
+  @UseGuards(RoleGuard)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN)
+  async addRole(
+      @Param('id', ParseIntPipe) userId: number,
+      @Body() { roleId }: { roleId: number },
+      @CurrentUser() admin: User
+  ): Promise<User> {
+      return await this.userService.addRoleToUser(userId, roleId, admin.id_user);
+  }
 
-@Delete(':id/roles/:roleId')
-@UseGuards(RoleGuard)
-@Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN)
-async removeRole(
-    @Param('id', ParseIntPipe) userId: number,
-    @Param('roleId', ParseIntPipe) roleId: number,
-    @CurrentUser() admin: User
-): Promise<User> {
-    return await this.userService.removeRoleFromUser(userId, roleId, admin.id_user);
-}
+  @Delete(':id/roles/:roleId')
+  @UseGuards(RoleGuard)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN)
+  async removeRole(
+      @Param('id', ParseIntPipe) userId: number,
+      @Param('roleId', ParseIntPipe) roleId: number,
+      @CurrentUser() admin: User
+  ): Promise<User> {
+      return await this.userService.removeRoleFromUser(userId, roleId, admin.id_user);
+  }
 
-@Patch(':id/primary-role')
-@UseGuards(RoleGuard)
-@Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN)
-async changePrimaryRole(
-    @Param('id', ParseIntPipe) userId: number,
-    @Body() { roleId }: { roleId: number },
-    @CurrentUser() admin: User
-): Promise<User> {
-    return await this.userService.changePrimaryRole(userId, roleId, admin.id_user);
-}
 }
