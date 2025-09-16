@@ -14,6 +14,7 @@ import { RateLimit } from '../decorators/rate-limit.decorator';
 import { RateLimitGuard } from '../guards/rate-limit.guard';
 import { Response, Request } from 'express';
 import { PermissionService } from '../services/permission.service';
+import { AuthEmailService } from '../services/auth-email.service';
 
 @Controller('auth')
 @UseGuards(AuthGuard)
@@ -21,6 +22,7 @@ export class AuthController {
     constructor(
         private authService: AuthService,  
         private permissionService: PermissionService,
+        private authEmailService: AuthEmailService,
     ) {}
 
     @Public()
@@ -130,6 +132,33 @@ export class AuthController {
         });
 
         return Array.from(allPermissions);
+    }
+
+    // En auth.controller.ts - SOLO PARA TESTING
+    @Post('test-email')
+    async testActivationEmail(@Body() testData?: { email?: string }) {
+        const testEmail = testData?.email || 'tu-email@gmail.com'; // ← Cambiar por tu email
+        
+        try {
+            await this.authEmailService.sendAccountActivationEmail(
+            testEmail,
+            'Usuario Prueba',
+            'TempPass123!',
+            ['entrepreneur', 'volunteer']
+            );
+            
+            return { 
+            success: true,
+            message: 'Email de activación enviado exitosamente',
+            sentTo: testEmail
+            };
+        } catch (error) {
+            return {
+            success: false,
+            message: 'Error enviando email',
+            error: error.message
+            };
+        }
     }
 
 }
