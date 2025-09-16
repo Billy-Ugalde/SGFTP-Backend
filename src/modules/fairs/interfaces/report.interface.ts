@@ -1,10 +1,9 @@
-export interface IReportFairService {
-  createReport(params: ReportFairParams);
-  getReportByFair()
-  getReportFair()
+// src/modules/fairs/interfaces/report.interface.ts
+export interface ReportFairParams {
+  year: number;
+  quarter: 1 | 2 | 3 | 4;
 }
 
- export interface ReportFairParams {
-  year: number;              // Ej: 2025
-  quarter: 1 | 2 | 3 | 4;    // Q1..Q4
+export interface IReportFairService {
+  createReport(params: ReportFairParams): Promise<Buffer>;
 }
