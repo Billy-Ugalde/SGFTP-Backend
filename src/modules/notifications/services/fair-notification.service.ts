@@ -4,13 +4,7 @@ import { Repository } from 'typeorm';
 import { NotificationService } from './notification.service';
 import { Fair } from '../../fairs/entities/fair.entity';
 import { User } from '../../users/entities/user.entity';
-
-interface ChangeInfo {
-  field: string;
-  oldValue: string;
-  newValue: string;
-  description: string;
-}
+import { ChangeInfo } from '../interfaces/notification.interface';
 
 @Injectable()
 export class FairNotificationService {
@@ -29,33 +23,36 @@ export class FairNotificationService {
   }
 
   async sendFairChangeEmails(oldFair: Fair, newFair: Fair): Promise<void> {
-  try {
-    const entrepreneurs = await this.userRepository
-      .createQueryBuilder('user')
-      .innerJoinAndSelect('user.person', 'person')
-      .innerJoin('user.roles', 'role')
-      .where('role.name = :roleName', { roleName: 'entrepreneur' })
-      .andWhere('user.status = :status', { status: true })
-      .getMany();
+    try {
+      const entrepreneurs = await this.userRepository
+        .createQueryBuilder('user')
+        .innerJoinAndSelect('user.person', 'person')
+        .innerJoin('user.roles', 'role')
+        .where('role.name = :roleName', { roleName: 'entrepreneur' })
+        .andWhere('user.status = :status', { status: true })
+        .getMany();
 
-    if (entrepreneurs.length === 0) return;
+      if (entrepreneurs.length === 0) return;
 
-    const hasStatusChange = this.hasStatusChange(oldFair, newFair);
-    const contentChanges = this.detectAllContentChanges(oldFair, newFair);
+      const hasStatusChange = this.hasStatusChange(oldFair, newFair);
+      const contentChanges = this.detectAllContentChanges(oldFair, newFair);
 
-    if (!hasStatusChange && contentChanges.length === 0) return;
+      if (!hasStatusChange && contentChanges.length === 0) return;
 
-    await this.sendEmailsInBatches(
-      entrepreneurs,
-      oldFair,
-      newFair,
-      hasStatusChange,
-      contentChanges,
-    );
-  } catch (error: any) {
-    console.error(`Error en notificaciones: ${error.message}`);
+      console.log(`Notificaciones para: ${newFair.name} (${entrepreneurs.length} emprendedores)`);
+
+      await this.sendEmailsInBatches(
+        entrepreneurs,
+        oldFair,
+        newFair,
+        hasStatusChange,
+        contentChanges,
+      );
+    } catch (error: any) {
+      console.error(`Error en notificaciones: ${error.message}`);
+      throw error;
+    }
   }
-}
 
   private async sendEmailsInBatches(
     entrepreneurs: User[],
@@ -72,25 +69,21 @@ export class FairNotificationService {
 
     for (let i = 0; i < entrepreneurs.length; i += BATCH_SIZE) {
       const batch = entrepreneurs.slice(i, i + BATCH_SIZE);
-
       const batchPromises: Promise<void>[] = [];
 
       for (const user of batch) {
         const person = user.person;
 
         if (person?.email && person.first_name) {
-          const fullName =
-            `${person.first_name} ${person.first_lastname || ''}`.trim();
+          const fullName = `${person.first_name} ${person.first_lastname || ''}`.trim();
 
           if (hasStatusChange) {
-            const statusType =
-              oldFair.status === true && newFair.status === false
-                ? 'Feria Cancelada'
-                : 'Feria Reactivada';
-            const statusMessage =
-              statusType === 'Feria Cancelada'
-                ? 'Lamentamos informarte que la feria ha sido cancelada. Te contactaremos con más información pronto.'
-                : 'La feria ha sido reactivada. Te invitamos a participar nuevamente.';
+            const statusType = oldFair.status === true && newFair.status === false
+              ? 'Feria Cancelada'
+              : 'Feria Reactivada';
+            const statusMessage = statusType === 'Feria Cancelada'
+              ? 'Lamentamos informarte que la feria ha sido cancelada. Te contactaremos con más información pronto.'
+              : 'La feria ha sido reactivada. Te invitamos a participar nuevamente.';
 
             const statusPromise = this.notificationService
               .sendStatusChangeEmail(
@@ -103,7 +96,7 @@ export class FairNotificationService {
               .then(() => {
                 totalSent++;
               })
-              .catch(() => {
+              .catch((error) => {
                 totalFailed++;
               });
 
@@ -121,7 +114,7 @@ export class FairNotificationService {
               .then(() => {
                 totalSent++;
               })
-              .catch(() => {
+              .catch((error) => {
                 totalFailed++;
               });
 
@@ -138,6 +131,8 @@ export class FairNotificationService {
         await new Promise((resolve) => setTimeout(resolve, DELAY_MS));
       }
     }
+
+    console.log(`Completado. Enviados: ${totalSent}, Fallidos: ${totalFailed}`);
   }
 
   private hasStatusChange(oldFair: Fair, newFair: Fair): boolean {
@@ -163,10 +158,8 @@ export class FairNotificationService {
       const newDesc = newFair.description || 'Sin descripción';
       changes.push({
         field: 'Descripción',
-        oldValue:
-          oldDesc.length > 150 ? oldDesc.substring(0, 150) + '...' : oldDesc,
-        newValue:
-          newDesc.length > 150 ? newDesc.substring(0, 150) + '...' : newDesc,
+        oldValue: oldDesc.length > 150 ? oldDesc.substring(0, 150) + '...' : oldDesc,
+        newValue: newDesc.length > 150 ? newDesc.substring(0, 150) + '...' : newDesc,
         description: 'La descripción de la feria ha sido actualizada',
       });
     }
@@ -174,29 +167,34 @@ export class FairNotificationService {
     // 3. CAMBIO DE FECHA
     if (oldFair.date?.toString() !== newFair.date?.toString()) {
       const oldDate = oldFair.date
-        ? new Date(oldFair.date).toLocaleDateString('es-ES', {
+        ? new Date(oldFair.date).toLocaleString('es-ES', {
             weekday: 'long',
             year: 'numeric',
             month: 'long',
             day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true
           })
         : 'Sin fecha definida';
 
       const newDate = newFair.date
-        ? new Date(newFair.date).toLocaleDateString('es-ES', {
+        ? new Date(newFair.date).toLocaleString('es-ES', {
             weekday: 'long',
             year: 'numeric',
             month: 'long',
             day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true
           })
         : 'Sin fecha definida';
 
       changes.push({
-        field: 'Fecha',
+        field: 'Fecha y Hora',
         oldValue: oldDate,
         newValue: newDate,
-        description:
-          'La fecha de la feria ha cambiado. Por favor ajusta tu calendario',
+        description: 'La fecha y hora de la feria ha cambiado. Por favor ajusta tu calendario',
       });
     }
 
@@ -206,8 +204,7 @@ export class FairNotificationService {
         field: 'Ubicación',
         oldValue: oldFair.location || 'Sin ubicación definida',
         newValue: newFair.location || 'Sin ubicación definida',
-        description:
-          'La ubicación de la feria ha cambiado. Asegúrate de dirigirte al lugar correcto',
+        description: 'La ubicación de la feria ha cambiado. Asegúrate de dirigirte al lugar correcto',
       });
     }
 
@@ -217,21 +214,16 @@ export class FairNotificationService {
       const newCond = newFair.conditions || 'Sin condiciones especiales';
       changes.push({
         field: 'Condiciones',
-        oldValue:
-          oldCond.length > 150 ? oldCond.substring(0, 150) + '...' : oldCond,
-        newValue:
-          newCond.length > 150 ? newCond.substring(0, 150) + '...' : newCond,
-        description:
-          'Las condiciones de participación han sido actualizadas. Revisa los nuevos requisitos',
+        oldValue: oldCond.length > 150 ? oldCond.substring(0, 150) + '...' : oldCond,
+        newValue: newCond.length > 150 ? newCond.substring(0, 150) + '...' : newCond,
+        description: 'Las condiciones de participación han sido actualizadas. Revisa los nuevos requisitos',
       });
     }
 
     // 6. CAMBIO DE TIPO DE FERIA
     if (oldFair.typeFair !== newFair.typeFair) {
-      const oldTypeDisplay =
-        oldFair.typeFair === 'interna' ? 'Interna' : 'Externa';
-      const newTypeDisplay =
-        newFair.typeFair === 'interna' ? 'Interna' : 'Externa';
+      const oldTypeDisplay = oldFair.typeFair === 'interna' ? 'Interna' : 'Externa';
+      const newTypeDisplay = newFair.typeFair === 'interna' ? 'Interna' : 'Externa';
 
       changes.push({
         field: 'Tipo de Feria',
