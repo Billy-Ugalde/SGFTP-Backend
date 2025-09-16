@@ -9,6 +9,7 @@ import { SharedModule } from '../shared/shared.module'; // ← Importar shared
 import { AuthGuard } from './guards/auth.guard';
 import { Role } from '../users/entities/role.entity';
 import { RoleGuard } from './guards/role.guard';
+import { PermissionService } from './services/permission.service'; 
 
 @Module({
   imports: [
@@ -17,7 +18,7 @@ import { RoleGuard } from './guards/role.guard';
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({
-        secret: configService.get<string>('JWT_ACCESS_SECRET'),
+        secret: configService.get<string>('JWT_SECRET'),
         signOptions: { expiresIn: '30m' },
       }),
       inject: [ConfigService],
@@ -28,8 +29,9 @@ import { RoleGuard } from './guards/role.guard';
     JwtTokenService,
     AuthGuard,
     RoleGuard,
+    PermissionService,
   ],
   controllers: [AuthController],
-  exports: [AuthService, JwtTokenService, AuthGuard,RoleGuard,],
+  exports: [AuthService, JwtTokenService, AuthGuard,RoleGuard,PermissionService,],
 })
 export class AuthModule {}

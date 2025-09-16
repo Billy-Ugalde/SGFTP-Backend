@@ -1,3 +1,5 @@
+import { Role } from "src/modules/users/entities/role.entity";
+
 export class AuthResponseDto {
     accessToken: string;
     refreshToken: string;
@@ -6,7 +8,8 @@ export class AuthResponseDto {
         email: string;
         firstName: string;
         firstLastname: string;
-        role: string;
+        roles: string[];
+        primaryRole: string;
         isEmailVerified: boolean;
     };
 }

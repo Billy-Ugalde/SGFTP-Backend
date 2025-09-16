@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Param, ParseIntPipe, Patch, Post, Put, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, HttpCode, HttpStatus, Param, ParseIntPipe, Patch, Post, Put, UseGuards, Delete } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import { UserService } from "../services/user.service";
@@ -10,6 +10,8 @@ import { RoleGuard } from "src/modules/auth/guards/role.guard";
 import { Roles } from "src/modules/auth/decorators/roles.decorator";
 import { UserRole } from "src/modules/auth/enums/user-role.enum";
 import { AuthGuard } from "src/modules/auth/guards/auth.guard";
+import { CurrentUser } from "src/modules/auth/decorators/current-user.decorator";
+
 @Controller('users')
 @UseGuards(AuthGuard)
 export class UserController {
@@ -60,7 +62,7 @@ export class UserController {
   @HttpCode(HttpStatus.CREATED)
   async create(
     @Body() createUserDto: CreateUserDto): Promise<User> {
-    return await this.userService.create(createUserDto);
+      return await this.userService.create(createUserDto); 
   }
 
 
@@ -72,4 +74,37 @@ export class UserController {
       order: { name: 'ASC' }
     });
   }
+
+  @Post(':id/roles')
+@UseGuards(RoleGuard)
+@Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN)
+async addRole(
+    @Param('id', ParseIntPipe) userId: number,
+    @Body() { roleId }: { roleId: number },
+    @CurrentUser() admin: User
+): Promise<User> {
+    return await this.userService.addRoleToUser(userId, roleId, admin.id_user);
+}
+
+@Delete(':id/roles/:roleId')
+@UseGuards(RoleGuard)
+@Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN)
+async removeRole(
+    @Param('id', ParseIntPipe) userId: number,
+    @Param('roleId', ParseIntPipe) roleId: number,
+    @CurrentUser() admin: User
+): Promise<User> {
+    return await this.userService.removeRoleFromUser(userId, roleId, admin.id_user);
+}
+
+@Patch(':id/primary-role')
+@UseGuards(RoleGuard)
+@Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN)
+async changePrimaryRole(
+    @Param('id', ParseIntPipe) userId: number,
+    @Body() { roleId }: { roleId: number },
+    @CurrentUser() admin: User
+): Promise<User> {
+    return await this.userService.changePrimaryRole(userId, roleId, admin.id_user);
+}
 }
