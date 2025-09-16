@@ -10,11 +10,12 @@ import { SharedModule } from "../shared/shared.module";
 import { RoleSeedService } from "./services/role-seed.service";
 import { UserSeedService } from "./services/user-seed.service";
 import { AuthModule } from "../auth/auth.module";
+import { AuthEmailService } from "../auth/services/auth-email.service";
 
 @Module({
     imports: [TypeOrmModule.forFeature([User, Role, Person]), SharedModule, forwardRef(() => AuthModule),],
     controllers: [UserController],
-    providers: [UserAuthService, UserService, RoleSeedService, UserSeedService],
+    providers: [UserAuthService, UserService, RoleSeedService, UserSeedService, AuthEmailService],
     exports: [UserAuthService, RoleSeedService, UserSeedService],
 })
 export class UserModule { }

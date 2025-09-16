@@ -1,5 +1,5 @@
-import { ConflictException, Injectable, NotFoundException } from "@nestjs/common";
-import { InjectRepository } from "@nestjs/typeorm";
+import { ConflictException, Injectable, NotFoundException, Inject } from "@nestjs/common";
+import { InjectRepository} from "@nestjs/typeorm";
 import { User } from "../entities/user.entity";
 import { Repository, In  } from "typeorm";
 import { Role } from "../entities/role.entity";
@@ -11,6 +11,7 @@ import { PasswordService } from "src/modules/shared/services/password.service";
 import { CreateCompleteInvitationDto } from "../dto/complete-invitation.dto";
 import { Phone } from "src/entities/phone.entity";
 import { DataSource } from "typeorm";   
+import { AuthEmailService } from "src/modules/auth/services/auth-email.service";    
 
 @Injectable()
 export class UserService {
@@ -23,6 +24,7 @@ export class UserService {
         private roleRepository: Repository<Role>,
         private passwordService: PasswordService,
         private dataSource: DataSource,
+        private authEmailService: AuthEmailService,  
     ) { }
     async create(createUserDto: CreateUserDto) {
         const person = await this.personRepository.findOne({
@@ -356,11 +358,17 @@ export class UserService {
 
         const savedUser = await this.userRepository.save(user);
 
-        // TODO: Enviar email con instrucciones de activación
-        console.log(`Usuario creado con contraseña temporal: ${tempPassword}`);
-        console.log(`Roles asignados: ${roles.map(r => r.name).join(', ')}`);
-        console.log(`Enviar email a: ${person.email}`);
-
+        try {
+            await this.authEmailService.sendAccountActivationEmail(
+                person.email,
+                `${person.first_name} ${person.first_lastname}`,
+                tempPassword,
+                roles.map(r => r.name)
+            );
+            console.log(`[UserService] Email de activación enviado exitosamente a: ${person.email}`);
+        } catch (emailError) {
+            console.error(`[UserService] Usuario creado exitosamente, pero falló envío de email: ${emailError.message}`);
+        }
         return {
             message: 'Invitación creada exitosamente',
             invitationId: savedUser.id_user
@@ -433,10 +441,17 @@ export class UserService {
 
             // 7. Commit si todo salió bien
             await queryRunner.commitTransaction();
-
-            console.log(`Usuario creado con contraseña temporal: ${tempPassword}`);
-            console.log(`Enviar email a: ${savedPerson.email}`);
-
+            try {
+                await this.authEmailService.sendAccountActivationEmail(
+                    person.email,
+                    `${person.first_name} ${person.first_lastname}`,
+                    tempPassword,
+                    roles.map(r => r.name)
+                );
+                console.log(`[UserService] Email de activación enviado exitosamente a: ${person.email}`);
+                } catch (emailError) {
+                console.error(`[UserService] Usuario creado exitosamente, pero falló envío de email: ${emailError.message}`);
+            }
             return {
                 message: 'Invitación creada exitosamente',
                 invitationId: savedUser.id_user
