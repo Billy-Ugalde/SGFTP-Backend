@@ -1,13 +1,19 @@
 import { Injectable } from '@nestjs/common';
 import { readFileSync } from 'fs';
 import { join } from 'path';
-import { ChangeInfo, StatusEmailData, ContentChangesEmailData } from '../interfaces/notification.interface';
+import { 
+  ChangeInfo, 
+  StatusEmailData, 
+  ContentChangesEmailData,
+  TemplateVariables
+} from '../interfaces/notification.interface';
+import { ITemplateService } from '../interfaces/template-service.interface';
 
 @Injectable()
-export class TemplateService {
+export class TemplateService implements ITemplateService {
   private readonly templatesPath = join(process.cwd(), 'src', 'modules', 'notifications', 'templates');
 
-  private loadTemplate(templateName: string): string {
+  loadTemplate(templateName: string): string {
     try {
       const templatePath = join(this.templatesPath, `${templateName}.template.html`);
       return readFileSync(templatePath, 'utf-8');
@@ -17,13 +23,22 @@ export class TemplateService {
     }
   }
 
-  private replaceVariables(template: string, variables: { [key: string]: string }): string {
+  replaceVariables(template: string, variables: TemplateVariables): string {
     let result = template;
     Object.keys(variables).forEach(key => {
       const regex = new RegExp(key, 'g');
-      result = result.replace(regex, variables[key]);
+      result = result.replace(regex, variables[key].toString());
     });
     return result;
+  }
+
+  validateTemplate(templateName: string, requiredVariables: string[]): boolean {
+    try {
+      const template = this.loadTemplate(templateName);
+      return requiredVariables.every(variable => template.includes(variable));
+    } catch (error) {
+      return false;
+    }
   }
 
   private getStatusStyles(): string {
@@ -161,7 +176,7 @@ export class TemplateService {
       'Tipo de Feria': '🎪',
       'Capacidad de Stands': '🏬'
     };
-    return icons[field] || '🔄';
+    return icons[field] || '📄';
   }
 
   private generateChangesRows(changes: ChangeInfo[]): string {

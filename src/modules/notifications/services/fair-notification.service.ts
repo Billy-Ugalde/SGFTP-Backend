@@ -4,10 +4,17 @@ import { Repository } from 'typeorm';
 import { NotificationService } from './notification.service';
 import { Fair } from '../../fairs/entities/fair.entity';
 import { User } from '../../users/entities/user.entity';
-import { ChangeInfo } from '../interfaces/notification.interface';
+import { 
+  ChangeInfo, 
+  BatchEmailResult, 
+  ServiceResponse, 
+  UserEmailData, 
+  BatchConfig 
+} from '../interfaces/notification.interface';
+import { IFairNotificationService } from '../interfaces/fair-notification-service.interface';
 
 @Injectable()
-export class FairNotificationService {
+export class FairNotificationService implements IFairNotificationService {
   constructor(
     private notificationService: NotificationService,
     @InjectRepository(User)
@@ -22,7 +29,7 @@ export class FairNotificationService {
     });
   }
 
-  async sendFairChangeEmails(oldFair: Fair, newFair: Fair): Promise<void> {
+  async sendFairChangeEmails(oldFair: Fair, newFair: Fair): Promise<ServiceResponse<BatchEmailResult>> {
     try {
       const entrepreneurs = await this.userRepository
         .createQueryBuilder('user')
@@ -32,40 +39,85 @@ export class FairNotificationService {
         .andWhere('user.status = :status', { status: true })
         .getMany();
 
-      if (entrepreneurs.length === 0) return;
+      if (entrepreneurs.length === 0) {
+        return {
+          success: true,
+          data: { totalSent: 0, totalFailed: 0, errors: [] },
+          message: 'No se encontraron emprendedores'
+        };
+      }
 
       const hasStatusChange = this.hasStatusChange(oldFair, newFair);
       const contentChanges = this.detectAllContentChanges(oldFair, newFair);
 
-      if (!hasStatusChange && contentChanges.length === 0) return;
+      if (!hasStatusChange && contentChanges.length === 0) {
+        return {
+          success: true,
+          data: { totalSent: 0, totalFailed: 0, errors: [] },
+          message: 'No se detectaron cambios'
+        };
+      }
 
       console.log(`Notificaciones para: ${newFair.name} (${entrepreneurs.length} emprendedores)`);
 
-      await this.sendEmailsInBatches(
+      const result = await this.sendEmailsInBatches(
         entrepreneurs,
         oldFair,
         newFair,
         hasStatusChange,
         contentChanges,
       );
+
+      return {
+        success: true,
+        data: result,
+        message: 'Notificaciones enviadas exitosamente'
+      };
     } catch (error: any) {
       console.error(`Error en notificaciones: ${error.message}`);
-      throw error;
+      return {
+        success: false,
+        error: error.message,
+        data: { totalSent: 0, totalFailed: 0, errors: [error.message] }
+      };
     }
   }
 
-  private async sendEmailsInBatches(
+  async validateUsers(users: User[]): Promise<UserEmailData[]> {
+    return users
+      .filter(user => user.person?.email && user.person?.first_name)
+      .map(user => ({
+        email: user.person.email,
+        firstName: user.person.first_name,
+        lastName: user.person.first_lastname || '',
+        fullName: `${user.person.first_name} ${user.person.first_lastname || ''}`.trim(),
+        isValid: true
+      }));
+  }
+
+  detectStatusChange(oldFair: Fair, newFair: Fair): boolean {
+    return this.hasStatusChange(oldFair, newFair);
+  }
+
+  detectContentChanges(oldFair: Fair, newFair: Fair): ChangeInfo[] {
+    return this.detectAllContentChanges(oldFair, newFair);
+  }
+
+  async sendEmailsInBatches(
     entrepreneurs: User[],
     oldFair: Fair,
     newFair: Fair,
     hasStatusChange: boolean,
     contentChanges: ChangeInfo[],
-  ): Promise<void> {
-    const BATCH_SIZE = 5;
-    const DELAY_MS = 2000;
+    batchConfig?: BatchConfig
+  ): Promise<BatchEmailResult> {
+    const config = batchConfig || { batchSize: 5, delayMs: 2000, maxRetries: 1 };
+    const BATCH_SIZE = config.batchSize;
+    const DELAY_MS = config.delayMs;
 
     let totalSent = 0;
     let totalFailed = 0;
+    const errors: string[] = [];
 
     for (let i = 0; i < entrepreneurs.length; i += BATCH_SIZE) {
       const batch = entrepreneurs.slice(i, i + BATCH_SIZE);
@@ -98,6 +150,7 @@ export class FairNotificationService {
               })
               .catch((error) => {
                 totalFailed++;
+                errors.push(`Error enviando email de estado a ${person.email}: ${error.message}`);
               });
 
             batchPromises.push(statusPromise);
@@ -116,12 +169,14 @@ export class FairNotificationService {
               })
               .catch((error) => {
                 totalFailed++;
+                errors.push(`Error enviando email de cambios a ${person.email}: ${error.message}`);
               });
 
             batchPromises.push(changesPromise);
           }
         } else {
           totalFailed++;
+          errors.push(`Datos de usuario inválidos para usuario ID: ${user.id_user}`);
         }
       }
 
@@ -133,6 +188,12 @@ export class FairNotificationService {
     }
 
     console.log(`Completado. Enviados: ${totalSent}, Fallidos: ${totalFailed}`);
+    
+    return {
+      totalSent,
+      totalFailed,
+      errors
+    };
   }
 
   private hasStatusChange(oldFair: Fair, newFair: Fair): boolean {
