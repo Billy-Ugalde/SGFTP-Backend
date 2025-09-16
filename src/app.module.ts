@@ -15,6 +15,7 @@ import { GlobalSeedService } from './database/services/global-seed.service';
 import { MiddlewareConsumer, NestModule } from '@nestjs/common';
 import { SecurityHeadersMiddleware } from './middleware/security-headers.middleware';
 import { CorsMiddleware } from './middleware/cors.middleware';
+import { NotificationsModule } from './modules/notifications/notifications.module';
 
 @Module({
   imports: [
@@ -35,7 +36,7 @@ import { CorsMiddleware } from './middleware/cors.middleware';
         ssl: false,
       }),
       inject: [ConfigService],
-    }),FairModule, EntrepreneurModule, InformativeModule, SubscribersModule,NewsModule, UserModule, AuthModule, SharedModule],
+    }),FairModule, EntrepreneurModule, InformativeModule, SubscribersModule,NewsModule, UserModule, AuthModule, SharedModule, NotificationsModule],
   controllers: [AppController],
   providers: [AppService, GlobalSeedService],
 })

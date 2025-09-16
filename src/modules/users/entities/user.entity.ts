@@ -42,21 +42,12 @@ export class User {
     })
     roles: Role[];
 
-    // Rol primario (debe estar en roles[])
-    @ManyToOne(() => Role, { eager: true })
-    @JoinColumn({ name: 'primary_role_id' })
-    primaryRole: Role;
-
     // Validaciones de negocio
     @BeforeInsert()
     @BeforeUpdate()
     validateRoles() {
         if (!this.roles || this.roles.length === 0) {
             throw new BadRequestException('El usuario debe tener al menos un rol');
-        }
-
-        if (this.primaryRole && !this.roles.some(role => role.id_role === this.primaryRole.id_role)) {
-            throw new BadRequestException('El rol primario debe estar incluido en la lista de roles');
         }
 
         // Validar roles únicos
@@ -82,12 +73,11 @@ export class User {
     }
 
     // Para JWT payload
-    toJwtPayload(): { sub: string; email: string; roles: string[]; primaryRole: string } {
+    toJwtPayload(): { sub: string; email: string; roles: string[]} {
         return {
             sub: this.id_user.toString(),
             email: this.person.email,
-            roles: this.getAllRoleNames(),
-            primaryRole: this.primaryRole.name
+            roles: this.getAllRoleNames()
         };
     }
 

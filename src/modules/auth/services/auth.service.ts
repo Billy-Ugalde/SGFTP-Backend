@@ -149,7 +149,6 @@ export class AuthService {
             email: user.person.email,
             firstName: user.person.first_name,
             firstLastname: user.person.first_lastname,
-            primaryRole: user.primaryRole.name, 
             roles: user.getAllRoleNames(), 
             isEmailVerified: user.isEmailVerified,
         }
