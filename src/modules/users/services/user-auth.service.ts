@@ -21,7 +21,7 @@ export class UserAuthService implements IUserAuthService {
     async findOne(id: number): Promise<User | null> {
         return await this.userRepository.findOne({  
             where: { id_user: id },
-            relations: ['person', 'roles', 'primaryRole']
+            relations: ['person', 'roles']
         });
     }
 
@@ -33,7 +33,6 @@ export class UserAuthService implements IUserAuthService {
             .createQueryBuilder('user')
             .innerJoinAndSelect('user.person', 'person')
             .leftJoinAndSelect('user.roles', 'roles')  
-            .leftJoinAndSelect('user.primaryRole', 'primaryRole') 
             .addSelect('user.password') // Incluir password para verificación
             .where('person.email = :email', { email })
             .andWhere('user.status = :status', { status: true }) // Solo usuarios activos
@@ -63,7 +62,7 @@ export class UserAuthService implements IUserAuthService {
     async findUserByPersonId(personId: number): Promise<User | null> {
         return await this.userRepository.findOne({
             where: { person: { id_person: personId } },
-            relations: ['person', 'roles', 'primaryRole']
+            relations: ['person', 'roles']
         });
     }
 
@@ -84,7 +83,6 @@ export class UserAuthService implements IUserAuthService {
             failedLoginAttempts: 0,
             person: { id_person: personId },
             roles: [userRole],      
-            primaryRole: userRole, 
         });
 
         return await manager.save(User, user);

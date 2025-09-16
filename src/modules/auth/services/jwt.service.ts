@@ -9,7 +9,6 @@ export interface JwtPayload {
   sub: string;        
   email: string;
   roles: string[];    
-  primaryRole: string; 
   type: 'access' | 'refresh';
   iat?: number;       
   exp?: number;       
@@ -32,7 +31,6 @@ export class JwtTokenService {
         sub: jwtData.sub,
         email: jwtData.email,
         roles: jwtData.roles,          
-        primaryRole: jwtData.primaryRole, 
         type: 'access',
     };
 
@@ -50,7 +48,6 @@ export class JwtTokenService {
       sub: jwtData.sub,
       email: jwtData.email,
       roles: jwtData.roles,           
-      primaryRole: jwtData.primaryRole, 
       type: 'refresh',
     };
 
