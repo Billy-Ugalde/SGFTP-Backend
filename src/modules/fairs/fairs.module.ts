@@ -14,10 +14,13 @@ import { AuthModule } from "../auth/auth.module";
 
 import { FairReportController } from "./controllers/reports.controller";
 import { ReportFairService } from "./services/reportFair.service";
+import { FairNotificationService } from "../notifications/services/fair-notification.service";
+import { NotificationService } from "../notifications/services/notification.service";
+import { User } from "../users/entities/user.entity";
 @Module({
-    imports: [TypeOrmModule.forFeature([Fair, Stand, Fair_enrollment, Entrepreneur]), AuthModule],
+    imports: [TypeOrmModule.forFeature([Fair, Stand, Fair_enrollment, Entrepreneur, User]), AuthModule],
     controllers: [FairController, StandController, EnrollmentController, FairReportController],
-    providers: [FairService, StandService, EnrrolmentService, ReportFairService]
+    providers: [FairService, StandService, EnrrolmentService, ReportFairService, NotificationService, FairNotificationService]
 
 })
 export class FairModule { }
