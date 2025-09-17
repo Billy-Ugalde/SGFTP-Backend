@@ -9,9 +9,9 @@ export class User {
     @PrimaryGeneratedColumn()
     id_user: number;
 
-    @Column({ type: 'varchar', length: 255, select: false })
+    @Column({ type: 'varchar', length: 255, select: false,  nullable: true })
     @Exclude()
-    password: string;
+    password?: string;
 
     @Column({ type: 'boolean', default: true })
     status: boolean;
@@ -41,6 +41,12 @@ export class User {
         inverseJoinColumn: { name: 'role_id', referencedColumnName: 'id_role' }
     })
     roles: Role[];
+
+    @Column({ nullable: true })
+    activation_token?: string;
+
+    @Column({ nullable: true, type: 'timestamp' })
+    activation_expires?: Date;
 
     // Validaciones de negocio
     @BeforeInsert()

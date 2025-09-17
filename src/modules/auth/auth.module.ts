@@ -11,9 +11,15 @@ import { RoleGuard } from './guards/role.guard';
 import { PermissionService } from './services/permission.service'; 
 import { GmailEmailProvider } from '../shared/providers/gmail-email.provider';
 import { AuthEmailService } from './services/auth-email.service';
+import { AccountInvitationService } from './services/account-invitation.service';
+import { TypeOrmModule } from '@nestjs/typeorm';    
+import { User } from '../users/entities/user.entity';
+import { Role } from '../users/entities/role.entity';
+import { Person } from '../../entities/person.entity';  
 
 @Module({
   imports: [
+    TypeOrmModule.forFeature([User, Role, Person]),
     UserModule,
     SharedModule,
     JwtModule.registerAsync({
@@ -33,6 +39,7 @@ import { AuthEmailService } from './services/auth-email.service';
     PermissionService,
     GmailEmailProvider,
     AuthEmailService,
+    AccountInvitationService,
   ],
   controllers: [AuthController],
   exports: [
@@ -42,6 +49,7 @@ import { AuthEmailService } from './services/auth-email.service';
     RoleGuard,
     PermissionService,
     AuthEmailService,
+    AccountInvitationService,
   ],
 })
 export class AuthModule {}

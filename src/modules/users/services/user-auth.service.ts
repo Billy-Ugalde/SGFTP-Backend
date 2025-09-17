@@ -1,6 +1,6 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, QueryRunner } from 'typeorm';
+import { Repository, QueryRunner, MoreThan } from 'typeorm';
 import { User } from '../entities/user.entity';
 import { Role } from '../entities/role.entity';
 import { IUserAuthService } from '../interfaces/user-auth.interface';
@@ -49,7 +49,9 @@ export class UserAuthService implements IUserAuthService {
             return null;
         }
 
-        // Verificar contraseña
+        if (!user.password) {
+            return null; // Usuario sin contraseña (pendiente de activación)
+        }
         const isPasswordValid = await this.passwordService.comparePassword(password, user.password);
         
         if (!isPasswordValid) {
@@ -104,6 +106,54 @@ export class UserAuthService implements IUserAuthService {
         await manager.update(User, userId, {
             status: false,
             // Nota: agregar campo 'deactivation_reason' si es necesario en el futuro
+        });
+    }
+
+    async findUserByActivationToken(token: string): Promise<User | null> {
+        return await this.userRepository.findOne({
+            where: {
+            activation_token: token,
+            activation_expires: MoreThan(new Date())
+            },
+            relations: ['person', 'roles']
+        });
+    }
+
+    async findUserByActivationTokenWithDetails(token: string): Promise<{user: User | null, tokenExists: boolean}> {
+        // Primero verificar si existe usuario activo con ese token
+        const activeUser = await this.userRepository.findOne({
+            where: {
+            activation_token: token,
+            activation_expires: MoreThan(new Date())
+            },
+            relations: ['person', 'roles']
+        });
+
+        if (activeUser) {
+            return { user: activeUser, tokenExists: true };
+        }
+
+        // Verificar si el token existe pero está expirado
+        const expiredUser = await this.userRepository.findOne({
+            where: { activation_token: token },
+            relations: ['person', 'roles']
+        });
+
+        return { 
+            user: null, 
+            tokenExists: !!expiredUser 
+        };
+    }
+
+    async activateUserWithPassword(userId: number, newPassword: string): Promise<void> {
+        const hashedPassword = await this.passwordService.hashPassword(newPassword);
+        
+        await this.userRepository.update(userId, {
+            password: hashedPassword,
+            status: true,
+            isEmailVerified: true,
+            activation_token: undefined,
+            activation_expires: undefined
         });
     }
 
