@@ -63,36 +63,65 @@ export class EntrepreneurService {
   }
 
 
-  async create(createDto: CreateCompleteEntrepreneurDto): Promise<Entrepreneur> {
+  async create(createDto: CreateCompleteEntrepreneurDto, request?: any): Promise<Entrepreneur> {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
 
     try {
 
-      const savedPerson = await this.personService.create(createDto.person, queryRunner);
+    const savedPerson = await this.personService.create(createDto.person, queryRunner);
+
+      // Determinar estado inicial basado en si hay usuario autenticado y sus roles
+    let initialStatus = EntrepreneurStatus.PENDING; 
+    let createdEntrepreneur: Entrepreneur; 
+
+    if (request?.user) {
+      const user = request.user;
+      const userRoles = user.getAllRoleNames();
+      
+      // Si es admin, aprobar automáticamente
+      if (userRoles.some(role => ['super_admin', 'general_admin', 'fair_admin'].includes(role))) {
+        initialStatus = EntrepreneurStatus.APPROVED;
+      }
+    }
+
 
       const entrepreneur = this.entrepreneurRepository.create({
         experience: createDto.entrepreneur.experience,
         facebook_url: createDto.entrepreneur.facebook_url,
         instagram_url: createDto.entrepreneur.instagram_url,
-        status: EntrepreneurStatus.PENDING,
+        status: initialStatus,
         is_active: false,
         person: savedPerson,
       });
 
-      const savedEntrepreneur = await queryRunner.manager.save(Entrepreneur, entrepreneur);
+       createdEntrepreneur = await queryRunner.manager.save(Entrepreneur, entrepreneur);
 
       // Crear el emprendimiento
       await this.entrepreneurshipService.create(
-        savedEntrepreneur.id_entrepreneur,
+        createdEntrepreneur.id_entrepreneur,
         createDto.entrepreneurship,
         queryRunner
       );
+     // Crear usuario con rol emprendedor si el estado inicial es aprobado, es decir si un administrador fue el que creo el emprendedor
+    if (initialStatus === EntrepreneurStatus.APPROVED) {
+      const entrepreneurRole = await queryRunner.manager.findOne(Role, { where: { name: 'entrepreneur' } });
 
+      if (!entrepreneurRole) {
+        throw new NotFoundException('Rol entrepreneur no encontrado');
+      }
+
+      await this.accountInvitationService.createUserAccount(
+        savedPerson.id_person,
+        [entrepreneurRole.id_role],
+        request?.user?.id ?? 0, 
+        queryRunner
+      );
+    }
       await queryRunner.commitTransaction();
 
-      return await this.findOne(savedEntrepreneur.id_entrepreneur);
+      return await this.findOne(createdEntrepreneur.id_entrepreneur);
     } catch (error) {
       await queryRunner.rollbackTransaction();
       throw error;
