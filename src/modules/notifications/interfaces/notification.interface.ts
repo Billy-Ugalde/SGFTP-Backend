@@ -37,6 +37,22 @@ export interface NewFairEmailData {
   conditions: string;
 }
 
+export interface EnrollmentApprovedEmailData {
+  recipientName: string;
+  fairName: string;
+  fairDate: string;
+  fairLocation: string;
+  standCode: string;
+  fairType: string;
+}
+
+export interface EnrollmentRejectedEmailData {
+  recipientName: string;
+  fairName: string;
+  fairDate: string;
+  rejectionReason?: string;
+}
+
 export interface NotificationConfig {
   from: string;
   to: string;
@@ -102,5 +118,7 @@ export interface SMTPConfig {
 export enum NotificationType {
   STATUS_CHANGE = 'STATUS_CHANGE',
   CONTENT_CHANGES = 'CONTENT_CHANGES',
-  NEW_FAIR = 'NEW_FAIR'
+  NEW_FAIR = 'NEW_FAIR',
+  ENROLLMENT_APPROVED = 'ENROLLMENT_APPROVED',
+  ENROLLMENT_REJECTED = 'ENROLLMENT_REJECTED'   
 }

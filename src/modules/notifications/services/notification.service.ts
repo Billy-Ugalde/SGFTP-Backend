@@ -5,7 +5,9 @@ import {
   ChangeInfo, 
   StatusEmailData, 
   ContentChangesEmailData,
-  NewFairEmailData, 
+  NewFairEmailData,
+  EnrollmentApprovedEmailData, 
+  EnrollmentRejectedEmailData,  
   EmailResult,
   EmailOptions
 } from '../interfaces/notification.interface';
@@ -54,7 +56,7 @@ export class NotificationService implements INotificationService {
       await this.transporter.verify();
       return true;
     } catch (error) {
-      console.error('❌ Error de conexión SMTP:', error);
+      console.error('❌ Error de conexion SMTP:', error);
       return false;
     }
   }
@@ -96,7 +98,7 @@ export class NotificationService implements INotificationService {
       const htmlContent = this.templateService.generateStatusChangeEmail(emailData);
 
       const mailOptions = {
-        from: `"Fundación Tamarindo Park" <${this.configService.get('EMAIL_FROM')}>`,
+        from: `"Fundacion Tamarindo Park" <${this.configService.get('EMAIL_FROM')}>`,
         to: recipientEmail,
         subject: subject,
         html: htmlContent,
@@ -140,7 +142,7 @@ export class NotificationService implements INotificationService {
       const htmlContent = this.templateService.generateContentChangesEmail(emailData);
 
       const mailOptions = {
-        from: `"Fundación Tamarindo Park" <${this.configService.get('EMAIL_FROM')}>`,
+        from: `"Fundacion Tamarindo Park" <${this.configService.get('EMAIL_FROM')}>`,
         to: recipientEmail,
         subject: subject,
         html: htmlContent,
@@ -194,7 +196,103 @@ export class NotificationService implements INotificationService {
       const htmlContent = this.templateService.generateNewFairEmail(emailData);
 
       const mailOptions = {
-        from: `"Fundación Tamarindo Park" <${this.configService.get('EMAIL_FROM')}>`,
+        from: `"Fundacion Tamarindo Park" <${this.configService.get('EMAIL_FROM')}>`,
+        to: recipientEmail,
+        subject: subject,
+        html: htmlContent,
+      };
+
+      const result = await this.sendEmailInternal(mailOptions, recipientEmail);
+      return {
+        success: true,
+        messageId: result?.messageId,
+        recipientEmail
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message,
+        recipientEmail
+      };
+    }
+  }
+
+  async sendEnrollmentApprovedEmail(
+    recipientEmail: string,
+    recipientName: string,
+    fairName: string,
+    fairDate: string,
+    fairLocation: string,
+    standCode: string, 
+    fairType: string
+  ): Promise<EmailResult> {
+    try {
+      if (!this.transporter) {
+        await this.initializeTransporter();
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+
+      const subject = `¡Solicitud Aprobada! - ${fairName}`;
+      
+      const emailData: EnrollmentApprovedEmailData = {
+        recipientName,
+        fairName,
+        fairDate,
+        fairLocation,
+        standCode: standCode || '', 
+        fairType
+      };
+
+      const htmlContent = this.templateService.generateEnrollmentApprovedEmail(emailData);
+
+      const mailOptions = {
+        from: `"Fundacion Tamarindo Park" <${this.configService.get('EMAIL_FROM')}>`,
+        to: recipientEmail,
+        subject: subject,
+        html: htmlContent,
+      };
+
+      const result = await this.sendEmailInternal(mailOptions, recipientEmail);
+      return {
+        success: true,
+        messageId: result?.messageId,
+        recipientEmail
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message,
+        recipientEmail
+      };
+    }
+  }
+
+  async sendEnrollmentRejectedEmail(
+    recipientEmail: string,
+    recipientName: string,
+    fairName: string,
+    fairDate: string,
+    rejectionReason?: string
+  ): Promise<EmailResult> {
+    try {
+      if (!this.transporter) {
+        await this.initializeTransporter();
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+
+      const subject = `Información sobre tu solicitud - ${fairName}`;
+      
+      const emailData: EnrollmentRejectedEmailData = {
+        recipientName,
+        fairName,
+        fairDate,
+        rejectionReason: rejectionReason || 'No se proporcionó razón específica'
+      };
+
+      const htmlContent = this.templateService.generateEnrollmentRejectedEmail(emailData);
+
+      const mailOptions = {
+        from: `"Fundacion Tamarindo Park" <${this.configService.get('EMAIL_FROM')}>`,
         to: recipientEmail,
         subject: subject,
         html: htmlContent,

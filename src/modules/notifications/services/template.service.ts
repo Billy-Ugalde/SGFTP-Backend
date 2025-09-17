@@ -5,7 +5,9 @@ import {
   ChangeInfo, 
   StatusEmailData, 
   ContentChangesEmailData,
-  NewFairEmailData, 
+  NewFairEmailData,
+  EnrollmentApprovedEmailData, 
+  EnrollmentRejectedEmailData, 
   TemplateVariables
 } from '../interfaces/notification.interface';
 import { ITemplateService } from '../interfaces/template-service.interface';
@@ -306,6 +308,180 @@ export class TemplateService implements ITemplateService {
     `;
   }
 
+  private getEnrollmentApprovedStyles(): string {
+    return `
+      .approval-announcement {
+        background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+        border: 2px solid #28a745;
+        border-radius: 12px;
+        padding: 30px;
+        text-align: center;
+        margin: 30px 0;
+      }
+
+      .approval-icon {
+        font-size: 48px;
+        color: #28a745;
+        margin-bottom: 15px;
+        display: block;
+      }
+
+      .approval-title {
+        color: #155724;
+        font-size: 24px;
+        font-weight: 700;
+        margin-bottom: 10px;
+      }
+
+      .approval-message {
+        color: #155724;
+        font-size: 16px;
+        margin: 0;
+      }
+
+      .stand-info {
+        background: #ffffff;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        padding: 25px;
+        margin: 25px 0;
+        text-align: center;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+      }
+
+      .stand-code {
+        background: #28a745;
+        color: white;
+        padding: 10px 20px;
+        border-radius: 20px;
+        font-size: 18px;
+        font-weight: 600;
+        display: inline-block;
+        margin: 10px 0;
+      }
+
+      .fair-details-approved {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 20px;
+        margin: 20px 0;
+      }
+
+      .next-steps {
+        background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+        border: 1px solid #f39c12;
+        border-radius: 8px;
+        padding: 20px;
+        margin: 25px 0;
+      }
+
+      .next-steps h4 {
+        color: #856404;
+        font-size: 16px;
+        font-weight: 600;
+        margin-bottom: 10px;
+      }
+
+      .next-steps ul {
+        color: #856404;
+        font-size: 14px;
+        line-height: 1.6;
+        margin: 0;
+        padding-left: 20px;
+      }
+
+      @media (max-width: 650px) {
+        .approval-title {
+          font-size: 20px;
+        }
+        
+        .stand-code {
+          font-size: 16px;
+          padding: 8px 16px;
+        }
+      }
+    `;
+  }
+
+  private getEnrollmentRejectedStyles(): string {
+    return `
+      .rejection-announcement {
+        background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
+        border: 2px solid #dc3545;
+        border-radius: 12px;
+        padding: 30px;
+        text-align: center;
+        margin: 30px 0;
+      }
+
+      .rejection-icon {
+        font-size: 48px;
+        color: #dc3545;
+        margin-bottom: 15px;
+        display: block;
+      }
+
+      .rejection-title {
+        color: #721c24;
+        font-size: 24px;
+        font-weight: 700;
+        margin-bottom: 10px;
+      }
+
+      .rejection-message {
+        color: #721c24;
+        font-size: 16px;
+        margin: 0;
+      }
+
+      .reason-section {
+        background: #ffffff;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        padding: 25px;
+        margin: 25px 0;
+        border-left: 4px solid #dc3545;
+      }
+
+      .reason-title {
+        color: #721c24;
+        font-size: 16px;
+        font-weight: 600;
+        margin-bottom: 10px;
+      }
+
+      .reason-text {
+        color: #5a6c7d;
+        font-size: 14px;
+        line-height: 1.6;
+        margin: 0;
+      }
+
+      .encouragement-section {
+        background: linear-gradient(135deg, #d1ecf1 0%, #bee5eb 100%);
+        border: 1px solid #17a2b8;
+        border-radius: 8px;
+        padding: 20px;
+        margin: 25px 0;
+        text-align: center;
+      }
+
+      .encouragement-section p {
+        color: #0c5460;
+        font-size: 15px;
+        font-weight: 500;
+        margin: 0;
+        line-height: 1.6;
+      }
+
+      @media (max-width: 650px) {
+        .rejection-title {
+          font-size: 20px;
+        }
+      }
+    `;
+  }
+
   private getFieldIcon(field: string): string {
     const icons: { [key: string]: string } = {
       'Nombre de la Feria': '🏷️',
@@ -416,6 +592,53 @@ export class TemplateService implements ITemplateService {
       'CUSTOM_STYLES': this.getNewFairStyles(),
       'EMAIL_CONTENT': contentWithData,
       'FOOTER_MESSAGE': '¡No pierdas esta oportunidad! Para más información o dudas, contáctanos.'
+    };
+
+    return this.replaceVariables(baseTemplate, variables);
+  }
+  generateEnrollmentApprovedEmail(data: EnrollmentApprovedEmailData): string {
+    const baseTemplate = this.loadTemplate('base');
+  
+    const isExternalFair = data.fairType === 'Externa' || !data.standCode || data.standCode.trim() === '';
+    
+    const templateName = isExternalFair ? 'enrollment-approved-external' : 'enrollment-approved-internal';
+    const approvedContent = this.loadTemplate(templateName);
+
+    const contentWithData = this.replaceVariables(approvedContent, {
+      'FAIR_NAME': data.fairName,
+      'FAIR_DATE': data.fairDate,
+      'FAIR_LOCATION': data.fairLocation,
+      'STAND_CODE': data.standCode || '',
+      'FAIR_TYPE': data.fairType
+    });
+
+    const variables = {
+      'EMAIL_TITLE': 'Solicitud Aprobada',
+      'RECIPIENT_NAME': data.recipientName,
+      'CUSTOM_STYLES': this.getEnrollmentApprovedStyles(),
+      'EMAIL_CONTENT': contentWithData,
+      'FOOTER_MESSAGE': '¡Felicitaciones! Te esperamos en la feria. Para más información, contáctanos.'
+    };
+
+    return this.replaceVariables(baseTemplate, variables);
+  }
+
+  generateEnrollmentRejectedEmail(data: EnrollmentRejectedEmailData): string {
+    const baseTemplate = this.loadTemplate('base');
+    const rejectedContent = this.loadTemplate('enrollment-rejected');
+
+    const contentWithData = this.replaceVariables(rejectedContent, {
+      'FAIR_NAME': data.fairName,
+      'FAIR_DATE': data.fairDate,
+      'REJECTION_REASON': data.rejectionReason || 'No se especificó una razón particular.'
+    });
+
+    const variables = {
+      'EMAIL_TITLE': 'Información sobre tu solicitud',
+      'RECIPIENT_NAME': data.recipientName,
+      'CUSTOM_STYLES': this.getEnrollmentRejectedStyles(),
+      'EMAIL_CONTENT': contentWithData,
+      'FOOTER_MESSAGE': 'No te desanimes. Habrán más oportunidades. Para consultas, contáctanos.'
     };
 
     return this.replaceVariables(baseTemplate, variables);

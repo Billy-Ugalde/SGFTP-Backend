@@ -16,7 +16,8 @@ import { User } from '../users/entities/user.entity';
   ],
   exports: [
     FairNotificationService,
-    NotificationService
+    NotificationService,
+    TemplateService  
   ],
 })
 export class NotificationsModule {}
