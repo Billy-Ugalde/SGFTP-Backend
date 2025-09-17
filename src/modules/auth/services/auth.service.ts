@@ -1,9 +1,9 @@
-import { ConflictException, Injectable, UnauthorizedException } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { JwtTokenService } from './jwt.service';
 import { User } from '../../users/entities/user.entity';
 import { AuthResponseDto } from '../dto/auth-response.dto';
 import { RegisterDto } from '../dto/register.dto';
-import { DataSource, QueryRunner } from 'typeorm';
+import { DataSource, QueryRunner, MoreThan } from 'typeorm';
 import { Person } from '../../../entities/person.entity';
 import { PasswordService } from '../../shared/services/password.service';
 import { IUserAuthService } from '../../users/interfaces/user-auth.interface';
@@ -82,29 +82,6 @@ export class AuthService {
             throw error;
         } finally {
             await queryRunner.release();
-        }
-    }
-
-    async createAccountForApprovedEntrepreneur(personId: number, queryRunner?: QueryRunner): Promise<void> {
-        const existingUser = await this.userAuthService.findUserByPersonId(personId);
-        
-        if (existingUser) {
-            // Usuario existe - solo activar
-            await this.userAuthService.activateUserAccount(existingUser.id_user, queryRunner);
-        } else {
-            // Usuario no existe - crear nuevo
-            const tempPassword = this.passwordService.generateTemporaryPassword();
-            const hashedPassword = await this.passwordService.hashPassword(tempPassword);
-            
-            await this.userAuthService.createUserWithRole(
-                personId,
-                UserRole.ENTREPRENEUR,
-                hashedPassword,
-                queryRunner
-            );
-
-            // TODO: Enviar email con credenciales temporales
-            // await this.emailService.sendTemporaryCredentials(email, tempPassword);
         }
     }
 
@@ -215,5 +192,29 @@ export class AuthService {
 
         // Usar método de validación existente
         return await this.validateAccessToken(token);
+    }
+
+    async activateUserAccount(token: string, newPassword: string): Promise<{ message: string }> {
+        // 1. Buscar usuario por token con detalles de expiración
+        const { user, tokenExists } = await this.userAuthService.findUserByActivationTokenWithDetails(token);
+        
+        if (!user) {
+            if (tokenExists) {
+            throw new NotFoundException('El enlace de activación ha expirado');
+            } else {
+            throw new NotFoundException('El enlace de activación no es válido');
+            }
+        }
+
+        // 2. Validar fortaleza de contraseña
+        const validation = this.passwordService.validatePasswordStrength(newPassword);
+        if (!validation.isValid) {
+            throw new ConflictException(`La contraseña no cumple con los requisitos: ${validation.errors.join(', ')}`);
+        }
+
+        // 3. Activar cuenta usando UserAuthService
+        await this.userAuthService.activateUserWithPassword(user.id_user, newPassword);
+
+        return { message: 'Cuenta activada exitosamente' };
     }
 }
