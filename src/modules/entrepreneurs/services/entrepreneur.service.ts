@@ -70,11 +70,12 @@ export class EntrepreneurService {
 
     try {
 
-      const savedPerson = await this.personService.create(createDto.person, queryRunner);
+    const savedPerson = await this.personService.create(createDto.person, queryRunner);
 
       // Determinar estado inicial basado en si hay usuario autenticado y sus roles
     let initialStatus = EntrepreneurStatus.PENDING; 
-    
+    let createdEntrepreneur: Entrepreneur; 
+
     if (request?.user) {
       const user = request.user;
       const userRoles = user.getAllRoleNames();
@@ -95,18 +96,32 @@ export class EntrepreneurService {
         person: savedPerson,
       });
 
-      const savedEntrepreneur = await queryRunner.manager.save(Entrepreneur, entrepreneur);
+       createdEntrepreneur = await queryRunner.manager.save(Entrepreneur, entrepreneur);
 
       // Crear el emprendimiento
       await this.entrepreneurshipService.create(
-        savedEntrepreneur.id_entrepreneur,
+        createdEntrepreneur.id_entrepreneur,
         createDto.entrepreneurship,
         queryRunner
       );
+     // Crear usuario con rol emprendedor si el estado inicial es aprobado, es decir si un administrador fue el que creo el emprendedor
+    if (initialStatus === EntrepreneurStatus.APPROVED) {
+      const entrepreneurRole = await queryRunner.manager.findOne(Role, { where: { name: 'entrepreneur' } });
 
+      if (!entrepreneurRole) {
+        throw new NotFoundException('Rol entrepreneur no encontrado');
+      }
+
+      await this.accountInvitationService.createUserAccount(
+        savedPerson.id_person,
+        [entrepreneurRole.id_role],
+        request?.user?.id ?? 0, 
+        queryRunner
+      );
+    }
       await queryRunner.commitTransaction();
 
-      return await this.findOne(savedEntrepreneur.id_entrepreneur);
+      return await this.findOne(createdEntrepreneur.id_entrepreneur);
     } catch (error) {
       await queryRunner.rollbackTransaction();
       throw error;
