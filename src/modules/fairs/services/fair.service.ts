@@ -11,6 +11,7 @@ import { UpdatefairDto } from '../dto/updateFair.dto';
 import { fairStatusDto } from '../dto/fair-status.dto';
 import { StandService } from './stand.service';
 import { FairNotificationService } from '../../notifications/services/fair-notification.service';
+
 @Injectable()
 export class FairService {
   constructor(
@@ -41,7 +42,7 @@ export class FairService {
 
       const newfair = queryRunner.manager.create(Fair, {
         ...createfairDto,
-        date: new Date(createfairDto.date), // Convierte el stirng al tipo de dato date antes de enviar a la base de datos
+        date: new Date(createfairDto.date), // Convierte el string al tipo de dato date antes de enviar a la base de datos
       });
 
       const savedfair = await queryRunner.manager.save(Fair, newfair);
@@ -53,6 +54,14 @@ export class FairService {
       );
 
       await queryRunner.commitTransaction();
+
+      try {
+        await this.fairNotificationService.sendNewFairEmailsAsync(savedfair);
+        console.log(`🎉 Notificaciones de nueva feria enviadas para: ${savedfair.name}`);
+      } catch (notificationError) {
+        console.error('❌ Error enviando notificaciones de nueva feria:', notificationError);
+      }
+
       return savedfair;
     } catch (error) {
       await queryRunner.rollbackTransaction();
@@ -90,7 +99,6 @@ export class FairService {
   }
 
   async update(id_fair: number, updateFair: UpdatefairDto) {
-
     const oldFair = await this.getOne(id_fair);
 
     await this.fairRepository.update({ id_fair }, updateFair);
@@ -108,9 +116,9 @@ export class FairService {
         oldFair,
         updatedFair,
       );
-      console.log(`Notificaciones enviadas para la feria: ${updatedFair.name}`);
+      console.log(`✅ Notificaciones de cambios enviadas para: ${updatedFair.name}`);
     } catch (error) {
-      console.error('Error enviando notificaciones:', error);
+      console.error('❌ Error enviando notificaciones de cambios:', error);
     }
 
     return updatedFair;
@@ -133,11 +141,9 @@ export class FairService {
         oldFair,
         updatedFair,
       );
-      console.log(
-        `Notificaciones de estado enviadas para: ${updatedFair.name}`,
-      );
+      console.log(`✅ Notificaciones de estado enviadas para: ${updatedFair.name}`);
     } catch (error) {
-      console.error('Error enviando notificaciones:', error);
+      console.error('❌ Error enviando notificaciones de estado:', error);
     }
 
     return updatedFair;

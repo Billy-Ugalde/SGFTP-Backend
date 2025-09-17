@@ -5,6 +5,7 @@ import {
   ChangeInfo, 
   StatusEmailData, 
   ContentChangesEmailData,
+  NewFairEmailData, 
   EmailResult,
   EmailOptions
 } from '../interfaces/notification.interface';
@@ -36,15 +37,12 @@ export class NotificationService implements INotificationService {
       });
 
       this.transporter.verify()
-        .then(() => {
-          console.log('Conexión SMTP verificada exitosamente');
-        })
         .catch((error: any) => {
-          console.error('Error SMTP:', error.message);
+          console.error('❌ Error SMTP:', error.message);
         });
 
     } catch (error: any) {
-      console.error('Error inicializando SMTP:', error.message);
+      console.error('❌ Error inicializando SMTP:', error.message);
     }
   }
 
@@ -56,7 +54,7 @@ export class NotificationService implements INotificationService {
       await this.transporter.verify();
       return true;
     } catch (error) {
-      console.error('Error de conexión SMTP:', error);
+      console.error('❌ Error de conexión SMTP:', error);
       return false;
     }
   }
@@ -104,7 +102,7 @@ export class NotificationService implements INotificationService {
         html: htmlContent,
       };
 
-      const result = await this.sendEmailInternal(mailOptions, recipientEmail, 'ESTADO');
+      const result = await this.sendEmailInternal(mailOptions, recipientEmail);
       return {
         success: true,
         messageId: result?.messageId,
@@ -148,7 +146,61 @@ export class NotificationService implements INotificationService {
         html: htmlContent,
       };
 
-      const result = await this.sendEmailInternal(mailOptions, recipientEmail, 'CAMBIOS CONSOLIDADOS');
+      const result = await this.sendEmailInternal(mailOptions, recipientEmail);
+      return {
+        success: true,
+        messageId: result?.messageId,
+        recipientEmail
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message,
+        recipientEmail
+      };
+    }
+  }
+
+  async sendNewFairEmail(
+    recipientEmail: string,
+    recipientName: string,
+    fairName: string,
+    fairDescription: string,
+    fairDate: string,
+    fairLocation: string,
+    fairType: string,
+    standCapacity: number,
+    conditions: string
+  ): Promise<EmailResult> {
+    try {
+      if (!this.transporter) {
+        await this.initializeTransporter();
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+
+      const subject = `¡Nueva Feria Disponible! ${fairName}`;
+      
+      const emailData: NewFairEmailData = {
+        recipientName,
+        fairName,
+        fairDescription,
+        fairDate,
+        fairLocation,
+        fairType,
+        standCapacity,
+        conditions
+      };
+
+      const htmlContent = this.templateService.generateNewFairEmail(emailData);
+
+      const mailOptions = {
+        from: `"Fundación Tamarindo Park" <${this.configService.get('EMAIL_FROM')}>`,
+        to: recipientEmail,
+        subject: subject,
+        html: htmlContent,
+      };
+
+      const result = await this.sendEmailInternal(mailOptions, recipientEmail);
       return {
         success: true,
         messageId: result?.messageId,
@@ -185,7 +237,7 @@ export class NotificationService implements INotificationService {
 
   async sendEmail(emailOptions: EmailOptions): Promise<EmailResult> {
     try {
-      const result = await this.sendEmailInternal(emailOptions, emailOptions.to, 'PERSONALIZADO');
+      const result = await this.sendEmailInternal(emailOptions, emailOptions.to);
       return {
         success: true,
         messageId: result?.messageId,
@@ -200,23 +252,19 @@ export class NotificationService implements INotificationService {
     }
   }
 
-  private async sendEmailInternal(mailOptions: any, recipientEmail: string, type: string): Promise<any> {
+  private async sendEmailInternal(mailOptions: any, recipientEmail: string): Promise<any> {
     try {
       await this.transporter.verify();
       const result = await this.transporter.sendMail(mailOptions);
-      console.log(`Email ${type} enviado exitosamente a ${recipientEmail}`);
       return result;
       
     } catch (error: any) {
-      console.error(`Error enviando email ${type} a ${recipientEmail}:`, error.message);
       try {
         await this.initializeTransporter();
         await new Promise(resolve => setTimeout(resolve, 2000));
         const retryResult = await this.transporter.sendMail(mailOptions);
-        console.log(`Email ${type} enviado exitosamente a ${recipientEmail} en reintento`);
         return retryResult;
       } catch (retryError: any) {
-        console.error(`Falló el envío de email ${type} a ${recipientEmail} después del reintento:`, retryError.message);
         throw error;
       }
     }

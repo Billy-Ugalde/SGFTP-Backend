@@ -5,6 +5,7 @@ import {
   ChangeInfo, 
   StatusEmailData, 
   ContentChangesEmailData,
+  NewFairEmailData, 
   TemplateVariables
 } from '../interfaces/notification.interface';
 import { ITemplateService } from '../interfaces/template-service.interface';
@@ -165,6 +166,146 @@ export class TemplateService implements ITemplateService {
     `;
   }
 
+  private getNewFairStyles(): string {
+    return `
+      .new-fair-announcement {
+        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+        border: 1px solid #cbd5e0;
+        border-radius: 8px;
+        padding: 30px;
+        text-align: center;
+        margin: 30px 0;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+      }
+
+      .new-fair-icon {
+        font-size: 24px;
+        margin-bottom: 15px;
+        display: block;
+        color: #4a5568;
+      }
+
+      .new-fair-title {
+        color: #2d3748;
+        font-size: 22px;
+        font-weight: 600;
+        margin-bottom: 10px;
+        line-height: 1.3;
+      }
+
+      .fair-details {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        overflow: hidden;
+        margin: 25px 0;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+      }
+
+      .detail-row {
+        padding: 18px 20px;
+        border-bottom: 1px solid #f7fafc;
+        display: flex;
+        align-items: flex-start;
+      }
+
+      .detail-row:last-child {
+        border-bottom: none;
+      }
+
+      .detail-icon {
+        font-size: 18px;
+        margin-right: 15px;
+        width: 25px;
+        text-align: center;
+        color: #4a5568;
+        margin-top: 2px;
+      }
+
+      .detail-label {
+        color: #718096;
+        font-size: 12px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 4px;
+      }
+
+      .detail-value {
+        color: #2d3748;
+        font-size: 15px;
+        font-weight: 500;
+        line-height: 1.4;
+      }
+
+      .description-section {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 6px;
+        padding: 20px;
+        margin: 20px 0;
+      }
+
+      .description-title {
+        color: #2d3748;
+        font-size: 16px;
+        font-weight: 600;
+        margin-bottom: 12px;
+      }
+
+      .description-text {
+        color: #4a5568;
+        font-size: 14px;
+        line-height: 1.6;
+        margin: 0;
+      }
+
+      .call-to-action {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 6px;
+        padding: 25px;
+        text-align: center;
+        margin: 25px 0;
+        color: white;
+      }
+
+      .call-to-action p {
+        color: #ffffff;
+        font-size: 16px;
+        font-weight: 500;
+        margin: 0;
+        line-height: 1.5;
+      }
+
+      .call-to-action strong {
+        font-weight: 700;
+        font-size: 17px;
+      }
+
+      /* Estilos responsivos */
+      @media (max-width: 650px) {
+        .new-fair-title {
+          font-size: 19px;
+        }
+        
+        .detail-row {
+          padding: 15px;
+          flex-direction: column;
+          align-items: flex-start;
+        }
+        
+        .detail-icon {
+          margin-bottom: 8px;
+          margin-right: 0;
+        }
+        
+        .new-fair-icon {
+          font-size: 20px;
+        }
+      }
+    `;
+  }
+
   private getFieldIcon(field: string): string {
     const icons: { [key: string]: string } = {
       'Nombre de la Feria': '🏷️',
@@ -250,6 +391,31 @@ export class TemplateService implements ITemplateService {
       'CUSTOM_STYLES': this.getContentChangesStyles(),
       'EMAIL_CONTENT': contentWithData,
       'FOOTER_MESSAGE': 'Para cualquier consulta sobre estos cambios, puedes contactarnos.'
+    };
+
+    return this.replaceVariables(baseTemplate, variables);
+  }
+
+  generateNewFairEmail(data: NewFairEmailData): string {
+    const baseTemplate = this.loadTemplate('base');
+    const newFairContent = this.loadTemplate('new-fair');
+
+    const contentWithData = this.replaceVariables(newFairContent, {
+      'FAIR_NAME': data.fairName,
+      'FAIR_DESCRIPTION': data.fairDescription,
+      'FAIR_DATE': data.fairDate,
+      'FAIR_LOCATION': data.fairLocation,
+      'FAIR_TYPE': data.fairType,
+      'STAND_CAPACITY': data.standCapacity.toString(),
+      'CONDITIONS': data.conditions
+    });
+
+    const variables = {
+      'EMAIL_TITLE': 'Nueva Feria Disponible',
+      'RECIPIENT_NAME': data.recipientName,
+      'CUSTOM_STYLES': this.getNewFairStyles(),
+      'EMAIL_CONTENT': contentWithData,
+      'FOOTER_MESSAGE': '¡No pierdas esta oportunidad! Para más información o dudas, contáctanos.'
     };
 
     return this.replaceVariables(baseTemplate, variables);

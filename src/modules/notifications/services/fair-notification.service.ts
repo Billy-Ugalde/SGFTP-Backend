@@ -29,15 +29,17 @@ export class FairNotificationService implements IFairNotificationService {
     });
   }
 
+  async sendNewFairEmailsAsync(newFair: Fair): Promise<void> {
+    setImmediate(() => {
+      this.sendNewFairEmails(newFair).catch(error => {
+        console.error('Error en notificaciones de nueva feria background:', error);
+      });
+    });
+  }
+
   async sendFairChangeEmails(oldFair: Fair, newFair: Fair): Promise<ServiceResponse<BatchEmailResult>> {
     try {
-      const entrepreneurs = await this.userRepository
-        .createQueryBuilder('user')
-        .innerJoinAndSelect('user.person', 'person')
-        .innerJoin('user.roles', 'role')
-        .where('role.name = :roleName', { roleName: 'entrepreneur' })
-        .andWhere('user.status = :status', { status: true })
-        .getMany();
+      const entrepreneurs = await this.getActiveEntrepreneurs();
 
       if (entrepreneurs.length === 0) {
         return {
@@ -47,8 +49,8 @@ export class FairNotificationService implements IFairNotificationService {
         };
       }
 
-      const hasStatusChange = this.hasStatusChange(oldFair, newFair);
-      const contentChanges = this.detectAllContentChanges(oldFair, newFair);
+      const hasStatusChange = this.detectStatusChange(oldFair, newFair);
+      const contentChanges = this.detectContentChanges(oldFair, newFair);
 
       if (!hasStatusChange && contentChanges.length === 0) {
         return {
@@ -58,7 +60,8 @@ export class FairNotificationService implements IFairNotificationService {
         };
       }
 
-      console.log(`Notificaciones para: ${newFair.name} (${entrepreneurs.length} emprendedores)`);
+      const changeType = hasStatusChange ? 'CAMBIO DE ESTADO' : 'CAMBIOS DE CONTENIDO';
+      console.log(`📧 ${changeType} - Feria: ${newFair.name} | Destinatarios: ${entrepreneurs.length}`);
 
       const result = await this.sendEmailsInBatches(
         entrepreneurs,
@@ -68,19 +71,64 @@ export class FairNotificationService implements IFairNotificationService {
         contentChanges,
       );
 
+      console.log(`✅ Notificaciones completadas - Enviados: ${result.totalSent} | Fallidos: ${result.totalFailed}`);
+
       return {
         success: true,
         data: result,
         message: 'Notificaciones enviadas exitosamente'
       };
     } catch (error: any) {
-      console.error(`Error en notificaciones: ${error.message}`);
+      console.error(`❌ Error en notificaciones: ${error.message}`);
       return {
         success: false,
         error: error.message,
         data: { totalSent: 0, totalFailed: 0, errors: [error.message] }
       };
     }
+  }
+
+  async sendNewFairEmails(newFair: Fair): Promise<ServiceResponse<BatchEmailResult>> {
+    try {
+      const entrepreneurs = await this.getActiveEntrepreneurs();
+
+      if (entrepreneurs.length === 0) {
+        return {
+          success: true,
+          data: { totalSent: 0, totalFailed: 0, errors: [] },
+          message: 'No se encontraron emprendedores para notificar'
+        };
+      }
+      
+      console.log(`📧 NUEVA FERIA - Feria: ${newFair.name} | Destinatarios: ${entrepreneurs.length}`);
+
+      const result = await this.sendNewFairEmailsInBatches(entrepreneurs, newFair);
+
+      console.log(`✅ Nueva feria notificada - Enviados: ${result.totalSent} | Fallidos: ${result.totalFailed}`);
+
+      return {
+        success: true,
+        data: result,
+        message: 'Notificaciones de nueva feria enviadas exitosamente'
+      };
+    } catch (error: any) {
+      console.error(`❌ Error en notificaciones de nueva feria: ${error.message}`);
+      return {
+        success: false,
+        error: error.message,
+        data: { totalSent: 0, totalFailed: 0, errors: [error.message] }
+      };
+    }
+  }
+
+  private async getActiveEntrepreneurs(): Promise<User[]> {
+    return await this.userRepository
+      .createQueryBuilder('user')
+      .innerJoinAndSelect('user.person', 'person')
+      .innerJoin('user.roles', 'role')
+      .where('role.name = :roleName', { roleName: 'entrepreneur' })
+      .andWhere('user.status = :status', { status: true })
+      .getMany();
   }
 
   async validateUsers(users: User[]): Promise<UserEmailData[]> {
@@ -96,7 +144,9 @@ export class FairNotificationService implements IFairNotificationService {
   }
 
   detectStatusChange(oldFair: Fair, newFair: Fair): boolean {
-    return this.hasStatusChange(oldFair, newFair);
+    const oldStatus = Boolean(oldFair.status);
+    const newStatus = Boolean(newFair.status);
+    return oldStatus !== newStatus;
   }
 
   detectContentChanges(oldFair: Fair, newFair: Fair): ChangeInfo[] {
@@ -118,6 +168,7 @@ export class FairNotificationService implements IFairNotificationService {
     let totalSent = 0;
     let totalFailed = 0;
     const errors: string[] = [];
+    const sentEmails: string[] = [];
 
     for (let i = 0; i < entrepreneurs.length; i += BATCH_SIZE) {
       const batch = entrepreneurs.slice(i, i + BATCH_SIZE);
@@ -126,57 +177,57 @@ export class FairNotificationService implements IFairNotificationService {
       for (const user of batch) {
         const person = user.person;
 
-        if (person?.email && person.first_name) {
-          const fullName = `${person.first_name} ${person.first_lastname || ''}`.trim();
-
-          if (hasStatusChange) {
-            const statusType = oldFair.status === true && newFair.status === false
-              ? 'Feria Cancelada'
-              : 'Feria Reactivada';
-            const statusMessage = statusType === 'Feria Cancelada'
-              ? 'Lamentamos informarte que la feria ha sido cancelada. Te contactaremos con más información pronto.'
-              : 'La feria ha sido reactivada. Te invitamos a participar nuevamente.';
-
-            const statusPromise = this.notificationService
-              .sendStatusChangeEmail(
-                person.email,
-                fullName,
-                newFair.name,
-                statusType,
-                statusMessage,
-              )
-              .then(() => {
-                totalSent++;
-              })
-              .catch((error) => {
-                totalFailed++;
-                errors.push(`Error enviando email de estado a ${person.email}: ${error.message}`);
-              });
-
-            batchPromises.push(statusPromise);
-          }
-
-          if (contentChanges.length > 0) {
-            const changesPromise = this.notificationService
-              .sendContentChangesEmail(
-                person.email,
-                fullName,
-                newFair.name,
-                contentChanges,
-              )
-              .then(() => {
-                totalSent++;
-              })
-              .catch((error) => {
-                totalFailed++;
-                errors.push(`Error enviando email de cambios a ${person.email}: ${error.message}`);
-              });
-
-            batchPromises.push(changesPromise);
-          }
-        } else {
+        if (!person?.email || !person.first_name) {
           totalFailed++;
           errors.push(`Datos de usuario inválidos para usuario ID: ${user.id_user}`);
+          continue;
+        }
+
+        const fullName = `${person.first_name} ${person.first_lastname || ''}`.trim();
+
+        if (hasStatusChange) {
+          const statusType = this.getStatusChangeType(oldFair, newFair);
+          const statusMessage = this.getStatusMessage(statusType);
+
+          const statusPromise = this.notificationService
+            .sendStatusChangeEmail(
+              person.email,
+              fullName,
+              newFair.name,
+              statusType,
+              statusMessage,
+            )
+            .then(() => {
+              totalSent++;
+              sentEmails.push(`${person.email} (${statusType})`);
+            })
+            .catch((error) => {
+              totalFailed++;
+              const errorMsg = `Error enviando email de estado a ${person.email}: ${error.message}`;
+              errors.push(errorMsg);
+            });
+
+          batchPromises.push(statusPromise);
+
+        } else if (contentChanges.length > 0) {
+          const changesPromise = this.notificationService
+            .sendContentChangesEmail(
+              person.email,
+              fullName,
+              newFair.name,
+              contentChanges,
+            )
+            .then(() => {
+              totalSent++;
+              sentEmails.push(`${person.email} (Cambios de contenido)`);
+            })
+            .catch((error) => {
+              totalFailed++;
+              const errorMsg = `Error enviando email de cambios a ${person.email}: ${error.message}`;
+              errors.push(errorMsg);
+            });
+
+          batchPromises.push(changesPromise);
         }
       }
 
@@ -186,8 +237,15 @@ export class FairNotificationService implements IFairNotificationService {
         await new Promise((resolve) => setTimeout(resolve, DELAY_MS));
       }
     }
+    if (sentEmails.length > 0) {
+      console.log('📬 Emails enviados exitosamente:');
+      sentEmails.forEach(email => console.log(`  → ${email}`));
+    }
 
-    console.log(`Completado. Enviados: ${totalSent}, Fallidos: ${totalFailed}`);
+    if (errors.length > 0) {
+      console.log('⚠️ Errores en envío:');
+      errors.forEach(error => console.log(`  → ${error}`));
+    }
     
     return {
       totalSent,
@@ -196,8 +254,120 @@ export class FairNotificationService implements IFairNotificationService {
     };
   }
 
-  private hasStatusChange(oldFair: Fair, newFair: Fair): boolean {
-    return oldFair.status !== newFair.status;
+  async sendNewFairEmailsInBatches(
+    entrepreneurs: User[],
+    newFair: Fair,
+    batchConfig?: BatchConfig
+  ): Promise<BatchEmailResult> {
+    const config = batchConfig || { batchSize: 5, delayMs: 2000, maxRetries: 1 };
+    const BATCH_SIZE = config.batchSize;
+    const DELAY_MS = config.delayMs;
+
+    let totalSent = 0;
+    let totalFailed = 0;
+    const errors: string[] = [];
+    const sentEmails: string[] = [];
+
+    for (let i = 0; i < entrepreneurs.length; i += BATCH_SIZE) {
+      const batch = entrepreneurs.slice(i, i + BATCH_SIZE);
+      const batchPromises: Promise<void>[] = [];
+
+      for (const user of batch) {
+        const person = user.person;
+
+        if (!person?.email || !person.first_name) {
+          totalFailed++;
+          errors.push(`Datos de usuario inválidos para usuario ID: ${user.id_user}`);
+          continue;
+        }
+
+        const fullName = `${person.first_name} ${person.first_lastname || ''}`.trim();
+
+        const fairDate = newFair.date
+          ? new Date(newFair.date).toLocaleString('es-ES', {
+              weekday: 'long',
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit',
+              hour12: true
+            })
+          : 'Por definir';
+
+        const fairTypeDisplay = newFair.typeFair === 'interna' ? 'Interna' : 'Externa';
+
+        const newFairPromise = this.notificationService
+          .sendNewFairEmail(
+            person.email,
+            fullName,
+            newFair.name,
+            newFair.description || 'Sin descripción disponible',
+            fairDate,
+            newFair.location || 'Por definir',
+            fairTypeDisplay,
+            newFair.stand_capacity || 0,
+            newFair.conditions || 'Sin condiciones especiales'
+          )
+          .then(() => {
+            totalSent++;
+            sentEmails.push(`${person.email} (Nueva feria)`);
+          })
+          .catch((error) => {
+            totalFailed++;
+            const errorMsg = `Error enviando email de nueva feria a ${person.email}: ${error.message}`;
+            errors.push(errorMsg);
+          });
+
+        batchPromises.push(newFairPromise);
+      }
+
+      await Promise.allSettled(batchPromises);
+
+      if (i + BATCH_SIZE < entrepreneurs.length) {
+        await new Promise((resolve) => setTimeout(resolve, DELAY_MS));
+      }
+    }
+
+    if (sentEmails.length > 0) {
+      console.log('📬 Emails enviados exitosamente:');
+      sentEmails.forEach(email => console.log(`  → ${email}`));
+    }
+
+    // Log de errores solo si los hay
+    if (errors.length > 0) {
+      console.log('⚠️ Errores en envío:');
+      errors.forEach(error => console.log(`  → ${error}`));
+    }
+    
+    return {
+      totalSent,
+      totalFailed,
+      errors
+    };
+  }
+
+  private getStatusChangeType(oldFair: Fair, newFair: Fair): string {
+    const oldStatus = Boolean(oldFair.status);
+    const newStatus = Boolean(newFair.status);
+
+    if (oldStatus === true && newStatus === false) {
+      return 'Feria Cancelada';
+    } else if (oldStatus === false && newStatus === true) {
+      return 'Feria Reactivada';
+    }
+    
+    return 'Cambio de Estado';
+  }
+
+  private getStatusMessage(statusType: string): string {
+    if (statusType === 'Feria Cancelada') {
+      return 'Lamentamos informarte que la feria ha sido cancelada. Te contactaremos con más información pronto.';
+    } else if (statusType === 'Feria Reactivada') {
+      return 'La feria ha sido reactivada. Te invitamos a participar nuevamente.';
+    }
+    
+    return 'El estado de la feria ha cambiado. Te mantendremos informado de cualquier novedad.';
   }
 
   private detectAllContentChanges(oldFair: Fair, newFair: Fair): ChangeInfo[] {

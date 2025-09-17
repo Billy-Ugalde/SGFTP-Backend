@@ -26,6 +26,17 @@ export interface ContentChangesEmailData {
   changes: ChangeInfo[];
 }
 
+export interface NewFairEmailData {
+  recipientName: string;
+  fairName: string;
+  fairDescription: string;
+  fairDate: string;
+  fairLocation: string;
+  fairType: string;
+  standCapacity: number;
+  conditions: string;
+}
+
 export interface NotificationConfig {
   from: string;
   to: string;
@@ -90,5 +101,6 @@ export interface SMTPConfig {
 
 export enum NotificationType {
   STATUS_CHANGE = 'STATUS_CHANGE',
-  CONTENT_CHANGES = 'CONTENT_CHANGES'
+  CONTENT_CHANGES = 'CONTENT_CHANGES',
+  NEW_FAIR = 'NEW_FAIR'
 }

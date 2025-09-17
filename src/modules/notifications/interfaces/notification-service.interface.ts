@@ -25,7 +25,18 @@ export interface INotificationService {
     changeDetails: string
   ): Promise<EmailResult>;
 
- 
+  sendNewFairEmail(
+    recipientEmail: string,
+    recipientName: string,
+    fairName: string,
+    fairDescription: string,
+    fairDate: string,
+    fairLocation: string,
+    fairType: string,
+    standCapacity: number,
+    conditions: string
+  ): Promise<EmailResult>;
+
   sendEmail(emailOptions: EmailOptions): Promise<EmailResult>;
   verifyConnection(): Promise<boolean>;
   reinitializeTransporter(): Promise<void>;

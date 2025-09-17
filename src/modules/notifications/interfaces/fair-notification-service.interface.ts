@@ -11,6 +11,10 @@ import { User } from '../../users/entities/user.entity';
 export interface IFairNotificationService {
   sendFairChangeEmailsAsync(oldFair: Fair, newFair: Fair): Promise<void>;
   sendFairChangeEmails(oldFair: Fair, newFair: Fair): Promise<ServiceResponse<BatchEmailResult>>;
+  
+  sendNewFairEmailsAsync(newFair: Fair): Promise<void>;
+  sendNewFairEmails(newFair: Fair): Promise<ServiceResponse<BatchEmailResult>>;
+  
   validateUsers(users: User[]): Promise<UserEmailData[]>;
   detectStatusChange(oldFair: Fair, newFair: Fair): boolean;
   detectContentChanges(oldFair: Fair, newFair: Fair): ChangeInfo[];
@@ -20,6 +24,12 @@ export interface IFairNotificationService {
     newFair: Fair,
     hasStatusChange: boolean,
     contentChanges: ChangeInfo[],
+    batchConfig?: BatchConfig
+  ): Promise<BatchEmailResult>;
+  
+  sendNewFairEmailsInBatches(
+    users: User[],
+    newFair: Fair,
     batchConfig?: BatchConfig
   ): Promise<BatchEmailResult>;
 }
