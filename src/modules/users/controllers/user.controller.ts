@@ -6,7 +6,6 @@ import { User } from "../entities/user.entity";
 import { Role } from "../entities/role.entity";
 import { CreateUserDto } from "../dto/user.dto";
 import { UpdateUserDto } from "../dto/userUpdateDto";
-import { CreateInvitationDto } from "../dto/invitation.dto";
 import { CreateCompleteInvitationDto } from "../dto/complete-invitation.dto";
 import { RoleGuard } from "src/modules/auth/guards/role.guard";
 import { Roles } from "src/modules/auth/decorators/roles.decorator";
@@ -98,17 +97,6 @@ export class UserController {
       return await this.userService.removeRoleFromUser(userId, roleId, admin.id_user);
   }
 
-  @Post('invite')
-  @UseGuards(RoleGuard)
-  @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN)
-  @HttpCode(HttpStatus.CREATED)
-  async inviteUser(
-    @Body() createInvitationDto: CreateInvitationDto,
-    @CurrentUser() admin: User
-  ): Promise<{ message: string; invitationId: number }> {
-      return await this.userService.createUserInvitation(createInvitationDto, admin.id_user);
-  }
-
   // NUEVO ENDPOINT en UserController:
   @Post('invite-complete')
   @UseGuards(RoleGuard)
@@ -116,7 +104,7 @@ export class UserController {
   async inviteUserComplete(
     @Body() createCompleteInvitationDto: CreateCompleteInvitationDto,
     @CurrentUser() admin: User
-  ): Promise<{ message: string; invitationId: number }> {
+  ): Promise<{ message: string; userId: number }> {
       return await this.userService.createCompleteUserInvitation(createCompleteInvitationDto, admin.id_user);
   }
 

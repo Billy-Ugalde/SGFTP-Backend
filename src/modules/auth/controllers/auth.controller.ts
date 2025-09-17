@@ -15,6 +15,7 @@ import { RateLimitGuard } from '../guards/rate-limit.guard';
 import { Response, Request } from 'express';
 import { PermissionService } from '../services/permission.service';
 import { AuthEmailService } from '../services/auth-email.service';
+import { ActivateAccountDto } from '../dto/activate-account.dto';
 
 @Controller('auth')
 @UseGuards(AuthGuard)
@@ -159,6 +160,12 @@ export class AuthController {
             error: error.message
             };
         }
+    }
+
+    @Public()
+    @Post('activate')
+    async activateAccount(@Body() activateDto: ActivateAccountDto): Promise<{ message: string }> {
+        return await this.authService.activateUserAccount(activateDto.token, activateDto.password);
     }
 
 }
