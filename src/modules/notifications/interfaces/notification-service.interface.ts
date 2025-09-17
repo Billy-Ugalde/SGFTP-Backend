@@ -44,7 +44,9 @@ export interface INotificationService {
     fairDate: string,
     fairLocation: string,
     standCode: string, 
-    fairType: string
+    fairType: string,
+    fairDescription?: string, 
+    conditions?: string 
   ): Promise<EmailResult>;
 
   sendEnrollmentRejectedEmail(

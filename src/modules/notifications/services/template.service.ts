@@ -314,90 +314,275 @@ export class TemplateService implements ITemplateService {
         background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
         border: 2px solid #28a745;
         border-radius: 12px;
-        padding: 30px;
+        padding: 35px 30px; /* Aumentado el padding */
         text-align: center;
-        margin: 30px 0;
+        margin: 35px 0; /* Aumentado el margen */
+        box-shadow: 0 4px 16px rgba(40, 167, 69, 0.1);
       }
 
       .approval-icon {
-        font-size: 48px;
+        font-size: 32px; /* Reducido de 48px a 32px */
         color: #28a745;
-        margin-bottom: 15px;
+        margin-bottom: 20px; /* Aumentado el margen */
         display: block;
       }
 
       .approval-title {
         color: #155724;
-        font-size: 24px;
+        font-size: 26px;
         font-weight: 700;
-        margin-bottom: 10px;
+        margin-bottom: 15px; /* Aumentado el margen */
+        line-height: 1.3;
       }
 
       .approval-message {
         color: #155724;
         font-size: 16px;
         margin: 0;
+        line-height: 1.6;
+        padding: 0 15px; /* Agregado padding lateral */
+      }
+
+      /* Corregido: Estilos para el título principal de la feria con mejor espaciado */
+      .fair-title-section {
+        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+        border: 2px solid #cbd5e0;
+        border-radius: 12px;
+        padding: 30px 25px; /* Aumentado el padding */
+        text-align: center;
+        margin: 35px 0; /* Aumentado el margen */
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+      }
+
+      .fair-main-title {
+        color: #2d3748;
+        font-size: 24px;
+        font-weight: 700;
+        margin: 0;
+        line-height: 1.4;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        word-wrap: break-word; /* Agregado para evitar desbordamiento */
       }
 
       .stand-info {
         background: #ffffff;
-        border: 1px solid #dee2e6;
-        border-radius: 8px;
-        padding: 25px;
-        margin: 25px 0;
+        border: 2px solid #28a745;
+        border-radius: 12px;
+        padding: 30px 25px; /* Aumentado el padding */
+        margin: 35px 0; /* Aumentado el margen */
         text-align: center;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        box-shadow: 0 4px 12px rgba(40, 167, 69, 0.1);
       }
 
       .stand-code {
-        background: #28a745;
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
         color: white;
-        padding: 10px 20px;
-        border-radius: 20px;
-        font-size: 18px;
-        font-weight: 600;
+        padding: 12px 24px;
+        border-radius: 25px;
+        font-size: 20px;
+        font-weight: 700;
         display: inline-block;
-        margin: 10px 0;
+        margin: 15px 0; /* Aumentado el margen */
+        box-shadow: 0 4px 8px rgba(40, 167, 69, 0.3);
+        letter-spacing: 1px;
       }
 
-      .fair-details-approved {
-        background: #f8f9fa;
+      /* Corregido: Estilos para la información de participación externa */
+      .external-participation-info {
+        background: linear-gradient(135deg, #e6f7ff 0%, #bae7ff 100%);
+        border: 2px solid #1890ff;
+        border-radius: 12px;
+        padding: 30px 25px; /* Aumentado el padding */
+        margin: 35px 0; /* Aumentado el margen */
+        text-align: center;
+        box-shadow: 0 4px 12px rgba(24, 144, 255, 0.1);
+      }
+
+      .participation-title {
+        color: #0050b3;
+        font-size: 20px;
+        font-weight: 600;
+        margin-bottom: 15px; /* Aumentado el margen */
+      }
+
+      .participation-description {
+        color: #096dd9;
+        font-size: 15px;
+        margin: 0;
+        line-height: 1.7; /* Aumentado el line-height */
+        padding: 0 15px; /* Agregado padding lateral */
+      }
+
+      /* Corregido: Estilos para los detalles comprehensivos de la feria */
+      .fair-comprehensive-details {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 30px 25px; /* Aumentado el padding */
+        margin: 35px 0; /* Aumentado el margen */
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+      }
+
+      .section-title {
+        color: #2d3748;
+        font-size: 18px;
+        font-weight: 600;
+        margin-bottom: 25px; /* Aumentado el margen */
+        display: flex;
+        align-items: center;
+        border-bottom: 2px solid #e2e8f0;
+        padding-bottom: 12px; /* Aumentado el padding */
+      }
+
+      .detail-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 20px; /* Aumentado el gap */
+      }
+
+      .detail-item {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
         border-radius: 8px;
-        padding: 20px;
-        margin: 20px 0;
+        padding: 25px 20px; /* Aumentado el padding */
+        display: flex;
+        align-items: flex-start;
+        transition: all 0.2s ease;
+      }
+
+      .detail-item:hover {
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        border-color: #cbd5e0;
+      }
+
+      .detail-content {
+        flex: 1;
+      }
+
+      .detail-label-new {
+        display: block;
+        color: #718096;
+        font-size: 12px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 8px; /* Aumentado el margen */
+      }
+
+      .detail-value-new {
+        color: #2d3748;
+        font-size: 16px;
+        font-weight: 500;
+        line-height: 1.5; /* Aumentado el line-height */
+        word-wrap: break-word; /* Agregado para evitar desbordamiento */
+      }
+
+      /* Corregido: Estilos para la descripción y condiciones con mejor espaciado */
+      .description-comprehensive,
+      .conditions-section {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-left: 4px solid #4299e1;
+        border-radius: 8px;
+        padding: 30px 25px; /* Aumentado el padding */
+        margin: 35px 0; /* Aumentado el margen */
+      }
+
+      .description-content,
+      .conditions-content {
+        color: #4a5568;
+        font-size: 15px;
+        line-height: 1.8; /* Aumentado el line-height */
+        margin: 0;
+      }
+
+      .description-content p,
+      .conditions-content p {
+        margin: 0;
+        padding: 0;
+        word-wrap: break-word; /* Agregado para evitar desbordamiento */
       }
 
       .next-steps {
         background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
         border: 1px solid #f39c12;
-        border-radius: 8px;
-        padding: 20px;
-        margin: 25px 0;
+        border-radius: 12px;
+        padding: 30px 25px; /* Aumentado el padding */
+        margin: 35px 0; /* Aumentado el margen */
       }
 
       .next-steps h4 {
         color: #856404;
-        font-size: 16px;
+        font-size: 18px;
         font-weight: 600;
-        margin-bottom: 10px;
+        margin-bottom: 20px; /* Aumentado el margen */
+        display: flex;
+        align-items: center;
       }
 
       .next-steps ul {
         color: #856404;
-        font-size: 14px;
-        line-height: 1.6;
+        font-size: 15px;
+        line-height: 1.8; /* Aumentado el line-height */
         margin: 0;
-        padding-left: 20px;
+        padding-left: 25px;
       }
 
+      .next-steps li {
+        margin-bottom: 12px; /* Aumentado el margen */
+      }
+
+      /* Corregido: Estilos para la sección de felicitaciones */
+      .congratulations-section {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 12px;
+        padding: 35px 30px; /* Aumentado el padding */
+        text-align: center;
+        margin: 35px 0; /* Aumentado el margen */
+        color: white;
+        box-shadow: 0 4px 16px rgba(102, 126, 234, 0.3);
+      }
+
+      /* Estilos responsivos mejorados */
       @media (max-width: 650px) {
+        .approval-announcement,
+        .fair-title-section,
+        .stand-info,
+        .external-participation-info,
+        .fair-comprehensive-details,
+        .description-comprehensive,
+        .conditions-section,
+        .next-steps,
+        .congratulations-section {
+          padding: 20px 15px; /* Padding reducido para móviles */
+          margin: 20px 0; /* Margen reducido para móviles */
+        }
+        
         .approval-title {
+          font-size: 22px;
+        }
+        
+        .fair-main-title {
           font-size: 20px;
         }
         
         .stand-code {
+          font-size: 18px;
+          padding: 10px 20px;
+        }
+        
+        .detail-item {
+          flex-direction: column;
+          align-items: flex-start;
+          padding: 20px 15px; /* Padding reducido para móviles */
+        }
+        
+        .section-title {
           font-size: 16px;
-          padding: 8px 16px;
+        }
+        
+        .detail-value-new {
+          font-size: 15px;
         }
       }
     `;
@@ -596,6 +781,7 @@ export class TemplateService implements ITemplateService {
 
     return this.replaceVariables(baseTemplate, variables);
   }
+
   generateEnrollmentApprovedEmail(data: EnrollmentApprovedEmailData): string {
     const baseTemplate = this.loadTemplate('base');
   
@@ -609,7 +795,9 @@ export class TemplateService implements ITemplateService {
       'FAIR_DATE': data.fairDate,
       'FAIR_LOCATION': data.fairLocation,
       'STAND_CODE': data.standCode || '',
-      'FAIR_TYPE': data.fairType
+      'FAIR_TYPE': data.fairType,
+      'FAIR_DESCRIPTION': data.fairDescription || 'Descripción no disponible', 
+      'CONDITIONS': data.conditions || 'Sin condiciones especiales'
     });
 
     const variables = {

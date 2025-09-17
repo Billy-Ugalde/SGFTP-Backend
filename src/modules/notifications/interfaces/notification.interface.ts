@@ -44,6 +44,8 @@ export interface EnrollmentApprovedEmailData {
   fairLocation: string;
   standCode: string;
   fairType: string;
+  fairDescription?: string; 
+  conditions?: string;
 }
 
 export interface EnrollmentRejectedEmailData {

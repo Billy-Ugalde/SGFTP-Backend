@@ -224,7 +224,9 @@ export class NotificationService implements INotificationService {
     fairDate: string,
     fairLocation: string,
     standCode: string, 
-    fairType: string
+    fairType: string,
+    fairDescription?: string, 
+    conditions?: string 
   ): Promise<EmailResult> {
     try {
       if (!this.transporter) {
@@ -240,7 +242,9 @@ export class NotificationService implements INotificationService {
         fairDate,
         fairLocation,
         standCode: standCode || '', 
-        fairType
+        fairType,
+        fairDescription, 
+        conditions
       };
 
       const htmlContent = this.templateService.generateEnrollmentApprovedEmail(emailData);

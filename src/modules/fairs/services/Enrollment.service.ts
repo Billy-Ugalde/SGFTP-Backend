@@ -304,7 +304,9 @@ export class EnrrolmentService {
                     fairDate,
                     enrollment.fair.location || 'Por definir',
                     enrollment.stand.stand_code,
-                    fairTypeDisplay
+                    fairTypeDisplay,
+                    enrollment.fair.description, 
+                    enrollment.fair.conditions
                 );
 
                 console.log(`Notificación de aprobación enviada a: ${recipientEmail} - Stand: ${enrollment.stand.stand_code}`);
