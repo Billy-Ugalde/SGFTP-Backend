@@ -12,14 +12,14 @@ export class AuthEmailService {
   async sendAccountActivationEmail(
     recipientEmail: string,
     recipientName: string,
-    temporaryPassword: string,
+    activationLink: string,
     userRoles: string[]
   ): Promise<void> {
     const subject = 'Activación de cuenta - Fundación Tamarindo Park';
     const html = this.buildActivationEmailTemplate(
       recipientEmail,
       recipientName,
-      temporaryPassword,
+      activationLink,
       userRoles
     );
 
@@ -45,12 +45,10 @@ export class AuthEmailService {
   private buildActivationEmailTemplate(
     recipientEmail: string,
     recipientName: string,
-    temporaryPassword: string,
+    activationLink: string,
     userRoles: string[]
     ): string {
     const rolesDisplay = this.formatRolesForDisplay(userRoles);
-    const loginUrl =
-        this.configService.get('FRONTEND_URL', 'http://localhost:5173') + '/login';
 
     return `
     <!DOCTYPE html>
@@ -305,22 +303,21 @@ export class AuthEmailService {
 
             <div class="welcome-box">
             <span class="welcome-icon">🎉</span>
-            <h2 class="welcome-title">¡Cuenta Activada!</h2>
+            <h2 class="welcome-title">¡Bienvenido/a a Fundación Tamarindo Park!</h2>
             <p>Tu cuenta ha sido creada exitosamente en nuestro sistema.</p>
             </div>
 
             <div class="credentials-section">
-            <h3 class="credentials-title">🔐 Credenciales de Acceso</h3>
+            <h3 class="credentials-title">🔑 Información de Acceso</h3>
 
             <div class="credential-item">
                 <div class="credential-label">Usuario (Email)</div>
                 <div class="credential-value">${recipientEmail}</div>
             </div>
 
-            <div class="credential-item">
-                <div class="credential-label">Contraseña Temporal</div>
-                <div class="credential-value">${temporaryPassword}</div>
-            </div>
+            <p style="color: #495057; font-size: 14px; margin-top: 15px;">
+                Para completar la activación de tu cuenta, deberás crear una contraseña segura usando el enlace de abajo.
+            </p>
             </div>
 
             <div class="roles-section">
@@ -329,14 +326,14 @@ export class AuthEmailService {
             </div>
 
             <div style="text-align: center; margin: 30px 0;">
-            <a href="${loginUrl}" class="login-button">Iniciar Sesión Ahora</a>
+            <a href="${activationLink}" class="login-button">Activar Cuenta</a>
             </div>
 
             <div class="security-notice">
             <h3 class="security-notice-title">🔒 Importante - Seguridad</h3>
-            <p><strong>Cambio de contraseña obligatorio:</strong> Deberás cambiar esta contraseña temporal en tu primer inicio de sesión.</p>
-            <p><strong>Guarda estas credenciales:</strong> Anota esta información en un lugar seguro hasta completar el cambio de contraseña.</p>
-            <p><strong>Válido por:</strong> Estas credenciales temporales expiran en 48 horas.</p>
+            <p><strong>Enlace de activación:</strong> Este enlace te permitirá crear tu contraseña y activar tu cuenta.</p>
+            <p><strong>Válido por:</strong> Este enlace expira en 24 horas por seguridad.</p>
+            <p><strong>Un solo uso:</strong> Una vez activada tu cuenta, este enlace quedará invalidado.</p>
             </div>
 
             <div class="divider"></div>

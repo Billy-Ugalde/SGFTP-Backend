@@ -6,12 +6,12 @@ import { Role } from "../entities/role.entity";
 import { CreateUserDto } from "../dto/user.dto";
 import { Person } from "src/entities/person.entity";
 import { UpdateUserDto } from "../dto/userUpdateDto";
-import { CreateInvitationDto } from "../dto/invitation.dto";
 import { PasswordService } from "src/modules/shared/services/password.service";
 import { CreateCompleteInvitationDto } from "../dto/complete-invitation.dto";
 import { Phone } from "src/entities/phone.entity";
 import { DataSource } from "typeorm";   
 import { AuthEmailService } from "src/modules/auth/services/auth-email.service";    
+import { AccountInvitationService } from 'src/modules/auth/services/account-invitation.service';
 
 @Injectable()
 export class UserService {
@@ -25,6 +25,7 @@ export class UserService {
         private passwordService: PasswordService,
         private dataSource: DataSource,
         private authEmailService: AuthEmailService,  
+        private accountInvitationService: AccountInvitationService,
     ) { }
     async create(createUserDto: CreateUserDto) {
         const person = await this.personRepository.findOne({
@@ -304,167 +305,59 @@ export class UserService {
         return 'volunteer'; // Fallback
     }
 
-    async createUserInvitation(createInvitationDto: CreateInvitationDto, adminId: number): Promise<{ message: string; invitationId: number }> {
-        // Validar que la persona existe
-        const person = await this.personRepository.findOne({
-            where: { id_person: createInvitationDto.id_person },
-            relations: ['user']
-        });
-
-        if (!person) {
-            throw new NotFoundException('La persona especificada no existe');
-        }
-
-        if (person.user) {
-            throw new ConflictException('Esta persona ya tiene un usuario asociado');
-        }
-
-        // Validar TODOS los roles
-        const roles = await this.roleRepository.find({
-            where: { id_role: In(createInvitationDto.id_roles) }
-        });
-
-        if (roles.length !== createInvitationDto.id_roles.length) {
-            throw new NotFoundException('Uno o más roles no existen');
-        }
-
-        // Verificar que no incluye super_admin
-        if (roles.some(role => role.name === 'super_admin')) {
-            throw new ConflictException('No se pueden crear invitaciones para SUPER_ADMIN');
-        }
-
-        // Validar permisos del admin para TODOS los roles
-        const admin = await this.findOne(adminId);
-        const adminHighestRole = this.getHighestRole(admin.roles);
-        
-        for (const role of roles) {
-            if (!this.canAssignRole(adminHighestRole, role.name)) {
-                throw new ConflictException(`No tienes permisos para asignar el rol ${role.name}`);
-            }
-        }
-
-        // Crear usuario con múltiples roles
-        const tempPassword = this.passwordService.generateTemporaryPassword();
-        const hashedPassword = await this.passwordService.hashPassword(tempPassword);
-
-        const user = this.userRepository.create({
-            password: hashedPassword,
-            status: createInvitationDto.status ?? true,
-            person: { id_person: createInvitationDto.id_person } as Person,
-            roles: roles, // ← MÚLTIPLES ROLES
-            isEmailVerified: false,
-            failedLoginAttempts: 0,
-        });
-
-        const savedUser = await this.userRepository.save(user);
-
-        try {
-            await this.authEmailService.sendAccountActivationEmail(
-                person.email,
-                `${person.first_name} ${person.first_lastname}`,
-                tempPassword,
-                roles.map(r => r.name)
-            );
-            console.log(`[UserService] Email de activación enviado exitosamente a: ${person.email}`);
-        } catch (emailError) {
-            console.error(`[UserService] Usuario creado exitosamente, pero falló envío de email: ${emailError.message}`);
-        }
-        return {
-            message: 'Invitación creada exitosamente',
-            invitationId: savedUser.id_user
-        };
-    }
-
-    async createCompleteUserInvitation(dto: CreateCompleteInvitationDto, adminId: number): Promise<{ message: string; invitationId: number }> {
-        // USAR TRANSACCIÓN PARA ATOMICIDAD
+    async createCompleteUserInvitation(dto: CreateCompleteInvitationDto, adminId: number): Promise<{ message: string; userId: number }> {
         const queryRunner = this.dataSource.createQueryRunner();
         await queryRunner.connect();
         await queryRunner.startTransaction();
 
         try {
-            // 1. Verificar email único
+            // 1. Verificar email único (MANTENER)
             const existingPerson = await queryRunner.manager.findOne(Person, { 
-                where: { email: dto.email } 
+            where: { email: dto.email } 
             });
             
             if (existingPerson) {
-                throw new ConflictException('Ya existe una persona con este email');
+            throw new ConflictException('Ya existe una persona con este email');
             }
 
-            // 2. Validar roles
-            const roles = await queryRunner.manager.find(Role, {
-                where: { id_role: In(dto.id_roles) }
-            });
-            
-            if (roles.length !== dto.id_roles.length) {
-                throw new NotFoundException('Uno o más roles no existen');
-            }
-
-            // 3. Validar permisos admin
-            const admin = await this.findOne(adminId);
-            // ... validaciones de permisos
-
-            // 4. Crear Person
+            // 2. Crear Person (MANTENER)
             const person = queryRunner.manager.create(Person, {
-                first_name: dto.first_name,
-                second_name: dto.second_name,
-                first_lastname: dto.first_lastname,
-                second_lastname: dto.second_lastname,
-                email: dto.email,
+            first_name: dto.first_name,
+            second_name: dto.second_name,
+            first_lastname: dto.first_lastname,
+            second_lastname: dto.second_lastname,
+            email: dto.email,
             });
             
             const savedPerson = await queryRunner.manager.save(Person, person);
 
-            // 5. Crear phones
+            // 3. Crear phones (MANTENER)
             for (const phoneData of dto.phones) {
-                const phone = queryRunner.manager.create(Phone, {
-                    ...phoneData,
-                    person: savedPerson
-                });
-                await queryRunner.manager.save(Phone, phone);
-            }
-
-            // 6. Crear User
-            const tempPassword = this.passwordService.generateTemporaryPassword();
-            const hashedPassword = await this.passwordService.hashPassword(tempPassword);
-
-            const user = queryRunner.manager.create(User, {
-                password: hashedPassword,
-                status: dto.status ?? true,
-                person: savedPerson,
-                roles: roles,
-                isEmailVerified: false,
-                failedLoginAttempts: 0,
+            const phone = queryRunner.manager.create(Phone, {
+                ...phoneData,
+                person: savedPerson
             });
-
-            const savedUser = await queryRunner.manager.save(User, user);
-
-            // 7. Commit si todo salió bien
-            await queryRunner.commitTransaction();
-            try {
-                await this.authEmailService.sendAccountActivationEmail(
-                    person.email,
-                    `${person.first_name} ${person.first_lastname}`,
-                    tempPassword,
-                    roles.map(r => r.name)
-                );
-                console.log(`[UserService] Email de activación enviado exitosamente a: ${person.email}`);
-                } catch (emailError) {
-                console.error(`[UserService] Usuario creado exitosamente, pero falló envío de email: ${emailError.message}`);
+            await queryRunner.manager.save(Phone, phone);
             }
-            return {
-                message: 'Invitación creada exitosamente',
-                invitationId: savedUser.id_user
-            };
+
+            // 4. REEMPLAZAR TODA LA LÓGICA DE USUARIO por delegación:
+            const result = await this.accountInvitationService.createUserAccount(
+            savedPerson.id_person,
+            dto.id_roles,
+            adminId,
+            queryRunner
+            );
+
+            await queryRunner.commitTransaction();
+            return result;
 
         } catch (error) {
-            // Rollback si algo falla
             await queryRunner.rollbackTransaction();
             throw error;
         } finally {
             await queryRunner.release();
         }
-    }
+        }
 
     async updateUserRoles(userId: number, newRoleIds: number[], adminId: number): Promise<User> {
         if (newRoleIds.length === 0) {
