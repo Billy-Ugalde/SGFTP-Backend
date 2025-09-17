@@ -57,6 +57,13 @@ export class EntrepreneurController {
     return await this.entrepreneurService.create(createDto, request);
   }
 
+  @Post('public')
+  @Public()
+  @HttpCode(HttpStatus.CREATED)
+  async createPublic(@Body() dto: CreateCompleteEntrepreneurDto): Promise<Entrepreneur> {
+    return await this.entrepreneurService.create(dto); 
+  }
+
 
   @Put(':id')
   @UseGuards(RoleGuard)
