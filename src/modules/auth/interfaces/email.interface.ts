@@ -1,10 +1,11 @@
 export interface IAuthEmailService {
   sendAccountActivationEmail(
-    recipientEmail: string, // ← Email real de Person
-    recipientName: string,
-    temporaryPassword: string,
-    userRoles: string[]
-    ): Promise<void>
+    email: string, 
+    name: string, 
+    activationLink: string, 
+    roles: string[]
+  ): Promise<void>;
+
 
   sendPasswordResetEmail(
     recipientEmail: string,

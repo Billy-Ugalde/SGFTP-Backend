@@ -9,6 +9,8 @@ import { EntrepreneurshipService } from './entrepreneurship.service';
 import { AuthService } from '../../auth/services/auth.service';
 import { Person } from '../../../entities/person.entity';
 import { Entrepreneurship } from '../entities/entrepreneurship.entity';
+import { AccountInvitationService } from '../../auth/services/account-invitation.service';
+import { Role } from '../../users/entities/role.entity';
 
 @Injectable()
 export class EntrepreneurService {
@@ -19,6 +21,7 @@ export class EntrepreneurService {
     private entrepreneurshipService: EntrepreneurshipService,
     private dataSource: DataSource,
     private authService: AuthService,
+    private accountInvitationService: AccountInvitationService,
   ) { }
 
 
@@ -165,11 +168,24 @@ export class EntrepreneurService {
 
           await queryRunner.manager.save(Entrepreneur, entrepreneur);
 
-          // 2. Crear o actualizar usuario SI es aprovado
+          // 2. Crear cuenta de usuario SI es aprobado
           if (statusDto.status === EntrepreneurStatus.APPROVED) {
-            // LINEA IMPORTANTE: Crear cuenta de usuario para el emprendedor aprobado
-              await this.authService.createAccountForApprovedEntrepreneur(
-                entrepreneur.person.id_person, queryRunner);
+            // Obtener rol de emprendedor
+            const entrepreneurRole = await queryRunner.manager.findOne(Role, { 
+              where: { name: 'entrepreneur' } 
+            });
+            
+            if (!entrepreneurRole) {
+              throw new NotFoundException('Rol entrepreneur no encontrado');
+            }
+            
+            // Delegar creación de cuenta al AccountInvitationService
+            await this.accountInvitationService.createUserAccount(
+              entrepreneur.person.id_person,
+              [entrepreneurRole.id_role],
+              0, // Sistema (sin admin específico)
+              queryRunner
+            );
           }
 
           await queryRunner.commitTransaction();
