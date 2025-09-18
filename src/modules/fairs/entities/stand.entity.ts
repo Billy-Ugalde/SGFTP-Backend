@@ -19,7 +19,7 @@ export class Stand {
 
     @ManyToOne(() => Entrepreneur, (entrepreneur) => entrepreneur.stand, {
         nullable: true, 
-        eager: true,
+        //eager: true,
     })
     @JoinColumn({ name: 'id_entrepreneur' })
     entrepreneur?: Entrepreneur;            //nota: es opcional porque hasta que un emprendedor se inscribe obtiene el stand

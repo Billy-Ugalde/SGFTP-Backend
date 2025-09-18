@@ -6,9 +6,10 @@ import { RegisterDto } from '../dto/register.dto';
 import { DataSource, QueryRunner, MoreThan } from 'typeorm';
 import { Person } from '../../../entities/person.entity';
 import { PasswordService } from '../../shared/services/password.service';
-import { IUserAuthService } from '../../users/interfaces/user-auth.interface';
-import { UserAuthService } from '../../users/services/user-auth.service'; // ← Importación temporal
+import { UserAuthService } from '../../users/services/user-auth.service'; 
 import { UserRole } from '../enums/user-role.enum';
+import { ChangePasswordDto } from '../dto/change-password.dto';
+import { ResetPasswordDto } from '../dto/reset-password.dto';
 
 @Injectable()
 export class AuthService {
@@ -35,6 +36,7 @@ export class AuthService {
         }
     }
 
+    //REGISTER - transacción completa
     async register(registerDto: RegisterDto): Promise<{ message: string; userId: number }> {
         // 1. Verificar email único
         const existingUser = await this.userAuthService.findByEmailForAuth(registerDto.email);
@@ -104,9 +106,7 @@ export class AuthService {
         };
     }
 
-    /**
-     * LOGIN con cookies seguras
-     */
+    //LOGIN con cookies seguras
     async loginWithCookies(email: string, password: string, response: any): Promise<Omit<AuthResponseDto, 'accessToken' | 'refreshToken'>> {
     const user = await this.userAuthService.validateUserCredentials(email, password);
     
@@ -132,9 +132,7 @@ export class AuthService {
     };
 }
 
-    /**
-     * REFRESH TOKEN desde cookies
-     */
+    //REFRESH TOKEN desde cookies
     async refreshTokenFromCookie(request: any, response: any): Promise<{ message: string }> {
         const refreshToken = request.cookies?.refreshToken;
         
@@ -162,9 +160,7 @@ export class AuthService {
         }
     }
 
-    /**
-     * LOGOUT - limpiar cookies
-     */
+    //LOGOUT - limpiar cookies
     async logout(response: any): Promise<{ message: string }> {
         response.clearCookie('accessToken');
         response.clearCookie('refreshToken');
@@ -172,9 +168,7 @@ export class AuthService {
         return { message: 'Sesión cerrada exitosamente' };
     }
 
-    /**
-     * Validar token desde cookies O headers (DUAL)
-     */
+    //Validar token desde cookies O headers (DUAL) 
     async validateTokenFromRequest(request: any): Promise<User | null> {
         // Intentar obtener token de cookies primero (más seguro)
         let token = request.cookies?.accessToken;
@@ -216,5 +210,143 @@ export class AuthService {
         await this.userAuthService.activateUserWithPassword(user.id_user, newPassword);
 
         return { message: 'Cuenta activada exitosamente' };
+    }
+
+    //CAMBIO DE CONTRASEÑA - Usuario autenticado
+    async changePassword(userId: number, changePasswordDto: ChangePasswordDto): Promise<{ 
+        message: string; 
+        userEmail: string; 
+        userName: string 
+    }> {
+        const { currentPassword, newPassword, confirmPassword } = changePasswordDto;
+        
+        // 1. Validación cruzada de contraseñas (doble verificación)
+        if (newPassword !== confirmPassword) {
+            throw new ConflictException('Las contraseñas no coinciden');
+        }
+        
+        // 2. Buscar usuario completo con contraseña
+        const user = await this.userAuthService.findUserWithPasswordById(userId);
+        if (!user) {
+            throw new NotFoundException('Usuario no encontrado');
+        }
+        
+        // 3. VALIDAR QUE EL USUARIO TENGA CONTRASEÑA (no esté pendiente de activación)
+        if (!user.password) {
+            throw new ConflictException('No puedes cambiar la contraseña de una cuenta pendiente de activación');
+        }
+        
+        // 4. Verificar contraseña actual - AHORA ES SEGURO
+        const isCurrentPasswordValid = await this.passwordService.comparePassword(
+            currentPassword, 
+            user.password // ← Ya validamos que no es undefined
+        );
+        
+        if (!isCurrentPasswordValid) {
+            throw new UnauthorizedException('La contraseña actual es incorrecta');
+        }
+        
+        // 5. Verificar que la nueva contraseña sea diferente - AHORA ES SEGURO
+        const isSamePassword = await this.passwordService.comparePassword(
+            newPassword, 
+            user.password // ← Ya validamos que no es undefined
+        );
+        
+        if (isSamePassword) {
+            throw new ConflictException('La nueva contraseña debe ser diferente a la actual');
+        }
+        
+        // 6. Validar fortaleza de nueva contraseña
+        const validation = this.passwordService.validatePasswordStrength(newPassword);
+        if (!validation.isValid) {
+            throw new ConflictException(`La contraseña no cumple con los requisitos: ${validation.errors.join(', ')}`);
+        }
+        
+        // 7. Actualizar contraseña
+        const hashedNewPassword = await this.passwordService.hashPassword(newPassword);
+        await this.userAuthService.updateUserPassword(userId, hashedNewPassword);
+        
+        // 8. Retornar datos para que el controlador maneje el email
+        return { 
+            message: 'Contraseña cambiada exitosamente. Por seguridad, debes volver a iniciar sesión.',
+            userEmail: user.person.email,
+            userName: user.person.first_name
+        };
+    }
+
+    //SOLICITAR RESET DE CONTRASEÑA - Envía email con token
+    async requestPasswordReset(email: string): Promise<{ 
+        message: string; 
+        userEmail?: string; 
+        userName?: string; 
+        resetToken?: string 
+    }> {
+        // 1. Buscar usuario por email (solo usuarios activos)
+        const user = await this.userAuthService.findByEmailForReset(email);
+        
+        // IMPORTANTE: Siempre retornar éxito (no revelar si email existe)
+        const successMessage = 'Si el email existe en nuestro sistema, recibirás las instrucciones para restablecer tu contraseña.';
+        
+        if (!user) {
+            // Email no existe - retornar éxito pero no hacer nada (seguridad)
+            return { message: successMessage };
+        }
+        
+        // 2. Generar token criptográficamente seguro
+        const resetToken = require('crypto').randomBytes(32).toString('hex');
+        
+        // 3. Calcular expiración (15 minutos)
+        const expiresAt = new Date();
+        expiresAt.setMinutes(expiresAt.getMinutes() + 15);
+        
+        // 4. Guardar token en BD
+        await this.userAuthService.setResetToken(user.id_user, resetToken, expiresAt);
+        
+        return { 
+            message: successMessage,
+            // Datos para el controlador (manejo de email)
+            userEmail: user.person.email,
+            userName: user.person.first_name,
+            resetToken: resetToken
+        };
+    }
+
+    //RESETEAR CONTRASEÑA - Usar token para cambiar contraseña
+    async resetPasswordWithToken(resetPasswordDto: ResetPasswordDto): Promise<{ 
+        message: string; 
+        userEmail?: string; 
+        userName?: string 
+    }> {   
+    const { token, newPassword, confirmPassword } = resetPasswordDto;
+        
+        // 1. Validación cruzada de contraseñas
+        if (newPassword !== confirmPassword) {
+            throw new ConflictException('Las contraseñas no coinciden');
+        }
+        
+        // 2. Buscar usuario por token válido
+        const user = await this.userAuthService.findUserByResetToken(token);
+        
+        if (!user) {
+            throw new NotFoundException('El enlace de restablecimiento es inválido o ha expirado');
+        }
+        
+        // 3. Validar fortaleza de nueva contraseña
+        const validation = this.passwordService.validatePasswordStrength(newPassword);
+        if (!validation.isValid) {
+            throw new ConflictException(`La contraseña no cumple con los requisitos: ${validation.errors.join(', ')}`);
+        }
+        
+        // 4. Hashear nueva contraseña
+        const hashedPassword = await this.passwordService.hashPassword(newPassword);
+        
+        // 5. Actualizar contraseña y limpiar token
+        await this.userAuthService.resetPasswordWithToken(user.id_user, hashedPassword);
+        
+        return { 
+            message: 'Contraseña restablecida exitosamente. Ya puedes iniciar sesión con tu nueva contraseña.',
+            userEmail: user.person.email,
+            userName: user.person.first_name
+        };
     }
 }
