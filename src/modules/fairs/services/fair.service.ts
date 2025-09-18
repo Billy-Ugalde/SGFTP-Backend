@@ -10,7 +10,7 @@ import { fairDto } from '../dto/createFair.dto';
 import { UpdatefairDto } from '../dto/updateFair.dto';
 import { fairStatusDto } from '../dto/fair-status.dto';
 import { StandService } from './stand.service';
-import { FairNotificationService } from '../../notifications/services/fair-notification.service';
+import { FairNotificationService } from '../../fairs-notifications/services/fair-notification.service';
 
 @Injectable()
 export class FairService {

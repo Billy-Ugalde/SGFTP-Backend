@@ -7,7 +7,7 @@ import { Entrepreneur } from "src/modules/entrepreneurs/entities/entrepreneur.en
 import { Stand } from "../entities/stand.entity";
 import { StatusEnrollmentDto } from "../dto/updatestatusEnrollment";
 import { Fair } from "../entities/fair.entity";
-import { NotificationService } from "src/modules/notifications/services/notification.service"; 
+import { NotificationService } from "src/modules/fairs-notifications/services/notification.service"; 
 
 @Injectable()
 export class EnrrolmentService {

@@ -14,7 +14,7 @@ import { ITemplateService } from '../interfaces/template-service.interface';
 
 @Injectable()
 export class TemplateService implements ITemplateService {
-  private readonly templatesPath = join(process.cwd(), 'src', 'modules', 'notifications', 'templates');
+  private readonly templatesPath = join(process.cwd(), 'src', 'modules', 'fairs-notifications', 'templates');
 
   loadTemplate(templateName: string): string {
     try {

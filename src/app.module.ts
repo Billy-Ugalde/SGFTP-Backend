@@ -15,7 +15,7 @@ import { GlobalSeedService } from './database/services/global-seed.service';
 import { MiddlewareConsumer, NestModule } from '@nestjs/common';
 import { SecurityHeadersMiddleware } from './middleware/security-headers.middleware';
 import { CorsMiddleware } from './middleware/cors.middleware';
-import { NotificationsModule } from './modules/notifications/notifications.module';
+import { NotificationsModule } from './modules/fairs-notifications/notifications.module';
 
 @Module({
   imports: [
