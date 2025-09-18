@@ -23,6 +23,12 @@ export class FairNotificationService implements IFairNotificationService {
 
   async sendFairChangeEmailsAsync(oldFair: Fair, newFair: Fair): Promise<void> {
     setImmediate(() => {
+      const hasStatusChange = this.detectStatusChange(oldFair, newFair);
+      if (!hasStatusChange && !newFair.status) {
+        console.log(`No se enviaron notificaciones para "${newFair.name}" - Feria inactiva sin cambio de estado`);
+        return;
+      }
+
       this.sendFairChangeEmails(oldFair, newFair).catch(error => {
         console.error('Error en notificaciones background:', error);
       });
@@ -31,6 +37,11 @@ export class FairNotificationService implements IFairNotificationService {
 
   async sendNewFairEmailsAsync(newFair: Fair): Promise<void> {
     setImmediate(() => {
+      if (!newFair.status) {
+        console.log(`No se enviaron notificaciones para nueva feria "${newFair.name}" - Creada inactiva`);
+        return;
+      }
+
       this.sendNewFairEmails(newFair).catch(error => {
         console.error('Error en notificaciones de nueva feria background:', error);
       });
@@ -39,6 +50,15 @@ export class FairNotificationService implements IFairNotificationService {
 
   async sendFairChangeEmails(oldFair: Fair, newFair: Fair): Promise<ServiceResponse<BatchEmailResult>> {
     try {
+      const hasStatusChange = this.detectStatusChange(oldFair, newFair);
+      if (!hasStatusChange && !newFair.status) {
+        return {
+          success: true,
+          data: { totalSent: 0, totalFailed: 0, errors: [] },
+          message: 'No se enviaron notificaciones - La feria está inactiva sin cambio de estado'
+        };
+      }
+
       const entrepreneurs = await this.getActiveEntrepreneurs();
 
       if (entrepreneurs.length === 0) {
@@ -49,7 +69,6 @@ export class FairNotificationService implements IFairNotificationService {
         };
       }
 
-      const hasStatusChange = this.detectStatusChange(oldFair, newFair);
       const contentChanges = this.detectContentChanges(oldFair, newFair);
 
       if (!hasStatusChange && contentChanges.length === 0) {
@@ -90,6 +109,14 @@ export class FairNotificationService implements IFairNotificationService {
 
   async sendNewFairEmails(newFair: Fair): Promise<ServiceResponse<BatchEmailResult>> {
     try {
+      if (!newFair.status) {
+        return {
+          success: true,
+          data: { totalSent: 0, totalFailed: 0, errors: [] },
+          message: 'No se enviaron notificaciones - La feria se creó inactiva'
+        };
+      }
+
       const entrepreneurs = await this.getActiveEntrepreneurs();
 
       if (entrepreneurs.length === 0) {
@@ -150,6 +177,11 @@ export class FairNotificationService implements IFairNotificationService {
   }
 
   detectContentChanges(oldFair: Fair, newFair: Fair): ChangeInfo[] {
+    const hasStatusChange = this.detectStatusChange(oldFair, newFair);
+    if (!hasStatusChange && !newFair.status) {
+      return [];
+    }
+    
     return this.detectAllContentChanges(oldFair, newFair);
   }
 
@@ -334,7 +366,6 @@ export class FairNotificationService implements IFairNotificationService {
       sentEmails.forEach(email => console.log(`  → ${email}`));
     }
 
-    // Log de errores solo si los hay
     if (errors.length > 0) {
       console.log('⚠️ Errores en envío:');
       errors.forEach(error => console.log(`  → ${error}`));
