@@ -54,7 +54,8 @@ export interface INotificationService {
     recipientName: string,
     fairName: string,
     fairDate: string,
-    rejectionReason?: string
+    fairType?: string, 
+    standCode?: string 
   ): Promise<EmailResult>;
 
   sendEmail(emailOptions: EmailOptions): Promise<EmailResult>;

@@ -271,51 +271,62 @@ export class NotificationService implements INotificationService {
     }
   }
 
-  async sendEnrollmentRejectedEmail(
-    recipientEmail: string,
-    recipientName: string,
-    fairName: string,
-    fairDate: string,
-    rejectionReason?: string
-  ): Promise<EmailResult> {
-    try {
-      if (!this.transporter) {
-        await this.initializeTransporter();
-        await new Promise(resolve => setTimeout(resolve, 1000));
+    async sendEnrollmentRejectedEmail(
+      recipientEmail: string,
+      recipientName: string,
+      fairName: string,
+      fairDate: string,
+      fairType?: string, 
+      standCode?: string 
+    ): Promise<EmailResult> {
+      try {
+        if (!this.transporter) {
+          await this.initializeTransporter();
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+
+        const subject = `Información sobre tu solicitud - ${fairName}`;
+        
+        console.log('Datos para email de rechazo:', {
+          fairName,
+          fairDate,
+          fairType,
+          standCode,
+          recipientEmail
+        });
+        
+        const emailData: EnrollmentRejectedEmailData = {
+          recipientName,
+          fairName,
+          fairDate,
+          fairType: fairType || 'Externa', 
+          standCode: standCode || ''
+        };
+
+        const htmlContent = this.templateService.generateEnrollmentRejectedEmail(emailData);
+
+        const mailOptions = {
+          from: `"Fundacion Tamarindo Park" <${this.configService.get('EMAIL_FROM')}>`,
+          to: recipientEmail,
+          subject: subject,
+          html: htmlContent,
+        };
+
+        const result = await this.sendEmailInternal(mailOptions, recipientEmail);
+        return {
+          success: true,
+          messageId: result?.messageId,
+          recipientEmail
+        };
+      } catch (error: any) {
+        console.error('Error en sendEnrollmentRejectedEmail:', error);
+        return {
+          success: false,
+          error: error.message,
+          recipientEmail
+        };
       }
-
-      const subject = `Información sobre tu solicitud - ${fairName}`;
-      
-      const emailData: EnrollmentRejectedEmailData = {
-        recipientName,
-        fairName,
-        fairDate,
-        rejectionReason: rejectionReason || 'No se proporcionó razón específica'
-      };
-
-      const htmlContent = this.templateService.generateEnrollmentRejectedEmail(emailData);
-
-      const mailOptions = {
-        from: `"Fundacion Tamarindo Park" <${this.configService.get('EMAIL_FROM')}>`,
-        to: recipientEmail,
-        subject: subject,
-        html: htmlContent,
-      };
-
-      const result = await this.sendEmailInternal(mailOptions, recipientEmail);
-      return {
-        success: true,
-        messageId: result?.messageId,
-        recipientEmail
-      };
-    } catch (error: any) {
-      return {
-        success: false,
-        error: error.message,
-        recipientEmail
-      };
     }
-  }
 
   async sendFairChangeEmail(
     recipientEmail: string,

@@ -52,7 +52,8 @@ export interface EnrollmentRejectedEmailData {
   recipientName: string;
   fairName: string;
   fairDate: string;
-  rejectionReason?: string;
+  fairType: string; 
+  standCode?: string;
 }
 
 export interface NotificationConfig {

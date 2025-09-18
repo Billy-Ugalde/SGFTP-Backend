@@ -314,16 +314,16 @@ export class TemplateService implements ITemplateService {
         background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
         border: 2px solid #28a745;
         border-radius: 12px;
-        padding: 35px 30px; /* Aumentado el padding */
+        padding: 35px 30px;
         text-align: center;
-        margin: 35px 0; /* Aumentado el margen */
+        margin: 35px 0;
         box-shadow: 0 4px 16px rgba(40, 167, 69, 0.1);
       }
 
       .approval-icon {
-        font-size: 32px; /* Reducido de 48px a 32px */
+        font-size: 32px;
         color: #28a745;
-        margin-bottom: 20px; /* Aumentado el margen */
+        margin-bottom: 20px;
         display: block;
       }
 
@@ -331,7 +331,7 @@ export class TemplateService implements ITemplateService {
         color: #155724;
         font-size: 26px;
         font-weight: 700;
-        margin-bottom: 15px; /* Aumentado el margen */
+        margin-bottom: 15px;
         line-height: 1.3;
       }
 
@@ -340,17 +340,16 @@ export class TemplateService implements ITemplateService {
         font-size: 16px;
         margin: 0;
         line-height: 1.6;
-        padding: 0 15px; /* Agregado padding lateral */
+        padding: 0 15px;
       }
 
-      /* Corregido: Estilos para el título principal de la feria con mejor espaciado */
       .fair-title-section {
         background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
         border: 2px solid #cbd5e0;
         border-radius: 12px;
-        padding: 30px 25px; /* Aumentado el padding */
+        padding: 30px 25px;
         text-align: center;
-        margin: 35px 0; /* Aumentado el margen */
+        margin: 35px 0;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
       }
 
@@ -361,15 +360,15 @@ export class TemplateService implements ITemplateService {
         margin: 0;
         line-height: 1.4;
         text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-        word-wrap: break-word; /* Agregado para evitar desbordamiento */
+        word-wrap: break-word;
       }
 
       .stand-info {
         background: #ffffff;
         border: 2px solid #28a745;
         border-radius: 12px;
-        padding: 30px 25px; /* Aumentado el padding */
-        margin: 35px 0; /* Aumentado el margen */
+        padding: 30px 25px;
+        margin: 35px 0;
         text-align: center;
         box-shadow: 0 4px 12px rgba(40, 167, 69, 0.1);
       }
@@ -382,18 +381,17 @@ export class TemplateService implements ITemplateService {
         font-size: 20px;
         font-weight: 700;
         display: inline-block;
-        margin: 15px 0; /* Aumentado el margen */
+        margin: 15px 0;
         box-shadow: 0 4px 8px rgba(40, 167, 69, 0.3);
         letter-spacing: 1px;
       }
 
-      /* Corregido: Estilos para la información de participación externa */
       .external-participation-info {
         background: linear-gradient(135deg, #e6f7ff 0%, #bae7ff 100%);
         border: 2px solid #1890ff;
         border-radius: 12px;
-        padding: 30px 25px; /* Aumentado el padding */
-        margin: 35px 0; /* Aumentado el margen */
+        padding: 30px 25px;
+        margin: 35px 0;
         text-align: center;
         box-shadow: 0 4px 12px rgba(24, 144, 255, 0.1);
       }
@@ -402,24 +400,23 @@ export class TemplateService implements ITemplateService {
         color: #0050b3;
         font-size: 20px;
         font-weight: 600;
-        margin-bottom: 15px; /* Aumentado el margen */
+        margin-bottom: 15px;
       }
 
       .participation-description {
         color: #096dd9;
         font-size: 15px;
         margin: 0;
-        line-height: 1.7; /* Aumentado el line-height */
-        padding: 0 15px; /* Agregado padding lateral */
+        line-height: 1.7;
+        padding: 0 15px;
       }
 
-      /* Corregido: Estilos para los detalles comprehensivos de la feria */
       .fair-comprehensive-details {
         background: #ffffff;
         border: 1px solid #e2e8f0;
         border-radius: 12px;
-        padding: 30px 25px; /* Aumentado el padding */
-        margin: 35px 0; /* Aumentado el margen */
+        padding: 30px 25px;
+        margin: 35px 0;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
       }
 
@@ -427,24 +424,24 @@ export class TemplateService implements ITemplateService {
         color: #2d3748;
         font-size: 18px;
         font-weight: 600;
-        margin-bottom: 25px; /* Aumentado el margen */
+        margin-bottom: 25px;
         display: flex;
         align-items: center;
         border-bottom: 2px solid #e2e8f0;
-        padding-bottom: 12px; /* Aumentado el padding */
+        padding-bottom: 12px;
       }
 
       .detail-grid {
         display: grid;
         grid-template-columns: 1fr;
-        gap: 20px; /* Aumentado el gap */
+        gap: 20px;
       }
 
       .detail-item {
         background: #f8fafc;
         border: 1px solid #e2e8f0;
         border-radius: 8px;
-        padding: 25px 20px; /* Aumentado el padding */
+        padding: 25px 20px;
         display: flex;
         align-items: flex-start;
         transition: all 0.2s ease;
@@ -466,33 +463,32 @@ export class TemplateService implements ITemplateService {
         font-weight: 600;
         text-transform: uppercase;
         letter-spacing: 0.5px;
-        margin-bottom: 8px; /* Aumentado el margen */
+        margin-bottom: 8px;
       }
 
       .detail-value-new {
         color: #2d3748;
         font-size: 16px;
         font-weight: 500;
-        line-height: 1.5; /* Aumentado el line-height */
-        word-wrap: break-word; /* Agregado para evitar desbordamiento */
+        line-height: 1.5;
+        word-wrap: break-word;
       }
 
-      /* Corregido: Estilos para la descripción y condiciones con mejor espaciado */
       .description-comprehensive,
       .conditions-section {
         background: #f8fafc;
         border: 1px solid #e2e8f0;
         border-left: 4px solid #4299e1;
         border-radius: 8px;
-        padding: 30px 25px; /* Aumentado el padding */
-        margin: 35px 0; /* Aumentado el margen */
+        padding: 30px 25px;
+        margin: 35px 0;
       }
 
       .description-content,
       .conditions-content {
         color: #4a5568;
         font-size: 15px;
-        line-height: 1.8; /* Aumentado el line-height */
+        line-height: 1.8;
         margin: 0;
       }
 
@@ -500,22 +496,22 @@ export class TemplateService implements ITemplateService {
       .conditions-content p {
         margin: 0;
         padding: 0;
-        word-wrap: break-word; /* Agregado para evitar desbordamiento */
+        word-wrap: break-word;
       }
 
       .next-steps {
         background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
         border: 1px solid #f39c12;
         border-radius: 12px;
-        padding: 30px 25px; /* Aumentado el padding */
-        margin: 35px 0; /* Aumentado el margen */
+        padding: 30px 25px;
+        margin: 35px 0;
       }
 
       .next-steps h4 {
         color: #856404;
         font-size: 18px;
         font-weight: 600;
-        margin-bottom: 20px; /* Aumentado el margen */
+        margin-bottom: 20px;
         display: flex;
         align-items: center;
       }
@@ -523,27 +519,25 @@ export class TemplateService implements ITemplateService {
       .next-steps ul {
         color: #856404;
         font-size: 15px;
-        line-height: 1.8; /* Aumentado el line-height */
+        line-height: 1.8;
         margin: 0;
         padding-left: 25px;
       }
 
       .next-steps li {
-        margin-bottom: 12px; /* Aumentado el margen */
+        margin-bottom: 12px;
       }
 
-      /* Corregido: Estilos para la sección de felicitaciones */
       .congratulations-section {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         border-radius: 12px;
-        padding: 35px 30px; /* Aumentado el padding */
+        padding: 35px 30px;
         text-align: center;
-        margin: 35px 0; /* Aumentado el margen */
+        margin: 35px 0;
         color: white;
         box-shadow: 0 4px 16px rgba(102, 126, 234, 0.3);
       }
 
-      /* Estilos responsivos mejorados */
       @media (max-width: 650px) {
         .approval-announcement,
         .fair-title-section,
@@ -554,8 +548,8 @@ export class TemplateService implements ITemplateService {
         .conditions-section,
         .next-steps,
         .congratulations-section {
-          padding: 20px 15px; /* Padding reducido para móviles */
-          margin: 20px 0; /* Margen reducido para móviles */
+          padding: 20px 15px;
+          margin: 20px 0;
         }
         
         .approval-title {
@@ -574,7 +568,7 @@ export class TemplateService implements ITemplateService {
         .detail-item {
           flex-direction: column;
           align-items: flex-start;
-          padding: 20px 15px; /* Padding reducido para móviles */
+          padding: 20px 15px;
         }
         
         .section-title {
@@ -588,84 +582,272 @@ export class TemplateService implements ITemplateService {
     `;
   }
 
-  private getEnrollmentRejectedStyles(): string {
-    return `
-      .rejection-announcement {
-        background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
-        border: 2px solid #dc3545;
-        border-radius: 12px;
-        padding: 30px;
-        text-align: center;
-        margin: 30px 0;
-      }
-
-      .rejection-icon {
-        font-size: 48px;
-        color: #dc3545;
-        margin-bottom: 15px;
-        display: block;
-      }
-
-      .rejection-title {
-        color: #721c24;
-        font-size: 24px;
-        font-weight: 700;
-        margin-bottom: 10px;
-      }
-
-      .rejection-message {
-        color: #721c24;
-        font-size: 16px;
-        margin: 0;
-      }
-
-      .reason-section {
-        background: #ffffff;
-        border: 1px solid #dee2e6;
-        border-radius: 8px;
-        padding: 25px;
-        margin: 25px 0;
-        border-left: 4px solid #dc3545;
-      }
-
-      .reason-title {
-        color: #721c24;
-        font-size: 16px;
-        font-weight: 600;
-        margin-bottom: 10px;
-      }
-
-      .reason-text {
-        color: #5a6c7d;
-        font-size: 14px;
-        line-height: 1.6;
-        margin: 0;
-      }
-
-      .encouragement-section {
-        background: linear-gradient(135deg, #d1ecf1 0%, #bee5eb 100%);
-        border: 1px solid #17a2b8;
-        border-radius: 8px;
-        padding: 20px;
-        margin: 25px 0;
-        text-align: center;
-      }
-
-      .encouragement-section p {
-        color: #0c5460;
-        font-size: 15px;
-        font-weight: 500;
-        margin: 0;
-        line-height: 1.6;
-      }
-
-      @media (max-width: 650px) {
-        .rejection-title {
-          font-size: 20px;
+      private getEnrollmentRejectedStyles(): string {
+      return `
+        .rejection-announcement {
+          background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+          border: 1px solid #ced4da;
+          border-radius: 12px;
+          padding: 25px;
+          text-align: center;
+          margin: 25px 0;
         }
-      }
-    `;
-  }
+
+        .rejection-icon {
+          font-size: 48px;
+          margin-bottom: 15px;
+          filter: drop-shadow(0 2px 4px rgba(220, 53, 69, 0.3));
+        }
+
+        .rejection-title {
+          color: #495057;
+          font-size: 22px;
+          font-weight: 600;
+          margin-bottom: 10px;
+        }
+
+        .rejection-message {
+          color: #6c757d;
+          font-size: 15px;
+          margin: 0;
+          line-height: 1.5;
+        }
+
+        .fair-title-section {
+          background: #ffffff;
+          border: 1px solid #e2e8f0;
+          border-radius: 8px;
+          padding: 20px;
+          text-align: center;
+          margin: 25px 0;
+        }
+
+        .fair-main-title {
+          color: #2d3748;
+          font-size: 20px;
+          font-weight: 600;
+          margin: 0;
+        }
+
+        .rejection-status {
+          background: #ffffff;
+          border: 1px solid #dee2e6;
+          border-radius: 8px;
+          padding: 25px;
+          margin: 25px 0;
+          text-align: center;
+        }
+
+        .rejection-status-title {
+          color: #495057;
+          font-size: 18px;
+          font-weight: 600;
+          margin-bottom: 15px;
+        }
+
+        .rejection-status-badge {
+          background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+          color: white;
+          padding: 8px 20px;
+          border-radius: 20px;
+          font-size: 14px;
+          font-weight: 700;
+          display: inline-block;
+          margin: 10px 0 15px 0;
+          box-shadow: 0 4px 8px rgba(220, 53, 69, 0.3);
+          letter-spacing: 1px;
+          text-transform: uppercase;
+        }
+
+        .rejection-status-message {
+          color: #6c757d;
+          font-size: 16px;
+          margin: 0;
+          line-height: 1.6;
+        }
+
+        .rejection-details {
+          background: #ffffff;
+          border: 1px solid #dee2e6;
+          border-radius: 8px;
+          padding: 20px;
+          margin: 20px 0;
+        }
+
+        .detail-row {
+          padding: 12px 0;
+          border-bottom: 1px solid #f1f3f4;
+          display: flex;
+          align-items: center;
+        }
+
+        .detail-row:last-child {
+          border-bottom: none;
+        }
+
+        .detail-label {
+          color: #6c757d;
+          font-size: 12px;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          margin-bottom: 4px;
+          display: block;
+        }
+
+        .detail-value {
+          color: #495057;
+          font-size: 14px;
+          font-weight: 500;
+        }
+
+        .detail-content {
+          flex: 1;
+        }
+
+        .stand-rejection-info {
+          background: linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%);
+          border: 2px solid #f44336;
+          border-radius: 12px;
+          padding: 25px;
+          margin: 25px 0;
+          text-align: center;
+          box-shadow: 0 4px 12px rgba(244, 67, 54, 0.15);
+        }
+
+        .stand-rejection-title {
+          color: #c62828;
+          font-size: 18px;
+          font-weight: 600;
+          margin-bottom: 15px;
+        }
+
+        .stand-rejection-code {
+          background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%);
+          color: white;
+          padding: 12px 24px;
+          border-radius: 25px;
+          font-size: 16px;
+          font-weight: 700;
+          display: inline-block;
+          margin: 10px 0 15px 0;
+          box-shadow: 0 4px 8px rgba(244, 67, 54, 0.4);
+          letter-spacing: 1px;
+        }
+
+        .stand-rejection-message {
+          color: #c62828;
+          font-size: 15px;
+          margin: 0;
+          font-weight: 500;
+        }
+
+        /* Estilos específicos para ferias EXTERNAS */
+        .external-rejection-note {
+          background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);
+          border: 2px solid #ff9800;
+          border-radius: 12px;
+          padding: 25px;
+          margin: 25px 0;
+          text-align: center;
+          box-shadow: 0 4px 12px rgba(255, 152, 0, 0.15);
+        }
+
+        .external-rejection-title {
+          color: #ef6c00;
+          font-size: 18px;
+          font-weight: 600;
+          margin-bottom: 15px;
+        }
+
+        .external-rejection-message {
+          color: #ef6c00;
+          font-size: 15px;
+          margin: 0;
+          line-height: 1.6;
+          font-weight: 500;
+        }
+
+        .professional-message {
+          background: #f8f9fa;
+          border-left: 4px solid #6c757d;
+          border-radius: 4px;
+          padding: 20px;
+          margin: 25px 0;
+        }
+
+        .professional-message p {
+          color: #495057;
+          font-size: 15px;
+          margin: 0;
+          line-height: 1.6;
+        }
+
+        .future-opportunities {
+          background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+          border-radius: 8px;
+          padding: 25px;
+          text-align: center;
+          margin: 25px 0;
+        }
+
+        .future-opportunities p {
+          color: #4a5568;
+          font-size: 16px;
+          font-weight: 500;
+          margin: 0;
+          line-height: 1.5;
+        }
+
+        .contact-section {
+          background: #edf2f7;
+          border-left: 4px solid #4299e1;
+          border-radius: 4px;
+          padding: 20px;
+          margin: 25px 0;
+        }
+
+        .contact-section p {
+          color: #2d3748;
+          font-size: 15px;
+          margin: 0;
+          line-height: 1.6;
+          font-weight: 500;
+        }
+
+        @media (max-width: 650px) {
+          .rejection-announcement,
+          .fair-title-section,
+          .rejection-status,
+          .rejection-details,
+          .stand-rejection-info,
+          .external-rejection-note,
+          .professional-message,
+          .future-opportunities,
+          .contact-section {
+            padding: 15px;
+            margin: 15px 0;
+          }
+          
+          .rejection-title {
+            font-size: 18px;
+          }
+          
+          .fair-main-title {
+            font-size: 18px;
+          }
+          
+          .stand-rejection-code {
+            font-size: 14px;
+            padding: 10px 20px;
+          }
+
+          .rejection-icon {
+            font-size: 36px;
+          }
+        }
+      `;
+    }
 
   private getFieldIcon(field: string): string {
     const icons: { [key: string]: string } = {
@@ -813,20 +995,32 @@ export class TemplateService implements ITemplateService {
 
   generateEnrollmentRejectedEmail(data: EnrollmentRejectedEmailData): string {
     const baseTemplate = this.loadTemplate('base');
-    const rejectedContent = this.loadTemplate('enrollment-rejected');
+
+    const isExternalFair = data.fairType === 'Externa' || !data.standCode || data.standCode.trim() === '';
+    const templateName = isExternalFair ? 'enrollment-rejected-external' : 'enrollment-rejected-internal';
+    
+    console.log(`Generando email de rechazo:`, {
+      fairType: data.fairType,
+      standCode: data.standCode,
+      isExternalFair,
+      templateName
+    });
+    
+    const rejectedContent = this.loadTemplate(templateName);
 
     const contentWithData = this.replaceVariables(rejectedContent, {
       'FAIR_NAME': data.fairName,
       'FAIR_DATE': data.fairDate,
-      'REJECTION_REASON': data.rejectionReason || 'No se especificó una razón particular.'
+      'FAIR_TYPE': data.fairType || 'Externa',
+      'STAND_CODE': data.standCode || ''
     });
 
     const variables = {
-      'EMAIL_TITLE': 'Información sobre tu solicitud',
+      'EMAIL_TITLE': 'Notificación sobre Proceso de Selección',
       'RECIPIENT_NAME': data.recipientName,
       'CUSTOM_STYLES': this.getEnrollmentRejectedStyles(),
       'EMAIL_CONTENT': contentWithData,
-      'FOOTER_MESSAGE': 'No te desanimes. Habrán más oportunidades. Para consultas, contáctanos.'
+      'FOOTER_MESSAGE': 'Para cualquier consulta, no dudes en contactarnos.'
     };
 
     return this.replaceVariables(baseTemplate, variables);

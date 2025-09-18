@@ -237,15 +237,19 @@ export class EnrrolmentService {
                     })
                     : 'Por definir';
 
+                const fairTypeDisplay = enrollment.fair.typeFair === 'interna' ? 'Interna' : 'Externa';
+                const standCode = enrollment.stand?.stand_code || '';
+
                 await this.notificationService.sendEnrollmentRejectedEmail(
                     recipientEmail,
                     recipientName,
                     enrollment.fair.name,
                     fairDate,
-                    'En esta ocasión, no fue posible asignar un stand para tu solicitud debido a disponibilidad limitada.'
+                    fairTypeDisplay,
+                    standCode    
                 );
 
-                console.log(`Notificación de rechazo enviada a: ${recipientEmail}`);
+                console.log(`Notificación de rechazo enviada a: ${recipientEmail} - Tipo: ${fairTypeDisplay} - Stand: ${standCode || 'N/A'}`);
             } catch (notificationError) {
                 console.error('Error enviando notificación de rechazo:', notificationError);
             }
