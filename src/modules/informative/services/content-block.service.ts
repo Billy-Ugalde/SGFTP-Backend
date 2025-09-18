@@ -52,6 +52,31 @@ export class ContentBlockService {
     return this.contentBlockRepository.save(block);
   }
 
+  // === ADICIÓN (nuevo método público de upsert por clave natural) =========================
+  /**
+   * Upsert por claves naturales (page/section/block_key).
+   * - Si existe: actualiza sólo los campos provistos en updateDto.
+   * - Si no existe: crea el bloque con esos campos.
+   *
+   * Úsalo desde el controlador del PATCH/PUT para evitar 404 en claves nuevas.
+   */
+  async updateOrCreateByNaturalKey(
+    page: string,
+    section: string,
+    block_key: string,
+    updateDto: UpdateContentBlockDto,
+  ): Promise<ContentBlock> {
+    const createLikeDto: CreateContentBlockDto = {
+      page,
+      section,
+      block_key,
+      ...(updateDto.text_content !== undefined ? { text_content: updateDto.text_content } : {}),
+      ...(updateDto.image_url !== undefined ? { image_url: updateDto.image_url } : {}),
+    };
+    return this.upsertByNaturalKey(createLikeDto);
+  }
+  // ========================================================================================
+
   // Método para obtener por identificador natural
   async findByNaturalKey(page: string, section: string, block_key: string): Promise<ContentBlock> {
     const block = await this.contentBlockRepository.findOne({
