@@ -11,7 +11,7 @@ import { EnrollmentController } from "./controllers/enrollment.controller";
 import { EnrrolmentService } from "./services/Enrollment.service";
 import { Entrepreneur } from "../entrepreneurs/entities/entrepreneur.entity";
 import { AuthModule } from "../auth/auth.module";
-import { NotificationsModule } from "../notifications/notifications.module";
+import { NotificationsModule } from "../fairs-notifications/notifications.module";
 @Module({
     imports: [TypeOrmModule.forFeature([Fair, Stand, Fair_enrollment,Entrepreneur]), AuthModule, NotificationsModule],
     controllers: [FairController, StandController, EnrollmentController],
