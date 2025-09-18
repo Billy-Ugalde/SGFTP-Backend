@@ -6,9 +6,7 @@ import { randomBytes } from 'crypto';
 export class PasswordService {
   private readonly saltRounds = 12; // Recomendación OWASP 2024
 
-  /**
-   * Hashea una contraseña de forma segura
-   */
+  //Hashea una contraseña de forma segura
   async hashPassword(plainPassword: string): Promise<string> {
     try {
       return await bcrypt.hash(plainPassword, this.saltRounds);
@@ -17,9 +15,7 @@ export class PasswordService {
     }
   }
 
-  /**
-   * Verifica una contraseña contra su hash
-   */
+  //Verifica una contraseña contra su hash
   async comparePassword(plainPassword: string, hashedPassword: string): Promise<boolean> {
     try {
       return await bcrypt.compare(plainPassword, hashedPassword);
@@ -28,9 +24,7 @@ export class PasswordService {
     }
   }
 
-  /**
-   * Valida fortaleza de contraseña
-   */
+  //Valida fortaleza de contraseña
   validatePasswordStrength(password: string): { isValid: boolean; errors: string[] } {
     const errors: string[] = [];
 
@@ -59,31 +53,5 @@ export class PasswordService {
       errors
     };
   }
-
-  generateTemporaryPassword(): string {
-    // Generar contraseña temporal segura usando crypto
-    const randomBuffer = randomBytes(12);
-    
-    // Convertir a base64 y limpiar caracteres problemáticos
-    let password = randomBuffer.toString('base64')
-      .replace(/[+/=]/g, '')  // Remover caracteres problemáticos para URLs
-      .substring(0, 10);      // Longitud manejable
-    
-    // Asegurar que cumple políticas mínimas
-    password = password + 'A1!'; // Garantizar mayúscula, número y símbolo
-    
-    return password;
-  }
-
-  // ===== MÉTODOS FUTUROS (COMENTADOS) =====
-  /*
-  generatePasswordResetToken(): string {
-    return randomBytes(32).toString('hex');
-  }
-
-  generateEmailVerificationToken(): string {
-    return randomBytes(32).toString('hex');
-  }
-  */
 
 }
