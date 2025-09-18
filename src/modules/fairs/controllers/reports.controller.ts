@@ -9,14 +9,14 @@ import { AuthGuard } from 'src/modules/auth/guards/auth.guard';
 import { RoleGuard } from 'src/modules/auth/guards/role.guard';
 import { UserRole } from 'src/modules/auth/enums/user-role.enum';
 @Controller('reports')
-//@UseGuards(AuthGuard)
+@UseGuards(AuthGuard)
 export class FairReportController {
   constructor(private readonly service: ReportFairService) { }
 
   @Post('quarterly')
-  /*@UseGuards(RoleGuard)
+  @UseGuards(RoleGuard)
   @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN, UserRole.FAIR_ADMIN)
-  @HttpCode(HttpStatus.CREATED)*/
+  @HttpCode(HttpStatus.CREATED)
   async downloadQuarterly(@Body() dto: ReportFairDto, @Res() res: Response) {
     const currentYear = new Date().getFullYear();
 
