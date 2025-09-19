@@ -31,15 +31,13 @@ export class Person {
 
   @OneToMany(() => Phone, phone => phone.person, {
     cascade: true,
-    eager: true
+    //eager: true
   })
   phones: Phone[];
 
   @OneToOne(() => Entrepreneur, (entrepreneur) => entrepreneur.person)
   entrepreneur: Entrepreneur;
 
-  @OneToOne(() => User, (user) => user.person, {
-    nullable: true
-  })
-  user: User
+  @OneToOne(() => User, user => user.person)
+  user: User;
 }
