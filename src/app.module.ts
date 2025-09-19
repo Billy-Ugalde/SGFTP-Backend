@@ -32,7 +32,7 @@ import { NotificationsModule } from './modules/fairs-notifications/notifications
         password: configService.get<string>('DB_PASSWORD'),
         database: configService.get<string>('DB_DATABASE'),
         synchronize: configService.get<string>('NODE_ENV') === 'development',
-        autoLoadEntities: true,
+        autoLoadEntities: true, 
         ssl: false,
       }),
       inject: [ConfigService],

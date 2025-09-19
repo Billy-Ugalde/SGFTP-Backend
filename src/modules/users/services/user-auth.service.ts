@@ -146,32 +146,92 @@ export class UserAuthService implements IUserAuthService {
     }
 
     async activateUserWithPassword(userId: number, newPassword: string): Promise<void> {
+        // AGREGAR: Verificar estado actual antes de activar
+        const currentUser = await this.userRepository.findOne({
+            where: { id_user: userId },
+            select: ['id_user', 'status', 'isEmailVerified', 'password', 'activation_token']
+        });
+
+        if (!currentUser) {
+            throw new NotFoundException('Usuario no encontrado');
+        }
+
+        // CRÍTICO: Prevenir activación de cuenta ya activa
+        if (currentUser.isEmailVerified && currentUser.status && currentUser.password) {
+            throw new ForbiddenException('Esta cuenta ya está activa');
+        }
+
+        // CRÍTICO: Verificar que el token aún sea válido
+        if (!currentUser.activation_token) {
+            throw new ForbiddenException('Token de activación ya utilizado');
+        }
+
         const hashedPassword = await this.passwordService.hashPassword(newPassword);
         
         await this.userRepository.update(userId, {
             password: hashedPassword,
             status: true,
             isEmailVerified: true,
-            activation_token: undefined,
-            activation_expires: undefined
+            activation_token: undefined,        // ← CRÍTICO: Limpiar token
+            activation_expires: undefined     // ← CRÍTICO: Limpiar expiración
         });
     }
 
-        // ===== MÉTODOS AVANZADOS COMENTADOS (para después) =====
-    
-    /*
-    // Estos métodos requieren primero migrar la BD con los campos nuevos
-    
-    async incrementFailedLoginAttempts(userId: number): Promise<void> {
-        // Implementar después de migración
+    async findUserWithPasswordById(userId: number): Promise<User | null> {
+        return await this.userRepository.findOne({
+            where: { id_user: userId },
+            relations: ['person'],
+            select: {
+                id_user: true,
+                password: true, // ← Incluir password para verificación
+                person: {
+                    id_person: true,
+                    email: true,
+                    first_name: true
+                }
+            }
+        });
     }
 
-    async generateEmailVerificationToken(userId: number): Promise<string> {
-        // Implementar después de migración  
+    async updateUserPassword(userId: number, hashedPassword: string): Promise<void> {
+        await this.userRepository.update(userId, { 
+            password: hashedPassword 
+        });
     }
 
-    async resetPasswordWithToken(token: string, newPassword: string): Promise<boolean> {
-        // Implementar después de migración
+    async findByEmailForReset(email: string): Promise<User | null> {
+        return await this.userRepository.findOne({
+            where: { 
+            person: { email },
+            status: true // Solo usuarios activos pueden resetear
+            },
+            relations: ['person']
+        });
     }
-    */
+
+    async setResetToken(userId: number, token: string, expiresAt: Date): Promise<void> {
+        await this.userRepository.update(userId, {
+            reset_token: token,
+            reset_expires: expiresAt
+        });
+    }
+
+    async findUserByResetToken(token: string): Promise<User | null> {
+        return await this.userRepository.findOne({
+            where: {
+            reset_token: token,
+            reset_expires: MoreThan(new Date()) // Token no expirado
+            },
+            relations: ['person']
+        });
+    }
+
+    async resetPasswordWithToken(userId: number, hashedPassword: string): Promise<void> {
+        await this.userRepository.update(userId, {
+            password: hashedPassword,
+            reset_token: undefined, // Limpiar token usado
+            reset_expires: undefined,
+            failedLoginAttempts: 0 // Reset intentos fallidos
+        });
+    }
 }
