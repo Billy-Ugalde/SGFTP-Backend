@@ -146,14 +146,34 @@ export class UserAuthService implements IUserAuthService {
     }
 
     async activateUserWithPassword(userId: number, newPassword: string): Promise<void> {
+        // AGREGAR: Verificar estado actual antes de activar
+        const currentUser = await this.userRepository.findOne({
+            where: { id_user: userId },
+            select: ['id_user', 'status', 'isEmailVerified', 'password', 'activation_token']
+        });
+
+        if (!currentUser) {
+            throw new NotFoundException('Usuario no encontrado');
+        }
+
+        // CRÍTICO: Prevenir activación de cuenta ya activa
+        if (currentUser.isEmailVerified && currentUser.status && currentUser.password) {
+            throw new ForbiddenException('Esta cuenta ya está activa');
+        }
+
+        // CRÍTICO: Verificar que el token aún sea válido
+        if (!currentUser.activation_token) {
+            throw new ForbiddenException('Token de activación ya utilizado');
+        }
+
         const hashedPassword = await this.passwordService.hashPassword(newPassword);
         
         await this.userRepository.update(userId, {
             password: hashedPassword,
             status: true,
             isEmailVerified: true,
-            activation_token: undefined,
-            activation_expires: undefined
+            activation_token: undefined,        // ← CRÍTICO: Limpiar token
+            activation_expires: undefined     // ← CRÍTICO: Limpiar expiración
         });
     }
 

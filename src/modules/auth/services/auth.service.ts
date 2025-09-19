@@ -1,4 +1,4 @@
-import { ConflictException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { ConflictException, ForbiddenException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { JwtTokenService } from './jwt.service';
 import { User } from '../../users/entities/user.entity';
 import { AuthResponseDto } from '../dto/auth-response.dto';
@@ -192,7 +192,17 @@ export class AuthService {
         // 1. Buscar usuario por token con detalles de expiración
         const { user, tokenExists } = await this.userAuthService.findUserByActivationTokenWithDetails(token);
         
+        if(user){
+            if (user.isEmailVerified && user.status && user.password) {
+                throw new ForbiddenException('Esta cuenta ya ha sido activada previamente');
+            }
+            if (!user.activation_token || !user.activation_expires) {
+                throw new ForbiddenException('El enlace de activación ya no es válido');
+            }
+        }
+
         if (!user) {
+            
             if (tokenExists) {
             throw new NotFoundException('El enlace de activación ha expirado');
             } else {
