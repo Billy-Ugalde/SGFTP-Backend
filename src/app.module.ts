@@ -8,20 +8,43 @@ import { InformativeModule } from './modules/informative/informative.module';
 import { SubscribersModule } from './modules/subscribers/subscribers.module';
 import { NewsModule } from './modules/news/news.module';
 import { UserModule } from './modules/users/user.module';
+import { AuthModule } from './modules/auth/auth.module';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { SharedModule } from './modules/shared/shared.module';
+import { GlobalSeedService } from './database/services/global-seed.service';
+import { MiddlewareConsumer, NestModule } from '@nestjs/common';
+import { SecurityHeadersMiddleware } from './middleware/security-headers.middleware';
+import { CorsMiddleware } from './middleware/cors.middleware';
+import { NotificationsModule } from './modules/fairs-notifications/notifications.module';
 
 @Module({
-  imports: [TypeOrmModule.forRoot({
-    type: 'mysql',
-    host: 'localhost',
-    port: 3306,
-    username: 'root',
-    password: 'admin',
-    database: 'data_prueba',
-    ssl: false,
-    autoLoadEntities: true,    //llama todas las entidades
-    synchronize: true,
-  }), FairModule, EntrepreneurModule, InformativeModule, SubscribersModule,NewsModule, UserModule],
+  imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+    }),
+    TypeOrmModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: (configService: ConfigService) => ({
+        type: 'mysql',
+        host: configService.get<string>('DB_HOST'),
+        port: configService.get<number>('DB_PORT'),
+        username: configService.get<string>('DB_USERNAME'),
+        password: configService.get<string>('DB_PASSWORD'),
+        database: configService.get<string>('DB_DATABASE'),
+        synchronize: configService.get<string>('NODE_ENV') === 'development',
+        autoLoadEntities: true, 
+        ssl: false,
+      }),
+      inject: [ConfigService],
+    }),FairModule, EntrepreneurModule, InformativeModule, SubscribersModule,NewsModule, UserModule, AuthModule, SharedModule, NotificationsModule],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, GlobalSeedService],
 })
-export class AppModule { }
+
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer
+      .apply(SecurityHeadersMiddleware)
+      .forRoutes('*');
+  }
+}
