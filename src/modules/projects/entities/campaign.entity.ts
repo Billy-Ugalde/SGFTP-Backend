@@ -25,6 +25,9 @@ export class Campaign {
     @Column({ type: 'enum', enum: ['Pendiente', 'Admitido', 'Rechazado', 'Planificación', 'Ejecución', 'Suspendido', 'Terminado'] })
     Status_campaign!: 'Pendiente' | 'Admitido' | 'Rechazado' | 'Planificación' | 'Ejecución' | 'Suspendido' | 'Terminado';
 
+    @Column({ type: 'enum', enum: ['Social', 'Ambiental', 'Cultural'] })
+    Approach!: 'Social' | 'Ambiental' | 'Cultural';
+
     @Column({ type: 'varchar' })
     Location: string;
 
@@ -34,7 +37,7 @@ export class Campaign {
     @Column()
     Active: boolean;
 
-    @ManyToOne(() => Project, (project) => project.campaign, {nullable: false})
-    @JoinColumn({ name:'Id_project'})
+    @ManyToOne(() => Project, (project) => project.campaign, { nullable: false })
+    @JoinColumn({ name: 'Id_project' })
     project: Project;
 }
