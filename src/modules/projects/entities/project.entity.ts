@@ -2,6 +2,20 @@ import { Column, CreateDateColumn, Entity, Index, JoinColumn, NumericType, OneTo
 import { Decimal } from 'decimal.js';
 import { Campaign } from "./campaign.entity";
 
+export enum ProjectStatus {
+    PENDING = 'pending',
+    APPROVED = 'approved',
+    REJECTED = 'rejected',
+    PLANNING = 'planning',
+    EXECUTION = 'Execution',
+    SUSPENDED = 'suspended',
+    FINISHED = 'Finished'
+}
+
+export enum TypeProject {
+    INVESTMENT = 'Investment',
+    SOCIAL_ACTION = 'social action'
+}
 
 @Index(['Name', 'registration_date'], { unique: true })
 @Entity()
@@ -31,11 +45,11 @@ export class Project {
     @UpdateDateColumn()
     UpdatedAt: Date;
 
-    @Column({ type: 'enum', enum: ['Pendiente', 'Admitido', 'Rechazado', 'Planificación', 'Ejecución', 'Suspendido', 'Terminado'] })
-    Status!: 'Pendiente' | 'Admitido' | 'Rechazado' | 'Planificación' | 'Ejecución' | 'Suspendido' | 'Terminado';
+    @Column()
+    Status!: ProjectStatus;
 
-    @Column({ type: 'enum', enum: ['Inversión', 'Acción social'] })
-    Type_project!: 'Inversión' | 'Acción social';
+    @Column()
+    Type_project!: TypeProject;
 
     @Column({ type: 'varchar' })
     Location: string;

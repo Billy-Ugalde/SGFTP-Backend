@@ -2,13 +2,28 @@ import { Column, CreateDateColumn, Entity, Index, JoinColumn, ManyToOne, Numeric
 import { Decimal } from 'decimal.js';
 import { Project } from "./project.entity";
 
+export enum TypeApproach {
+    SOCIAL = 'social',
+    CULTURAL = 'cultural',
+    ENVIRONMENTAL = 'environmental'
+}
+
+export enum CampaigntStatus {
+    PENDING = 'pending',
+    APPROVED = 'approved',
+    REJECTED = 'rejected',
+    PLANNING = 'planning',
+    EXECUTION = 'Execution',
+    SUSPENDED = 'suspended',
+    FINISHED = 'Finished'
+}
 
 @Index(['Name', 'registration_date'], { unique: true })
 @Entity()
 
 export class Campaign {
     @PrimaryGeneratedColumn()
-    Id: number
+    Id: number;
 
     @Column({ type: 'varchar' })
     Name: string
@@ -22,17 +37,17 @@ export class Campaign {
     @UpdateDateColumn()
     UpdatedAt: Date;
 
-    @Column({ type: 'enum', enum: ['Pendiente', 'Admitido', 'Rechazado', 'Planificación', 'Ejecución', 'Suspendido', 'Terminado'] })
-    Status_campaign!: 'Pendiente' | 'Admitido' | 'Rechazado' | 'Planificación' | 'Ejecución' | 'Suspendido' | 'Terminado';
+    @Column()
+    Status_campaign!: CampaigntStatus;
 
-    @Column({ type: 'enum', enum: ['Social', 'Ambiental', 'Cultural'] })
-    Approach!: 'Social' | 'Ambiental' | 'Cultural';
+    @Column()
+    Approach!: TypeApproach;
 
     @Column({ type: 'varchar' })
     Location: string;
 
     @Column('decimal', { precision: 12, scale: 2 })
-    Budget_campaign: Decimal
+    Budget_campaign: Decimal;
 
     @Column()
     Active: boolean;
