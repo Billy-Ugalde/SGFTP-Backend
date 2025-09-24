@@ -87,7 +87,7 @@ export class EntrepreneurController {
 
   @Put(':id')
   @UseGuards(RoleGuard)
-  @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN, UserRole.FAIR_ADMIN)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN, UserRole.FAIR_ADMIN, UserRole.ENTREPRENEUR)
   async update(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateDto: UpdateCompleteEntrepreneurDto,
