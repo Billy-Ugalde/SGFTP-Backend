@@ -2,7 +2,7 @@ import { Column, CreateDateColumn, Entity, Index, JoinColumn, ManyToOne, Primary
 import { Decimal } from 'decimal.js';
 import { Project } from "./project.entity";
 import { CampaignStatus, MetricType, ProposalStatus, TypeApproach, TypeCampaign } from "../enums/campaign.enum";
-@Index(['Name', 'registration_date'], { unique: true })
+@Index(['Name', 'Registration_date'], { unique: true })
 @Entity()
 
 export class Campaign {
