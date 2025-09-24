@@ -11,7 +11,7 @@ import {
   HttpCode,
   HttpStatus,
   UseGuards,
-  Req
+  Req,
 } from '@nestjs/common';
 import { EntrepreneurService } from '../services/entrepreneur.service';
 import { CreateCompleteEntrepreneurDto, UpdateCompleteEntrepreneurDto } from '../dto/complete-entrepreneur.dto';
@@ -26,7 +26,7 @@ import { Public } from 'src/modules/auth/decorators/public.decorator';
 @Controller('entrepreneurs')
 @UseGuards(AuthGuard)
 export class EntrepreneurController {
-  constructor(private readonly entrepreneurService: EntrepreneurService) { }
+  constructor(private readonly entrepreneurService: EntrepreneurService) {}
 
   @Get()
   @Public()
@@ -36,11 +36,15 @@ export class EntrepreneurController {
 
   @Get('pending')
   @UseGuards(RoleGuard)
-  @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN, UserRole.FAIR_ADMIN, UserRole.AUDITOR)
+  @Roles(
+    UserRole.SUPER_ADMIN,
+    UserRole.GENERAL_ADMIN,
+    UserRole.FAIR_ADMIN,
+    UserRole.AUDITOR,
+  )
   async findAllPending(@Req() request: any): Promise<Entrepreneur[]> {
     return await this.entrepreneurService.findAllPending();
   }
-
 
   @Get(':id')
   @Public()
@@ -53,46 +57,60 @@ export class EntrepreneurController {
   @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN, UserRole.FAIR_ADMIN)
   @HttpCode(HttpStatus.CREATED)
   async create(
-    @Body() createDto: CreateCompleteEntrepreneurDto, @Req() request: any): Promise<Entrepreneur> {
+    @Body() createDto: CreateCompleteEntrepreneurDto,
+    @Req() request: any,
+  ): Promise<Entrepreneur> {
     return await this.entrepreneurService.create(createDto, request);
   }
 
   @Post('public')
   @Public()
   @HttpCode(HttpStatus.CREATED)
-  async createPublic(@Body() dto: CreateCompleteEntrepreneurDto): Promise<Entrepreneur> {
-    return await this.entrepreneurService.create(dto); 
+  async createPublic(
+    @Body() dto: CreateCompleteEntrepreneurDto,
+  ): Promise<Entrepreneur> {
+    return await this.entrepreneurService.create(dto);
   }
 
+  // ================== NUEVO (colocado ANTES del Put(':id')) ==================
+  // Ruta para que el dueño (usuario autenticado con rol entrepreneur) actualice su propio registro
+  @Put('public/:id')
+  @HttpCode(HttpStatus.OK)
+  async updateOwn(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateCompleteEntrepreneurDto,
+    @Req() req: any,
+  ): Promise<Entrepreneur> {
+    return this.entrepreneurService.updateIfOwnerAndEntrepreneurRole(id, dto, req.user);
+  }
+  // ================== FIN NUEVO =================================================
 
   @Put(':id')
   @UseGuards(RoleGuard)
   @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN, UserRole.FAIR_ADMIN)
   async update(
     @Param('id', ParseIntPipe) id: number,
-    @Body() updateDto: UpdateCompleteEntrepreneurDto
+    @Body() updateDto: UpdateCompleteEntrepreneurDto,
   ): Promise<Entrepreneur> {
     return await this.entrepreneurService.update(id, updateDto);
   }
-
 
   @Patch(':id/status')
   @UseGuards(RoleGuard)
   @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN, UserRole.FAIR_ADMIN)
   async updateStatus(
     @Param('id', ParseIntPipe) id: number,
-    @Body() statusDto: UpdateStatusDto
+    @Body() statusDto: UpdateStatusDto,
   ): Promise<Entrepreneur> {
     return await this.entrepreneurService.updateStatus(id, statusDto);
   }
-
 
   @Patch(':id/toggle-active')
   @UseGuards(RoleGuard)
   @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN, UserRole.FAIR_ADMIN)
   async toggleActive(
     @Param('id', ParseIntPipe) id: number,
-    @Body() toggleDto: ToggleActiveDto
+    @Body() toggleDto: ToggleActiveDto,
   ): Promise<Entrepreneur> {
     return await this.entrepreneurService.toggleActive(id, toggleDto);
   }
@@ -104,5 +122,4 @@ export class EntrepreneurController {
   async remove(@Param('id', ParseIntPipe) id: number): Promise<void> {
     return await this.entrepreneurService.remove(id);
   }
-
 }

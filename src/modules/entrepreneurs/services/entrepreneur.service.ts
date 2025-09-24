@@ -12,6 +12,10 @@ import { Entrepreneurship } from '../entities/entrepreneurship.entity';
 import { AccountInvitationService } from '../../auth/services/account-invitation.service';
 import { Role } from '../../users/entities/role.entity';
 
+// ============ NUEVO: import requerido para la validación de permisos ============
+import { ForbiddenException } from '@nestjs/common';
+// ===================== FIN NUEVO =====================
+
 @Injectable()
 export class EntrepreneurService {
   constructor(
@@ -23,7 +27,6 @@ export class EntrepreneurService {
     private authService: AuthService,
     private accountInvitationService: AccountInvitationService,
   ) { }
-
 
   async findAllApproved(): Promise<Entrepreneur[]> {
     return await this.entrepreneurRepository.find({
@@ -37,7 +40,6 @@ export class EntrepreneurService {
       }
     });
   }
-
 
   async findAllPending(): Promise<Entrepreneur[]> {
     return await this.entrepreneurRepository.find({
@@ -62,30 +64,32 @@ export class EntrepreneurService {
     return entrepreneur;
   }
 
-
   async create(createDto: CreateCompleteEntrepreneurDto, request?: any): Promise<Entrepreneur> {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
 
     try {
-
-    const savedPerson = await this.personService.create(createDto.person, queryRunner);
+      const savedPerson = await this.personService.create(createDto.person, queryRunner);
 
       // Determinar estado inicial basado en si hay usuario autenticado y sus roles
-    let initialStatus = EntrepreneurStatus.PENDING; 
-    let createdEntrepreneur: Entrepreneur; 
+      let initialStatus = EntrepreneurStatus.PENDING;
+      let createdEntrepreneur: Entrepreneur;
 
-    if (request?.user) {
-      const user = request.user;
-      const userRoles = user.getAllRoleNames();
-      
-      // Si es admin, aprobar automáticamente
-      if (userRoles.some(role => ['super_admin', 'general_admin', 'fair_admin'].includes(role))) {
-        initialStatus = EntrepreneurStatus.APPROVED;
+      if (request?.user) {
+        const user = request.user;
+        const userRoles =
+          typeof user?.getAllRoleNames === 'function'
+            ? user.getAllRoleNames()
+            : [];
+
+        // Si es admin, aprobar automáticamente
+        if (userRoles.some((r: string) =>
+          ['super_admin', 'general_admin', 'fair_admin'].includes(String(r).toLowerCase())
+        )) {
+          initialStatus = EntrepreneurStatus.APPROVED;
+        }
       }
-    }
-
 
       const entrepreneur = this.entrepreneurRepository.create({
         experience: createDto.entrepreneur.experience,
@@ -96,7 +100,7 @@ export class EntrepreneurService {
         person: savedPerson,
       });
 
-       createdEntrepreneur = await queryRunner.manager.save(Entrepreneur, entrepreneur);
+      createdEntrepreneur = await queryRunner.manager.save(Entrepreneur, entrepreneur);
 
       // Crear el emprendimiento
       await this.entrepreneurshipService.create(
@@ -104,23 +108,24 @@ export class EntrepreneurService {
         createDto.entrepreneurship,
         queryRunner
       );
-     // Crear usuario con rol emprendedor si el estado inicial es aprobado, es decir si un administrador fue el que creo el emprendedor
-    if (initialStatus === EntrepreneurStatus.APPROVED) {
-      const entrepreneurRole = await queryRunner.manager.findOne(Role, { where: { name: 'entrepreneur' } });
 
-      if (!entrepreneurRole) {
-        throw new NotFoundException('Rol entrepreneur no encontrado');
+      // Crear usuario con rol emprendedor si el estado inicial es aprobado
+      if (initialStatus === EntrepreneurStatus.APPROVED) {
+        const entrepreneurRole = await queryRunner.manager.findOne(Role, { where: { name: 'entrepreneur' } });
+
+        if (!entrepreneurRole) {
+          throw new NotFoundException('Rol entrepreneur no encontrado');
+        }
+
+        await this.accountInvitationService.createUserAccount(
+          savedPerson.id_person,
+          [entrepreneurRole.id_role],
+          request?.user?.id ?? 0,
+          queryRunner
+        );
       }
 
-      await this.accountInvitationService.createUserAccount(
-        savedPerson.id_person,
-        [entrepreneurRole.id_role],
-        request?.user?.id ?? 0, 
-        queryRunner
-      );
-    }
       await queryRunner.commitTransaction();
-
       return await this.findOne(createdEntrepreneur.id_entrepreneur);
     } catch (error) {
       await queryRunner.rollbackTransaction();
@@ -129,7 +134,6 @@ export class EntrepreneurService {
       await queryRunner.release();
     }
   }
-
 
   async update(id: number, updateDto: UpdateCompleteEntrepreneurDto): Promise<Entrepreneur> {
     const queryRunner = this.dataSource.createQueryRunner();
@@ -168,8 +172,8 @@ export class EntrepreneurService {
           queryRunner
         );
       }
-      await queryRunner.commitTransaction();
 
+      await queryRunner.commitTransaction();
       return await this.findOne(id);
     } catch (error) {
       await queryRunner.rollbackTransaction();
@@ -178,54 +182,147 @@ export class EntrepreneurService {
       await queryRunner.release();
     }
   }
-  
-  async updateStatus(id: number, statusDto: UpdateStatusDto): Promise<Entrepreneur> {
-      const entrepreneur = await this.findOne(id);
 
-      if (entrepreneur.status !== EntrepreneurStatus.PENDING) {
-          throw new BadRequestException(`Solo se pueden aprobar o rechazar solicitudes pendientes`);
-      }
-
-      // ===== TRANSACCIÓN PARA MANTENER CONSISTENCIA =====
-      const queryRunner = this.dataSource.createQueryRunner();
-      await queryRunner.connect();
-      await queryRunner.startTransaction();
-
+  // ====================== NUEVO: helpers solo para este servicio ======================
+  /** Extrae nombres de rol en minúscula desde distintas formas comunes del token */
+  private extractRoleNames(user: any): string[] {
+    // Caso 1: método utilitario ya presente en tu proyecto
+    if (typeof user?.getAllRoleNames === 'function') {
       try {
-          // 1. Actualizar estado de entrepreneur
-          entrepreneur.status = statusDto.status;
+        const names = user.getAllRoleNames();
+        if (Array.isArray(names)) return names.map((n: string) => String(n).toLowerCase());
+      } catch { /* noop */ }
+    }
 
-          await queryRunner.manager.save(Entrepreneur, entrepreneur);
+    // Caso 2: arreglo de strings u objetos (con .name | .role | .code)
+    const raw =
+      (Array.isArray(user?.roles) ? user.roles : []) ||
+      (Array.isArray(user?.role) ? user.role : []);
 
-          // 2. Crear cuenta de usuario SI es aprobado
-          if (statusDto.status === EntrepreneurStatus.APPROVED) {
-            // Obtener rol de emprendedor
-            const entrepreneurRole = await queryRunner.manager.findOne(Role, { 
-              where: { name: 'entrepreneur' } 
-            });
-            
-            if (!entrepreneurRole) {
-              throw new NotFoundException('Rol entrepreneur no encontrado');
-            }
-            
-            // Delegar creación de cuenta al AccountInvitationService
-            await this.accountInvitationService.createUserAccount(
-              entrepreneur.person.id_person,
-              [entrepreneurRole.id_role],
-              0, // Sistema (sin admin específico)
-              queryRunner
-            );
-          }
+    const names = Array.isArray(raw)
+      ? raw
+          .map((r: any) =>
+            typeof r === 'string'
+              ? r
+              : r?.name ?? r?.role ?? r?.code ?? ''
+          )
+          .filter(Boolean)
+      : [];
 
-          await queryRunner.commitTransaction();
-          return await this.findOne(id);
+    return names.map((n: string) => n.toLowerCase());
+  }
 
-      } catch (error) {
-          await queryRunner.rollbackTransaction();
-          throw error;
-      } finally {
-          await queryRunner.release();
+  /** Obtiene el id_person del usuario desde distintas formas usadas en el proyecto */
+  private getUserPersonId(user: any): number | undefined {
+    return (
+      user?.person?.id_person ??
+      user?.personId ??
+      user?.id_person ??
+      user?.person?.id ??
+      user?.idPerson
+    );
+  }
+  // ====================== FIN helpers ======================
+
+  // ============ NUEVO: actualización pública con validación de rol y ownership ============
+  /**
+   * Permite actualizar el emprendedor si:
+   * 1) El usuario autenticado tiene rol/flag de emprendedor
+   * 2) Es dueño del recurso (id_person coincide con el del token)
+   * Reutiliza la lógica existente de this.update(id, dto)
+   */
+  async updateIfOwnerAndEntrepreneurRole(
+    id: number,
+    dto: UpdateCompleteEntrepreneurDto,
+    user: any,
+  ): Promise<Entrepreneur> {
+    // Cargar solo lo necesario para validar propiedad
+    const entity = await this.entrepreneurRepository.findOne({
+      where: { id_entrepreneur: id },
+      relations: ['person'],
+    });
+
+    if (!entity) {
+      throw new NotFoundException('Entrepreneur not found');
+    }
+
+    // 1) Validación de rol, soportando varias formas presentes en el proyecto
+    const roleNames = this.extractRoleNames(user);
+    const hasEntrepreneurRole =
+      roleNames.includes('entrepreneur') ||
+      roleNames.includes('emprendedor') ||
+      !!user?.isEntrepreneur ||
+      !!user?.is_entrepreneur ||
+      !!user?.entrepreneur ||
+      !!user?.id_entrepreneur ||
+      !!user?.entrepreneurId;
+
+    if (!hasEntrepreneurRole) {
+      throw new ForbiddenException('You must have the entrepreneur role to update this resource.');
+    }
+
+    // 2) Validación de ownership por id_person
+    const userPersonId = this.getUserPersonId(user);
+    const isOwner = !!userPersonId && entity.person?.id_person === userPersonId;
+
+    if (!isOwner) {
+      throw new ForbiddenException('You are not the owner of this resource.');
+    }
+
+    // (Opcional) Bloquear cambios de campos sensibles por esta ruta pública
+    if (dto.entrepreneur) {
+      delete (dto.entrepreneur as any).status;
+      delete (dto.entrepreneur as any).is_active;
+    }
+
+    // Reutilizar la lógica de actualización ya existente
+    return this.update(id, dto);
+  }
+  // ===================== FIN NUEVO =====================
+
+  async updateStatus(id: number, statusDto: UpdateStatusDto): Promise<Entrepreneur> {
+    const entrepreneur = await this.findOne(id);
+
+    if (entrepreneur.status !== EntrepreneurStatus.PENDING) {
+      throw new BadRequestException(`Solo se pueden aprobar o rechazar solicitudes pendientes`);
+    }
+
+    // ===== TRANSACCIÓN PARA MANTENER CONSISTENCIA =====
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      // 1. Actualizar estado de entrepreneur
+      entrepreneur.status = statusDto.status;
+      await queryRunner.manager.save(Entrepreneur, entrepreneur);
+
+      // 2. Crear cuenta de usuario SI es aprobado
+      if (statusDto.status === EntrepreneurStatus.APPROVED) {
+        const entrepreneurRole = await queryRunner.manager.findOne(Role, {
+          where: { name: 'entrepreneur' }
+        });
+
+        if (!entrepreneurRole) {
+          throw new NotFoundException('Rol entrepreneur no encontrado');
+        }
+
+        await this.accountInvitationService.createUserAccount(
+          entrepreneur.person.id_person,
+          [entrepreneurRole.id_role],
+          0, // Sistema (sin admin específico)
+          queryRunner
+        );
       }
+
+      await queryRunner.commitTransaction();
+      return await this.findOne(id);
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
   }
 
   async toggleActive(id: number, toggleDto: ToggleActiveDto): Promise<Entrepreneur> {
@@ -242,7 +339,6 @@ export class EntrepreneurService {
     }
 
     await this.entrepreneurRepository.save(entrepreneur);
-
     return await this.findOne(id);
   }
 
@@ -282,7 +378,4 @@ export class EntrepreneurService {
       await queryRunner.release();
     }
   }
-
-
-
 }
