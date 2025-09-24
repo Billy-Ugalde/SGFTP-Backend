@@ -1,23 +1,7 @@
-import { Column, CreateDateColumn, Entity, Index, JoinColumn, ManyToOne, NumericType, PrimaryColumn, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
+import { Column, CreateDateColumn, Entity, Index, JoinColumn, ManyToOne, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
 import { Decimal } from 'decimal.js';
 import { Project } from "./project.entity";
-
-export enum TypeApproach {
-    SOCIAL = 'social',
-    CULTURAL = 'cultural',
-    ENVIRONMENTAL = 'environmental'
-}
-
-export enum CampaigntStatus {
-    PENDING = 'pending',
-    APPROVED = 'approved',
-    REJECTED = 'rejected',
-    PLANNING = 'planning',
-    EXECUTION = 'Execution',
-    SUSPENDED = 'suspended',
-    FINISHED = 'Finished'
-}
-
+import { CampaignStatus, MetricType, ProposalStatus, TypeApproach, TypeCampaign } from "../enums/campaign.enum";
 @Index(['Name', 'registration_date'], { unique: true })
 @Entity()
 
@@ -32,22 +16,34 @@ export class Campaign {
     Description: string;
 
     @CreateDateColumn()
-    registration_date: Date;
+    Registration_date: Date;
 
     @UpdateDateColumn()
     UpdatedAt: Date;
 
-    @Column()
-    Status_campaign!: CampaigntStatus;
+    @Column({ nullable: false })
+    Type_campign: TypeCampaign;
 
-    @Column()
-    Approach!: TypeApproach;
+    @Column({ nullable: false })
+    Status_campaign: CampaignStatus;
+
+    @Column({ nullable: true })
+    Campaign_proposal: ProposalStatus;   //no se como manejarlo por no tocar el tema de solicitudes en este momento
+
+    @Column({ nullable: false })
+    Approach: TypeApproach;
+
+    @Column({ nullable: true })
+    Spaces: number    //cantidad de espacios es opcional porque no todo es limitado
 
     @Column({ type: 'varchar' })
     Location: string;
 
     @Column('decimal', { precision: 12, scale: 2 })
-    Budget_campaign: Decimal;
+    Budget_campaign: Decimal;   //se le debe asignar del presupuesto total del proyecto asociado
+
+    @Column()
+    Metric_campaign: MetricType;
 
     @Column()
     Active: boolean;

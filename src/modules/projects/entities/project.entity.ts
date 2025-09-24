@@ -1,23 +1,8 @@
-import { Column, CreateDateColumn, Entity, Index, JoinColumn, NumericType, OneToMany, PrimaryColumn, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
+import { Column, CreateDateColumn, Entity, Index, OneToMany, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
 import { Decimal } from 'decimal.js';
 import { Campaign } from "./campaign.entity";
-
-export enum ProjectStatus {
-    PENDING = 'pending',
-    APPROVED = 'approved',
-    REJECTED = 'rejected',
-    PLANNING = 'planning',
-    EXECUTION = 'Execution',
-    SUSPENDED = 'suspended',
-    FINISHED = 'Finished'
-}
-
-export enum TypeProject {
-    INVESTMENT = 'Investment',
-    SOCIAL_ACTION = 'social action'
-}
-
-@Index(['Name', 'registration_date'], { unique: true })
+import { MetricProject, ProjectStatus, TypeProject } from "../enums/project.enum";
+@Index(['Name', 'Registration_date'], { unique: true })
 @Entity()
 
 export class Project {
@@ -31,7 +16,7 @@ export class Project {
     Description: string;
 
     @Column({ type: 'varchar' })
-    Aim: string;
+    Aim: string;                
 
     @Column({ type: 'datetime' })
     Start_date: Date;
@@ -40,22 +25,28 @@ export class Project {
     End_date?: Date;
 
     @CreateDateColumn()
-    registration_date: Date;
+    Registration_date: Date;
 
     @UpdateDateColumn()
     UpdatedAt: Date;
 
-    @Column()
-    Status!: ProjectStatus;
+    @Column({ nullable: false })
+    Status: ProjectStatus;
 
-    @Column()
-    Type_project!: TypeProject;
+    @Column({ nullable: false })
+    Type_project: TypeProject;
+
+    @Column({ nullable: false })
+    Target_population: string;   //población objetivo a impactar con las campañas derivadas de este proyecto
 
     @Column({ type: 'varchar' })
-    Location: string;
+    Location: string;            //ubicacion general
+
+    @Column({ nullable: false })
+    Metrics: MetricProject;
 
     @Column('decimal', { precision: 12, scale: 2 })
-    Total_budget: Decimal
+    Total_budget: Decimal    //presupuesto total
 
     @Column()
     Active: boolean;
