@@ -321,6 +321,29 @@ export class AuthService {
         };
     }
 
+    //VALIDAR TOKEN DE RESET - Solo verificar si es válido (sin procesar)
+    async validatePasswordResetToken(token: string): Promise<{ valid: boolean; message?: string }> {
+        try {
+            // Buscar usuario por token (reutilizando lógica existente)
+            const user = await this.userAuthService.findUserByResetToken(token);
+            
+            if (!user) {
+                return { 
+                    valid: false, 
+                    message: 'El enlace de restablecimiento es inválido o ha expirado' 
+                };
+            }
+            
+            return { valid: true };
+            
+        } catch (error) {
+            return { 
+                valid: false, 
+                message: 'Error al validar el enlace de restablecimiento' 
+            };
+        }
+    }
+
     //RESETEAR CONTRASEÑA - Usar token para cambiar contraseña
     async resetPasswordWithToken(resetPasswordDto: ResetPasswordDto): Promise<{ 
         message: string; 
