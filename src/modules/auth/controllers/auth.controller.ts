@@ -16,6 +16,9 @@ import { Response, Request } from 'express';
 import { PermissionService } from '../services/permission.service';
 import { AuthEmailService } from '../services/auth-email.service';
 import { ActivateAccountDto } from '../dto/activate-account.dto';
+import { ChangePasswordDto } from '../dto/change-password.dto';
+import { ForgotPasswordDto } from '../dto/forgot-password.dto';
+import { ResetPasswordDto } from '../dto/reset-password.dto';
 
 @Controller('auth')
 @UseGuards(AuthGuard)
@@ -168,4 +171,78 @@ export class AuthController {
         return await this.authService.activateUserAccount(activateDto.token, activateDto.password);
     }
 
+    @UseGuards(RateLimitGuard)
+    @RateLimit(5, 15 * 60 * 1000) // 5 intentos por 15 minutos
+    @Post('change-password')
+    async changePassword(
+    @CurrentUser() user: User,
+    @Body() changePasswordDto: ChangePasswordDto,
+    @Res({ passthrough: true }) response: Response
+    ): Promise<{ message: string }> {
+        // 1. Cambiar contraseña (AuthService)
+        const result = await this.authService.changePassword(user.id_user, changePasswordDto);
+        
+        // 2. Enviar notificación (AuthEmailService - responsabilidad del controlador)
+        try {
+            await this.authEmailService.sendPasswordChangeNotification(
+            result.userEmail,
+            result.userName
+            );
+        } catch (emailError) {
+            console.warn('Error enviando notificación de cambio de contraseña:', emailError.message);
+        }
+        
+        // 3. Limpiar cookies para forzar re-login por seguridad
+        response.clearCookie('accessToken');
+        response.clearCookie('refreshToken');
+        
+        return { message: result.message };
+    }
+
+    @Public()
+    @UseGuards(RateLimitGuard)
+    @RateLimit(3, 60 * 60 * 1000) // 3 intentos por hora por IP
+    @Post('forgot-password')
+    async forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto): Promise<{ message: string }> {
+        // 1. Solicitar reset (AuthService)
+        const result = await this.authService.requestPasswordReset(forgotPasswordDto.email);
+        
+        // 2. Enviar email si hay datos de usuario (AuthEmailService)
+        if (result.userEmail && result.userName && result.resetToken) {
+            try {
+            await this.authEmailService.sendPasswordResetEmail(
+                result.userEmail,
+                result.userName,
+                result.resetToken
+            );
+            } catch (emailError) {
+            console.warn('Error enviando email de reset:', emailError.message);
+            }
+        }
+        
+        return { message: result.message };
+    }
+
+    @Public()
+    @UseGuards(RateLimitGuard)
+    @RateLimit(5, 15 * 60 * 1000) // 5 intentos por 15 minutos
+    @Post('reset-password')
+    async resetPassword(@Body() resetPasswordDto: ResetPasswordDto): Promise<{ message: string }> {
+        // 1. Resetear contraseña (AuthService)
+        const result = await this.authService.resetPasswordWithToken(resetPasswordDto);
+        
+        // 2. Enviar notificación de éxito (AuthEmailService)
+        if (result.userEmail && result.userName) {
+            try {
+            await this.authEmailService.sendPasswordChangeNotification(
+                result.userEmail,
+                result.userName
+            );
+            } catch (emailError) {
+            console.warn('Error enviando notificación de reset exitoso:', emailError.message);
+            }
+        }
+        
+        return { message: result.message };
+    }
 }

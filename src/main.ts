@@ -10,6 +10,7 @@ async function bootstrap() {
 
   app.enableCors({
     origin: 'http://localhost:5173',     //solo admite peticiones de esta dirección
+    exposedHeaders: ['Content-Disposition'],
     credentials: true,
   });
 

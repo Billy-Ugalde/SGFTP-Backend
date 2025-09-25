@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Patch, Delete,ParseIntPipe } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Patch, Delete, ParseIntPipe } from '@nestjs/common';
 import { ContentBlockService } from '../services/content-block.service';
 import { CreateContentBlockDto } from '../dto/create-content-block.dto';
 import { UpdateContentBlockDto } from '../dto/update-content-block.dto';
@@ -41,23 +41,35 @@ export class ContentBlockController {
     return this.contentService.remove(id);
   }
 
-  @Patch(':page/:section/:block_key')
-updateByNaturalKey(
-  @Param('page') page: string,
-  @Param('section') section: string,
-  @Param('block_key') block_key: string,
-  @Body() updateDto: UpdateContentBlockDto
-) {
-  return this.contentService.updateByNaturalKey(page, section, block_key, updateDto);
-}
+  // PATCH original (solo actualizar): lo dejamos comentado
+  // @Patch(':page/:section/:block_key')
+  // updateByNaturalKey(
+  //   @Param('page') page: string,
+  //   @Param('section') section: string,
+  //   @Param('block_key') block_key: string,
+  //   @Body() updateDto: UpdateContentBlockDto
+  // ) {
+  //   return this.contentService.updateByNaturalKey(page, section, block_key, updateDto);
+  // }
 
-@Get(':page/:section/:block_key')
-findByNaturalKey(
-  @Param('page') page: string,
-  @Param('section') section: string,
-  @Param('block_key') block_key: string
-) {
-  return this.contentService.findByNaturalKey(page, section, block_key);
+  // ✅ PATCH con upsert (crea si no existe, actualiza si existe)
+  @Patch(':page/:section/:block_key')
+  updateOrCreateByNaturalKey(
+    @Param('page') page: string,
+    @Param('section') section: string,
+    @Param('block_key') block_key: string,
+    @Body() updateDto: UpdateContentBlockDto
+  ) {
+    // OJO: usar this.contentService (así se llama en el constructor)
+    return this.contentService.updateOrCreateByNaturalKey(page, section, block_key, updateDto);
+  }
+
+  @Get(':page/:section/:block_key')
+  findByNaturalKey(
+    @Param('page') page: string,
+    @Param('section') section: string,
+    @Param('block_key') block_key: string
+  ) {
+    return this.contentService.findByNaturalKey(page, section, block_key);
+  }
 }
-  
-}  

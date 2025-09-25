@@ -7,6 +7,8 @@ import { Entrepreneur } from "src/modules/entrepreneurs/entities/entrepreneur.en
 import { Stand } from "../entities/stand.entity";
 import { StatusEnrollmentDto } from "../dto/updatestatusEnrollment";
 import { Fair } from "../entities/fair.entity";
+import { NotificationService } from "src/modules/fairs-notifications/services/notification.service"; 
+
 @Injectable()
 export class EnrrolmentService {
     constructor(
@@ -19,6 +21,7 @@ export class EnrrolmentService {
         private readonly dataSource: DataSource,
         @InjectRepository(Fair)
         private readonly fairRepository: Repository<Fair>,
+        private readonly notificationService: NotificationService, 
     ) { }
 
     async create(dto: EnrollmentFairDto): Promise<Fair_enrollment> {
@@ -34,6 +37,17 @@ export class EnrrolmentService {
 
             if (!fair) throw new NotFoundException('La feria no existe');
             if (!entrepreneur) throw new NotFoundException('El emprendedor no existe');
+
+            //Valida que la feria esté activa
+            if (!fair.status) {
+                throw new BadRequestException('No se puede inscribir a una feria inactiva');
+            }
+
+            // Valida que la fecha de la feria no haya pasado
+            const currentDate = new Date();
+            if (fair.date && currentDate > fair.date) {
+                throw new BadRequestException('La feria ya ha finalizado, no se permiten nuevas inscripciones');
+            }
 
             const stand = await queryRunner.manager.findOne(Stand, {
                 where: { id_stand: dto.id_stand },
@@ -201,11 +215,15 @@ export class EnrrolmentService {
     async updateStatus(id: number, statusDto: StatusEnrollmentDto): Promise<Fair_enrollment> {
         const enrollment = await this.fairEnrollmentRepository.findOne({
             where: { id_enrrolment_fair: id },
-            relations: ['stand', 'entrepreneur'],
+            relations: ['stand', 'entrepreneur', 'fair', 'entrepreneur.person'],
         });
 
         if (!enrollment) {
             throw new NotFoundException('La solicitud no existe');
+        }
+
+        if (!enrollment.fair.status) {
+            throw new BadRequestException('No se pueden modificar inscripciones de ferias inactivas');
         }
 
         if (enrollment.status !== EnrollmentStatus.PENDING) {
@@ -217,6 +235,40 @@ export class EnrrolmentService {
         if (next === EnrollmentStatus.REJECTED) {
             enrollment.status = EnrollmentStatus.REJECTED;
             await this.fairEnrollmentRepository.save(enrollment);
+            
+            try {
+                const recipientEmail = enrollment.entrepreneur.person.email;
+                const recipientName = `${enrollment.entrepreneur.person.first_name} ${enrollment.entrepreneur.person.first_lastname || ''}`.trim();
+                
+                const fairDate = enrollment.fair.date
+                    ? new Date(enrollment.fair.date).toLocaleString('es-ES', {
+                        weekday: 'long',
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        hour12: true
+                    })
+                    : 'Por definir';
+
+                const fairTypeDisplay = enrollment.fair.typeFair === 'interna' ? 'Interna' : 'Externa';
+                const standCode = enrollment.stand?.stand_code || '';
+
+                await this.notificationService.sendEnrollmentRejectedEmail(
+                    recipientEmail,
+                    recipientName,
+                    enrollment.fair.name,
+                    fairDate,
+                    fairTypeDisplay,
+                    standCode    
+                );
+
+                console.log(`Notificación de rechazo enviada a: ${recipientEmail} - Tipo: ${fairTypeDisplay} - Stand: ${standCode || 'N/A'}`);
+            } catch (notificationError) {
+                console.error('Error enviando notificación de rechazo:', notificationError);
+            }
+
             return this.findOne(id);
         }
 
@@ -245,6 +297,41 @@ export class EnrrolmentService {
                 await manager.save(stand);
                 await manager.save(enrollment);
             });
+
+            try {
+                const recipientEmail = enrollment.entrepreneur.person.email;
+                const recipientName = `${enrollment.entrepreneur.person.first_name} ${enrollment.entrepreneur.person.first_lastname || ''}`.trim();
+                
+                const fairDate = enrollment.fair.date
+                    ? new Date(enrollment.fair.date).toLocaleString('es-ES', {
+                        weekday: 'long',
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        hour12: true
+                    })
+                    : 'Por definir';
+
+                const fairTypeDisplay = enrollment.fair.typeFair === 'interna' ? 'Interna' : 'Externa';
+
+                await this.notificationService.sendEnrollmentApprovedEmail(
+                    recipientEmail,
+                    recipientName,
+                    enrollment.fair.name,
+                    fairDate,
+                    enrollment.fair.location || 'Por definir',
+                    enrollment.stand.stand_code,
+                    fairTypeDisplay,
+                    enrollment.fair.description, 
+                    enrollment.fair.conditions
+                );
+
+                console.log(`Notificación de aprobación enviada a: ${recipientEmail} - Stand: ${enrollment.stand.stand_code}`);
+            } catch (notificationError) {
+                console.error('Error enviando notificación de aprobación:', notificationError);
+            }
 
             return this.findOne(id);
         }

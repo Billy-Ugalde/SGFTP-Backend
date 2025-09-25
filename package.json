@@ -36,6 +36,7 @@
     "google-auth-library": "^10.3.0",
     "googleapis": "^160.0.0",
     "multer": "^2.0.2",
+    "exceljs": "^4.4.0",
     "mysql2": "^3.14.2",
     "nodemailer": "^6.10.1",
     "open": "^10.2.0",

@@ -15,7 +15,7 @@ import { GlobalSeedService } from './database/services/global-seed.service';
 import { MiddlewareConsumer, NestModule } from '@nestjs/common';
 import { SecurityHeadersMiddleware } from './middleware/security-headers.middleware';
 import { CorsMiddleware } from './middleware/cors.middleware';
-import { NotificationsModule } from './modules/notifications/notifications.module';
+import { NotificationsModule } from './modules/fairs-notifications/notifications.module';
 
 @Module({
   imports: [
@@ -32,7 +32,7 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
         password: configService.get<string>('DB_PASSWORD'),
         database: configService.get<string>('DB_DATABASE'),
         synchronize: configService.get<string>('NODE_ENV') === 'development',
-        autoLoadEntities: true,
+        autoLoadEntities: true, 
         ssl: false,
       }),
       inject: [ConfigService],

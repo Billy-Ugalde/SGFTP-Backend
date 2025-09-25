@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, ManyToMany, JoinTable, JoinColumn, CreateDateColumn, UpdateDateColumn, BeforeInsert, BeforeUpdate } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, ManyToMany, JoinTable, JoinColumn, CreateDateColumn, UpdateDateColumn, BeforeInsert, BeforeUpdate, OneToOne } from 'typeorm';
 import { Exclude } from 'class-transformer';
 import { Person } from '../../../entities/person.entity';
 import { Role } from './role.entity';
@@ -28,8 +28,10 @@ export class User {
     @UpdateDateColumn()
     updatedAt: Date;
 
-    // Relación one-to-one con Person
-    @ManyToOne(() => Person, { eager: true, onDelete: 'CASCADE' })
+    // Relación one-to-one con Person CAMBIO
+    @OneToOne(() => Person, { 
+       //eager: true,
+         onDelete: 'CASCADE' })
     @JoinColumn({ name: 'person_id' })
     person: Person;
 
@@ -47,6 +49,12 @@ export class User {
 
     @Column({ nullable: true, type: 'timestamp' })
     activation_expires?: Date;
+
+    @Column({ nullable: true })
+    reset_token?: string;
+
+    @Column({ nullable: true, type: 'timestamp' })
+    reset_expires?: Date;
 
     // Validaciones de negocio
     @BeforeInsert()

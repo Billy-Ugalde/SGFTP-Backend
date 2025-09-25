@@ -47,7 +47,7 @@ export class Entrepreneur {
 
     @OneToOne(() => Person, person => person.entrepreneur, {
         cascade: true,
-        eager: true,
+        //eager: true,
         onDelete: 'CASCADE'
     })
     @JoinColumn({ name: 'id_person' })
