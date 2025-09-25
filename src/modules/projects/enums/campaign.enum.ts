@@ -2,23 +2,13 @@ export enum TypeCampaign {
     CONFERENCE = 'conference',
     WORKSHOP = 'workshop',
     REFORESTATION = 'reforestation',
-    GARBAGE_COLECCTION = 'garbage_collection',  //recolección de basura 
+    GARBAGE_COLLECTION = 'garbage_collection',  //recolección de basura 
     SPECIAL_EVENT = 'special_event',
     CLEANUP = 'cleanup',  //para ser general en tipos de limpieza pueden ser de ríos, playas entre otros.
 }
 
 export enum CampaignStatus {  //estado de la campaña
     PENDING = 'pending',
-    PLANNING = 'planning',
-    EXECUTION = 'execution',
-    SUSPENDED = 'suspended',
-    FINISHED = 'finished',
-}
-
-export enum ProposalStatus {  //estado de la propuesta
-    PENDING = 'pending',
-    APPROVED = 'approved',
-    REJECTED = 'rejected',
     PLANNING = 'planning',
     EXECUTION = 'execution',
     SUSPENDED = 'suspended',

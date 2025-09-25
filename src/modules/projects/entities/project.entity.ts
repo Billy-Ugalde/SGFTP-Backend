@@ -1,10 +1,11 @@
-import { Column, CreateDateColumn, Entity, Index, OneToMany, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
-import { Decimal } from 'decimal.js';
+import {
+    Column, CreateDateColumn, Entity, Index, OneToMany,
+    PrimaryGeneratedColumn, UpdateDateColumn
+} from "typeorm";
 import { Campaign } from "./campaign.entity";
 import { MetricProject, ProjectStatus, TypeProject } from "../enums/project.enum";
 @Index(['Name', 'Registration_date'], { unique: true })
 @Entity()
-
 export class Project {
     @PrimaryGeneratedColumn()
     Id_project: number
@@ -16,7 +17,10 @@ export class Project {
     Description: string;
 
     @Column({ type: 'varchar' })
-    Aim: string;                
+    Observations: string;
+
+    @Column({ type: 'varchar' })
+    Aim: string;
 
     @Column({ type: 'datetime' })
     Start_date: Date;
@@ -44,9 +48,6 @@ export class Project {
 
     @Column({ nullable: false })
     Metrics: MetricProject;
-
-    @Column('decimal', { precision: 12, scale: 2 })
-    Total_budget: Decimal    //presupuesto total
 
     @Column()
     Active: boolean;

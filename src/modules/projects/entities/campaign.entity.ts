@@ -1,7 +1,9 @@
-import { Column, CreateDateColumn, Entity, Index, JoinColumn, ManyToOne, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
-import { Decimal } from 'decimal.js';
+import {
+    Column, CreateDateColumn, Entity, Index, JoinColumn, ManyToOne,
+    PrimaryGeneratedColumn, UpdateDateColumn
+} from "typeorm";
 import { Project } from "./project.entity";
-import { CampaignStatus, MetricType, ProposalStatus, TypeApproach, TypeCampaign } from "../enums/campaign.enum";
+import { CampaignStatus, MetricType, TypeApproach, TypeCampaign } from "../enums/campaign.enum";
 @Index(['Name', 'Registration_date'], { unique: true })
 @Entity()
 
@@ -15,32 +17,44 @@ export class Campaign {
     @Column({ type: 'varchar' })
     Description: string;
 
+    @Column({ type: 'varchar' })
+    Conditions: string;
+
+    @Column({ type: 'varchar' })
+    Observations: string;
+
+    @Column({ default: false })
+    IsRecurring: boolean;  // Si es true, mostrar múltiples fechas
+
+    @Column({ default: false })
+    OpenForRegistration: boolean;  // abierta o no a la inscripción
+
     @CreateDateColumn()
     Registration_date: Date;
 
     @UpdateDateColumn()
     UpdatedAt: Date;
 
+    @Column({ type: 'datetime' })
+    Start_date: Date;           //se va a implementar con una tabla de fechas
+
+    @Column({ type: 'datetime', nullable: true })
+    End_date: Date;             //se va a implementar con una tabla de fechas
+
     @Column({ nullable: false })
-    Type_campign: TypeCampaign;
+    Type_campaign: TypeCampaign;
 
     @Column({ nullable: false })
     Status_campaign: CampaignStatus;
-
-    @Column({ nullable: true })
-    Campaign_proposal: ProposalStatus;   //no se como manejarlo por no tocar el tema de solicitudes en este momento
 
     @Column({ nullable: false })
     Approach: TypeApproach;
 
     @Column({ nullable: true })
-    Spaces: number    //cantidad de espacios es opcional porque no todo es limitado
+    Spaces: number    //cantidad de espacios es opcional porque no todo es limitado  pueden haber casos
 
     @Column({ type: 'varchar' })
     Location: string;
-
-    @Column('decimal', { precision: 12, scale: 2 })
-    Budget_campaign: Decimal;   //se le debe asignar del presupuesto total del proyecto asociado
 
     @Column()
     Metric_campaign: MetricType;
