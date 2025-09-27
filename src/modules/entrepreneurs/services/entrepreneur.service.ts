@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, InternalServerErrorException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { Entrepreneur, EntrepreneurStatus } from '../entities/entrepreneur.entity';
@@ -11,6 +11,8 @@ import { Person } from '../../../entities/person.entity';
 import { Entrepreneurship } from '../entities/entrepreneurship.entity';
 import { AccountInvitationService } from '../../auth/services/account-invitation.service';
 import { Role } from '../../users/entities/role.entity';
+import { GoogleDriveService } from '../../google-drive/google-drive.service';
+import { UpdateEntrepreneurshipDto } from '../dto/entrepreneurship.dto';
 
 // ============ NUEVO: import requerido para la validación de permisos ============
 import { ForbiddenException } from '@nestjs/common';
@@ -26,6 +28,7 @@ export class EntrepreneurService {
     private dataSource: DataSource,
     private authService: AuthService,
     private accountInvitationService: AccountInvitationService,
+    private googleDriveService: GoogleDriveService,
   ) { }
 
   async findAllApproved(): Promise<Entrepreneur[]> {
@@ -64,13 +67,14 @@ export class EntrepreneurService {
     return entrepreneur;
   }
 
-  async create(createDto: CreateCompleteEntrepreneurDto, request?: any): Promise<Entrepreneur> {
+
+  async create(createDto: CreateCompleteEntrepreneurDto, request?: any, files?: Express.Multer.File[],): Promise<Entrepreneur> {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
 
     try {
-      const savedPerson = await this.personService.create(createDto.person, queryRunner);
+        const savedPerson = await this.personService.create(createDto.person, queryRunner);
 
       // Determinar estado inicial basado en si hay usuario autenticado y sus roles
       let initialStatus = EntrepreneurStatus.PENDING;
@@ -78,18 +82,14 @@ export class EntrepreneurService {
 
       if (request?.user) {
         const user = request.user;
-        const userRoles =
-          typeof user?.getAllRoleNames === 'function'
-            ? user.getAllRoleNames()
-            : [];
+        const userRoles = user.getAllRoleNames();
 
         // Si es admin, aprobar automáticamente
-        if (userRoles.some((r: string) =>
-          ['super_admin', 'general_admin', 'fair_admin'].includes(String(r).toLowerCase())
-        )) {
+        if (userRoles.some(role => ['super_admin', 'general_admin', 'fair_admin'].includes(role))) {
           initialStatus = EntrepreneurStatus.APPROVED;
         }
       }
+
 
       const entrepreneur = this.entrepreneurRepository.create({
         experience: createDto.entrepreneur.experience,
@@ -102,14 +102,33 @@ export class EntrepreneurService {
 
       createdEntrepreneur = await queryRunner.manager.save(Entrepreneur, entrepreneur);
 
-      // Crear el emprendimiento
+      // 🚀 Subir archivos a Drive
+      let urls: string[] = [];
+      let folderId: string | null = null;
+
+      if (files && files.length > 0) {
+        const folderName = `entrepreneur_${createdEntrepreneur.id_entrepreneur}`;
+        for (const file of files) {
+          const { url, folderId: fId } = await this.googleDriveService.uploadFile(file, folderName);
+          urls.push(url);
+          folderId = fId; // el mismo para todos los archivos
+        }
+      }
+
+      // Crear emprendimiento con URLs y opcionalmente folderId
       await this.entrepreneurshipService.create(
         createdEntrepreneur.id_entrepreneur,
-        createDto.entrepreneurship,
-        queryRunner
+        {
+          ...createDto.entrepreneurship,
+          url_1: urls[0] || undefined,
+          url_2: urls[1] || undefined,
+          url_3: urls[2] || undefined,
+          // folder_id: folderId, // 👈 si agregas esta columna en tu entidad
+        },
+        queryRunner,
       );
 
-      // Crear usuario con rol emprendedor si el estado inicial es aprobado
+      // Crear usuario con rol emprendedor si el estado inicial es aprobado, es decir si un administrador fue el que creo el emprendedor
       if (initialStatus === EntrepreneurStatus.APPROVED) {
         const entrepreneurRole = await queryRunner.manager.findOne(Role, { where: { name: 'entrepreneur' } });
 
@@ -124,7 +143,6 @@ export class EntrepreneurService {
           queryRunner
         );
       }
-
       await queryRunner.commitTransaction();
       return await this.findOne(createdEntrepreneur.id_entrepreneur);
     } catch (error) {
@@ -135,14 +153,15 @@ export class EntrepreneurService {
     }
   }
 
-  async update(id: number, updateDto: UpdateCompleteEntrepreneurDto): Promise<Entrepreneur> {
+
+  async update(id: number, updateDto: UpdateCompleteEntrepreneurDto, files?: Express.Multer.File[],): Promise<Entrepreneur> {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
 
     try {
       const entrepreneur = await this.findOne(id);
-
+      const filesToDelete: string[] = [];
       if (updateDto.person) {
         await this.personService.update(entrepreneur.person.id_person, updateDto.person, queryRunner);
       }
@@ -165,120 +184,165 @@ export class EntrepreneurService {
         }
       }
 
-      if (updateDto.entrepreneurship) {
-        await this.entrepreneurshipService.update(
-          entrepreneur.entrepreneurship.id_entrepreneurship,
-          updateDto.entrepreneurship,
-          queryRunner
-        );
+     // Procesar actualización del emprendimiento
+    let entrepreneurshipUpdateData = { ...updateDto.entrepreneurship };
+    
+    // Manejar archivos si se enviaron
+    if (files && files.length > 0 && entrepreneurshipUpdateData) {
+      console.log(`📁 Procesando ${files.length} archivos para actualización`);
+      
+      const folderName = `entrepreneur_${entrepreneur.id_entrepreneur}`;
+      
+      // Mapear archivos a sus campos correspondientes
+      const fileMapping: { [key: string]: Express.Multer.File } = {};
+      let fileIndex = 0;
+      
+      // Identificar qué campos necesitan ser reemplazados basándose en los marcadores
+      for (const field of ['url_1', 'url_2', 'url_3'] as const) {
+        const fieldValue = entrepreneurshipUpdateData[field];
+        
+        // Verificar si este campo tiene un marcador de reemplazo
+        if (typeof fieldValue === 'string' && fieldValue.startsWith('__FILE_REPLACE_')) {
+          if (fileIndex < files.length) {
+            fileMapping[field] = files[fileIndex];
+            console.log(`🔄 Campo ${field} marcado para reemplazo con archivo ${fileIndex}`);
+            fileIndex++;
+          } else {
+            console.warn(`⚠️ No hay suficientes archivos para reemplazar ${field}`);
+            delete entrepreneurshipUpdateData[field];
+          }
+        }
       }
-
-      await queryRunner.commitTransaction();
-      return await this.findOne(id);
-    } catch (error) {
-      await queryRunner.rollbackTransaction();
-      throw error;
-    } finally {
-      await queryRunner.release();
+      
+      // Procesar cada reemplazo de archivo
+      for (const [field, file] of Object.entries(fileMapping)) {
+        const currentUrl = entrepreneur.entrepreneurship?.[field as keyof Entrepreneurship];
+        
+        console.log(`🔄 Procesando reemplazo para ${field}`);
+        console.log(`   - URL actual: ${currentUrl || 'ninguna'}`);
+        console.log(`   - Nuevo archivo: ${file.originalname} (${file.size} bytes)`);
+        
+        // 1. Marcar archivo anterior para eliminación si existe
+        if (currentUrl && typeof currentUrl === 'string' && currentUrl.trim() !== '') {
+          const fileId = this.googleDriveService.extractFileIdFromUrl(currentUrl);
+          if (fileId) {
+            filesToDelete.push(fileId);
+            console.log(`   📝 Archivo anterior marcado para eliminación: ${fileId}`);
+          } else {
+            console.warn(`   ⚠️ No se pudo extraer ID del archivo anterior: ${currentUrl}`);
+          }
+        }
+        
+        // 2. Subir nuevo archivo
+        try {
+          console.log(`   ⬆️ Subiendo nuevo archivo a Google Drive...`);
+          const { url, folderId } = await this.googleDriveService.uploadFile(file, folderName);
+          
+          // Asignar la nueva URL al campo correspondiente
+          if (field === 'url_1' || field === 'url_2' || field === 'url_3') {
+             entrepreneurshipUpdateData[field] = url;
+          }
+          
+          console.log(`   ✅ Archivo subido exitosamente`);
+          console.log(`   - Nueva URL: ${url}`);
+          console.log(`   - Folder ID: ${folderId}`);
+          
+        } catch (uploadError) {
+          console.error(`   ❌ Error subiendo archivo para ${field}:`, uploadError);
+          
+          // Rollback y lanzar error detallado
+          throw new InternalServerErrorException(
+            `Error subiendo imagen ${field}: ${uploadError.message || 'Error desconocido'}`
+          );
+        }
+      }
+      
+      // Limpiar marcadores no procesados (por si quedó alguno)
+      for (const field of ['url_1', 'url_2', 'url_3'] as const) {
+        const value = entrepreneurshipUpdateData[field];
+        if (typeof value === 'string' && value.startsWith('__FILE_REPLACE_')) {
+          console.log(`🧹 Limpiando marcador no procesado: ${field}`);
+          delete entrepreneurshipUpdateData[field];
+        }
+      }
     }
-  }
-
-  // ====================== NUEVO: helpers solo para este servicio ======================
-  /** Extrae nombres de rol en minúscula desde distintas formas comunes del token */
-  private extractRoleNames(user: any): string[] {
-    // Caso 1: método utilitario ya presente en tu proyecto
-    if (typeof user?.getAllRoleNames === 'function') {
-      try {
-        const names = user.getAllRoleNames();
-        if (Array.isArray(names)) return names.map((n: string) => String(n).toLowerCase());
-      } catch { /* noop */ }
+    
+    // Actualizar datos del emprendimiento si hay cambios
+    if (entrepreneurshipUpdateData && Object.keys(entrepreneurshipUpdateData).length > 0) {
+      console.log('💾 Actualizando datos del emprendimiento:', entrepreneurshipUpdateData);
+      
+      await this.entrepreneurshipService.update(
+        entrepreneur.entrepreneurship.id_entrepreneurship,
+        entrepreneurshipUpdateData,
+        queryRunner
+      );
+    }
+    
+    // Confirmar transacción
+    await queryRunner.commitTransaction();
+    console.log('✅ Transacción confirmada exitosamente');
+    
+    // Eliminar archivos antiguos DESPUÉS del commit exitoso
+    if (filesToDelete.length > 0) {
+      console.log(`🗑️ Iniciando eliminación de ${filesToDelete.length} archivos antiguos`);
+      
+      // Eliminar archivos de forma asíncrona sin bloquear la respuesta
+      Promise.all(
+        filesToDelete.map(async (fileId) => {
+          try {
+            await this.googleDriveService.deleteFile(fileId);
+            console.log(`   ✅ Archivo ${fileId} eliminado`);
+          } catch (deleteError) {
+            // No fallar si la eliminación falla, solo loguear
+            console.error(`   ⚠️ No se pudo eliminar archivo ${fileId}:`, deleteError.message);
+          }
+        })
+      ).then(() => {
+        console.log('🗑️ Proceso de eliminación completado');
+      }).catch(error => {
+        console.error('⚠️ Error en proceso de eliminación:', error);
+      });
     }
 
-    // Caso 2: arreglo de strings u objetos (con .name | .role | .code)
-    const raw =
-      (Array.isArray(user?.roles) ? user.roles : []) ||
-      (Array.isArray(user?.role) ? user.role : []);
-
-    const names = Array.isArray(raw)
-      ? raw
-          .map((r: any) =>
-            typeof r === 'string'
-              ? r
-              : r?.name ?? r?.role ?? r?.code ?? ''
-          )
-          .filter(Boolean)
-      : [];
-
-    return names.map((n: string) => n.toLowerCase());
-  }
-
-  /** Obtiene el id_person del usuario desde distintas formas usadas en el proyecto */
-  private getUserPersonId(user: any): number | undefined {
-    return (
-      user?.person?.id_person ??
-      user?.personId ??
-      user?.id_person ??
-      user?.person?.id ??
-      user?.idPerson
-    );
-  }
-  // ====================== FIN helpers ======================
-
-  // ============ NUEVO: actualización pública con validación de rol y ownership ============
-  /**
-   * Permite actualizar el emprendedor si:
-   * 1) El usuario autenticado tiene rol/flag de emprendedor
-   * 2) Es dueño del recurso (id_person coincide con el del token)
-   * Reutiliza la lógica existente de this.update(id, dto)
-   */
-  async updateIfOwnerAndEntrepreneurRole(
-    id: number,
-    dto: UpdateCompleteEntrepreneurDto,
-    user: any,
-  ): Promise<Entrepreneur> {
-    // Cargar solo lo necesario para validar propiedad
-    const entity = await this.entrepreneurRepository.findOne({
-      where: { id_entrepreneur: id },
-      relations: ['person'],
+    // Retornar el emprendedor actualizado con todas sus relaciones
+    const updatedEntrepreneur = await this.findOne(id);
+    console.log('✅ Emprendedor actualizado exitosamente:', {
+      id: updatedEntrepreneur.id_entrepreneur,
+      name: updatedEntrepreneur.entrepreneurship?.name,
+      urls: {
+        url_1: updatedEntrepreneur.entrepreneurship?.url_1,
+        url_2: updatedEntrepreneur.entrepreneurship?.url_2,
+        url_3: updatedEntrepreneur.entrepreneurship?.url_3,
+      }
     });
-
-    if (!entity) {
-      throw new NotFoundException('Entrepreneur not found');
+    
+    return updatedEntrepreneur;
+    
+  } catch (error) {
+    // Rollback en caso de error
+    await queryRunner.rollbackTransaction();
+    
+    console.error('❌ Error en transacción de actualización:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    });
+    
+    // Re-lanzar el error con más contexto si es necesario
+    if (error instanceof InternalServerErrorException) {
+      throw error;
     }
-
-    // 1) Validación de rol, soportando varias formas presentes en el proyecto
-    const roleNames = this.extractRoleNames(user);
-    const hasEntrepreneurRole =
-      roleNames.includes('entrepreneur') ||
-      roleNames.includes('emprendedor') ||
-      !!user?.isEntrepreneur ||
-      !!user?.is_entrepreneur ||
-      !!user?.entrepreneur ||
-      !!user?.id_entrepreneur ||
-      !!user?.entrepreneurId;
-
-    if (!hasEntrepreneurRole) {
-      throw new ForbiddenException('You must have the entrepreneur role to update this resource.');
-    }
-
-    // 2) Validación de ownership por id_person
-    const userPersonId = this.getUserPersonId(user);
-    const isOwner = !!userPersonId && entity.person?.id_person === userPersonId;
-
-    if (!isOwner) {
-      throw new ForbiddenException('You are not the owner of this resource.');
-    }
-
-    // (Opcional) Bloquear cambios de campos sensibles por esta ruta pública
-    if (dto.entrepreneur) {
-      delete (dto.entrepreneur as any).status;
-      delete (dto.entrepreneur as any).is_active;
-    }
-
-    // Reutilizar la lógica de actualización ya existente
-    return this.update(id, dto);
+    
+    // Para otros errores, agregar contexto
+    throw new InternalServerErrorException(
+      `Error actualizando emprendedor: ${error.message || 'Error desconocido'}`
+    );
+    
+  } finally {
+    // Siempre liberar el queryRunner
+    await queryRunner.release();
   }
-  // ===================== FIN NUEVO =====================
+}
 
   async updateStatus(id: number, statusDto: UpdateStatusDto): Promise<Entrepreneur> {
     const entrepreneur = await this.findOne(id);
@@ -295,10 +359,12 @@ export class EntrepreneurService {
     try {
       // 1. Actualizar estado de entrepreneur
       entrepreneur.status = statusDto.status;
+
       await queryRunner.manager.save(Entrepreneur, entrepreneur);
 
       // 2. Crear cuenta de usuario SI es aprobado
       if (statusDto.status === EntrepreneurStatus.APPROVED) {
+        // Obtener rol de emprendedor
         const entrepreneurRole = await queryRunner.manager.findOne(Role, {
           where: { name: 'entrepreneur' }
         });
@@ -307,6 +373,7 @@ export class EntrepreneurService {
           throw new NotFoundException('Rol entrepreneur no encontrado');
         }
 
+        // Delegar creación de cuenta al AccountInvitationService
         await this.accountInvitationService.createUserAccount(
           entrepreneur.person.id_person,
           [entrepreneurRole.id_role],
@@ -317,6 +384,7 @@ export class EntrepreneurService {
 
       await queryRunner.commitTransaction();
       return await this.findOne(id);
+
     } catch (error) {
       await queryRunner.rollbackTransaction();
       throw error;
