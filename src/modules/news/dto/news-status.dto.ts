@@ -1,7 +1,8 @@
-import { IsBoolean, IsNotEmpty } from "class-validator";
+import { IsNotEmpty, IsEnum} from "class-validator";
+import { NewsStatus } from "../entities/news.entity";
 
 export class NewsStatusDto {
     @IsNotEmpty()
-    @IsBoolean()
-    status: boolean;
+    @IsEnum(NewsStatus)
+    status: NewsStatus;
 }

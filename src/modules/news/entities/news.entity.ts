@@ -1,5 +1,11 @@
 import {Column, Entity, PrimaryGeneratedColumn} from 'typeorm';
 
+export enum NewsStatus {
+    PUBLISHED = 'published',
+    DRAFT = 'draft',
+    ARCHIVED = 'archived'
+}
+
 @Entity('news')
 export class News {
     @PrimaryGeneratedColumn()
@@ -20,8 +26,10 @@ export class News {
     @Column({ type: 'varchar', length: 255 })
     author: string; 
 
-    @Column({ type: 'boolean', default: true })
-    status: boolean;
+    @Column({ type: 'enum',
+            enum: NewsStatus,
+            default: NewsStatus.DRAFT })
+    status: NewsStatus;
 
     @Column({
         type: 'timestamp',
