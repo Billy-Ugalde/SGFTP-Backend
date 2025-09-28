@@ -2,7 +2,7 @@ import {
     Column, CreateDateColumn, Entity, Index, OneToMany,
     PrimaryGeneratedColumn, UpdateDateColumn
 } from "typeorm";
-import { Campaign } from "./campaign.entity";
+import { Activity } from "./activity.entity";
 import { MetricProject, ProjectStatus, TypeProject } from "../enums/project.enum";
 @Index(['Name', 'Registration_date'], { unique: true })
 @Entity()
@@ -20,7 +20,7 @@ export class Project {
     Observations: string;
 
     @Column({ type: 'varchar' })
-    Aim: string;
+    Aim: string;    //objetivo
 
     @Column({ type: 'datetime' })
     Start_date: Date;
@@ -52,8 +52,8 @@ export class Project {
     @Column()
     Active: boolean;
 
-    @OneToMany(() => Campaign, (campaign) => campaign.project)
-    campaign: Campaign[];
+    @OneToMany(() => Activity, (activity) => activity.project)
+    activity: Activity[];
 }
 
 

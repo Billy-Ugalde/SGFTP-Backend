@@ -1,15 +1,17 @@
 import {
     Column, CreateDateColumn, Entity, Index, JoinColumn, ManyToOne,
+    OneToMany,
     PrimaryGeneratedColumn, UpdateDateColumn
 } from "typeorm";
 import { Project } from "./project.entity";
-import { CampaignStatus, MetricType, TypeApproach, TypeCampaign } from "../enums/campaign.enum";
+import { ActivityStatus, MetricType, TypeActivity, TypeApproach } from "../enums/activity.enum";
+import { DateActivity } from "src/modules/projects/entities/date.entity";
 @Index(['Name', 'Registration_date'], { unique: true })
 @Entity()
 
-export class Campaign {
+export class Activity {
     @PrimaryGeneratedColumn()
-    Id: number;
+    Id_activity: number;
 
     @Column({ type: 'varchar' })
     Name: string
@@ -26,6 +28,9 @@ export class Campaign {
     @Column({ default: false })
     IsRecurring: boolean;  // Si es true, mostrar múltiples fechas
 
+    @Column()
+    IsFavorite: boolean;   //para  distingir las actividades favoritas, como escuelas y condominios
+
     @Column({ default: false })
     OpenForRegistration: boolean;  // abierta o no a la inscripción
 
@@ -35,17 +40,11 @@ export class Campaign {
     @UpdateDateColumn()
     UpdatedAt: Date;
 
-    @Column({ type: 'datetime' })
-    Start_date: Date;           //se va a implementar con una tabla de fechas
-
-    @Column({ type: 'datetime', nullable: true })
-    End_date: Date;             //se va a implementar con una tabla de fechas
+    @Column({ nullable: false })
+    Type_campaign: TypeActivity;
 
     @Column({ nullable: false })
-    Type_campaign: TypeCampaign;
-
-    @Column({ nullable: false })
-    Status_campaign: CampaignStatus;
+    Status_campaign: ActivityStatus;
 
     @Column({ nullable: false })
     Approach: TypeApproach;
@@ -57,12 +56,18 @@ export class Campaign {
     Location: string;
 
     @Column()
+    Aim: string      //objetivo de la actividad a lograr
+
+    @Column()
     Metric_campaign: MetricType;
 
     @Column()
     Active: boolean;
 
-    @ManyToOne(() => Project, (project) => project.campaign, { nullable: false })
+    @ManyToOne(() => Project, (project) => project.activity, { nullable: false })
     @JoinColumn({ name: 'Id_project' })
     project: Project;
+
+    @OneToMany(() => DateActivity, (dateActivities) => dateActivities.activity)
+    dateActivities: DateActivity[];
 }

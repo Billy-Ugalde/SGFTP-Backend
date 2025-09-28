@@ -1,14 +1,14 @@
-export enum TypeCampaign {
+export enum TypeActivity {
     CONFERENCE = 'conference',
     WORKSHOP = 'workshop',
     REFORESTATION = 'reforestation',
     GARBAGE_COLLECTION = 'garbage_collection',  //recolección de basura 
     SPECIAL_EVENT = 'special_event',
     CLEANUP = 'cleanup',  //para ser general en tipos de limpieza pueden ser de ríos, playas entre otros.
-    eventoCultural = 'evento'
+    CULTURAL_EVENT = 'cultutal_event'
 }
 
-export enum CampaignStatus {  //estado de la campaña
+export enum ActivityStatus {  //estado de la campaña
     PENDING = 'pending',
     PLANNING = 'planning',
     EXECUTION = 'execution',
