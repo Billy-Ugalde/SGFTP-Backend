@@ -5,6 +5,7 @@ export enum TypeCampaign {
     GARBAGE_COLLECTION = 'garbage_collection',  //recolección de basura 
     SPECIAL_EVENT = 'special_event',
     CLEANUP = 'cleanup',  //para ser general en tipos de limpieza pueden ser de ríos, playas entre otros.
+    eventoCultural = 'evento'
 }
 
 export enum CampaignStatus {  //estado de la campaña
