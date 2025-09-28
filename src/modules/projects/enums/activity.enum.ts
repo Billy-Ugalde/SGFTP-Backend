@@ -22,6 +22,11 @@ export enum TypeApproach {
     ENVIRONMENTAL = 'environmental'
 }
 
+export enum TypeFavorite {
+    SCHOOL = 'school',
+    CONDOMINIUNM = 'condominium'
+}
+
 export enum MetricType {
     ATTENDANCE = 'attendance',  //cantidad bruta de quienes asistieron
     TREES_PLANTED = 'trees_planted',   //cantidad bruta de cuantos árboles sembrados

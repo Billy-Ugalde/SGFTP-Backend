@@ -4,7 +4,7 @@ import {
     PrimaryGeneratedColumn, UpdateDateColumn
 } from "typeorm";
 import { Project } from "./project.entity";
-import { ActivityStatus, MetricType, TypeActivity, TypeApproach } from "../enums/activity.enum";
+import { ActivityStatus, MetricType, TypeActivity, TypeApproach, TypeFavorite } from "../enums/activity.enum";
 import { DateActivity } from "src/modules/projects/entities/date.entity";
 @Index(['Name', 'Registration_date'], { unique: true })
 @Entity()
@@ -29,7 +29,7 @@ export class Activity {
     IsRecurring: boolean;  // Si es true, mostrar múltiples fechas
 
     @Column()
-    IsFavorite: boolean;   //para  distingir las actividades favoritas, como escuelas y condominios
+    IsFavorite: TypeFavorite;   //para  distingir las actividades favoritas, como escuelas y condominios
 
     @Column({ default: false })
     OpenForRegistration: boolean;  // abierta o no a la inscripción
