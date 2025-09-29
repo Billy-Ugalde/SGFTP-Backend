@@ -26,7 +26,7 @@ import { Roles } from '../../auth/decorators/roles.decorator';
 import { UserRole } from '../../auth/enums/user-role.enum';
 import { Public } from 'src/modules/auth/decorators/public.decorator';
 import { FilesInterceptor } from '@nestjs/platform-express';
-import { ParseJsonPipe } from './parse-json.pipe';
+import { ParseJsonPipe } from '../../shared/services/parse-json.pipe';
 
 @Controller('entrepreneurs')
 @UseGuards(AuthGuard)

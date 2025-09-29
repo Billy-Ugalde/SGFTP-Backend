@@ -12,6 +12,8 @@ import { Role } from "../users/entities/role.entity";
 import { AuthModule } from "../auth/auth.module";
 import { GoogleDriveModule } from "../google-drive/google-drive.module";
 import { ImageProxyController } from "../google-drive/image-proxy.controller";
+import { SharedModule } from "../shared/shared.module";
+
 @Module({
     imports: [
         TypeOrmModule.forFeature([
@@ -22,13 +24,13 @@ import { ImageProxyController } from "../google-drive/image-proxy.controller";
         ]),
         PersonModule,
         AuthModule,
-        GoogleDriveModule
+        GoogleDriveModule, 
+        SharedModule
     ],
     controllers: [EntrepreneurController,ImageProxyController],
     providers: [
         EntrepreneurService,
         EntrepreneurshipService,
-        PasswordService, 
     ]
 })
 export class EntrepreneurModule { }
