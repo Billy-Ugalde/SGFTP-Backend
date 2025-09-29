@@ -16,10 +16,6 @@ export class CreateNewsDto {
     @IsNotEmpty()
     @IsString()
     author: string; 
-
-    @IsOptional()
-    @IsBoolean()
-    status?: boolean
 }
 
     
