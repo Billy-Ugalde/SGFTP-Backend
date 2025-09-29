@@ -1,7 +1,8 @@
-import { Body, Controller, Get, Param, ParseIntPipe, Patch } from "@nestjs/common";
+import { Body, Controller, Get, HttpCode, HttpStatus, Param, ParseIntPipe, Patch, Post } from "@nestjs/common";
 import { ProjectService } from "../services/project.service";
 import { Project } from "../entities/project.entity";
 import { ProjectStatusDto } from "../dto/projectStatus.dto";
+import { CreateProjectDto } from "../dto/createProject.dto";
 
 @Controller('projects')
 export class ProjectController {
@@ -23,5 +24,13 @@ export class ProjectController {
         @Body() projectStatus: ProjectStatusDto
     ): Promise<Project> {
         return await this.projectservice.statusProject(id, projectStatus);
+    }
+
+    @Post()
+    @HttpCode(HttpStatus.CREATED)
+    async create(
+        @Body()
+        createProject: CreateProjectDto): Promise<Project> {
+        return await this.projectservice.createProject(createProject);
     }
 }
