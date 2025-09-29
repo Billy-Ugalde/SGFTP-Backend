@@ -344,6 +344,42 @@ export class EntrepreneurService {
   }
 }
 
+  // ============ NUEVO: actualización permitida sólo al dueño con rol entrepreneur ============
+  async updateIfOwnerAndEntrepreneurRole(
+    id: number,
+    dto: UpdateCompleteEntrepreneurDto,
+    user: any,
+  ): Promise<Entrepreneur> {
+    // 1) Cargar el emprendedor con sus relaciones para validar ownership
+    const entrepreneur = await this.findOne(id);
+
+    // 2) Verificar que el usuario tenga el rol entrepreneur
+    const roleNames: string[] =
+      (typeof user?.getAllRoleNames === 'function'
+        ? user.getAllRoleNames()
+        : user?.roles?.map((r: any) => r?.name)) || [];
+
+    const hasEntrepreneurRole = roleNames.includes('entrepreneur');
+    if (!hasEntrepreneurRole) {
+      throw new ForbiddenException('No tiene permisos para actualizar este registro.');
+    }
+
+    // 3) Validar que sea el dueño (misma persona)
+    const userPersonId = user?.person?.id_person;
+    const isOwner =
+      !!userPersonId &&
+      (entrepreneur?.id_person === userPersonId ||
+        entrepreneur?.person?.id_person === userPersonId);
+
+    if (!isOwner) {
+      throw new ForbiddenException('Solo el dueño puede actualizar su registro.');
+    }
+
+    // 4) Reutilizar la lógica de update existente
+    return await this.update(id, dto);
+  }
+  // ===================== FIN NUEVO =====================
+
   async updateStatus(id: number, statusDto: UpdateStatusDto): Promise<Entrepreneur> {
     const entrepreneur = await this.findOne(id);
 
