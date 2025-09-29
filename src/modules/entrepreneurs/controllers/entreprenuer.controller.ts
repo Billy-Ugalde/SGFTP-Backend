@@ -12,7 +12,10 @@ import {
   HttpStatus,
   UseGuards,
   Req,
+  UseInterceptors,
+  UploadedFiles
 } from '@nestjs/common';
+import { Express } from 'express';
 import { EntrepreneurService } from '../services/entrepreneur.service';
 import { CreateCompleteEntrepreneurDto, UpdateCompleteEntrepreneurDto } from '../dto/complete-entrepreneur.dto';
 import { UpdateStatusDto, ToggleActiveDto } from '../dto/entrepreneur.dto';
@@ -22,6 +25,8 @@ import { RoleGuard } from '../../auth/guards/role.guard';
 import { Roles } from '../../auth/decorators/roles.decorator';
 import { UserRole } from '../../auth/enums/user-role.enum';
 import { Public } from 'src/modules/auth/decorators/public.decorator';
+import { FilesInterceptor } from '@nestjs/platform-express';
+import { ParseJsonPipe } from './parse-json.pipe';
 
 @Controller('entrepreneurs')
 @UseGuards(AuthGuard)
@@ -56,20 +61,24 @@ export class EntrepreneurController {
   @UseGuards(RoleGuard)
   @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN, UserRole.FAIR_ADMIN)
   @HttpCode(HttpStatus.CREATED)
+  @UseInterceptors(FilesInterceptor('files', 3))
   async create(
-    @Body() createDto: CreateCompleteEntrepreneurDto,
-    @Req() request: any,
-  ): Promise<Entrepreneur> {
-    return await this.entrepreneurService.create(createDto, request);
+    @Body('person', ParseJsonPipe) person: any,
+    @Body('entrepreneur', ParseJsonPipe) entrepreneur: any,
+    @Body('entrepreneurship', ParseJsonPipe) entrepreneurship: any,  @UploadedFiles() files: Express.Multer.File[], @Req() request: any): Promise<Entrepreneur> {
+      const dto: CreateCompleteEntrepreneurDto = { person, entrepreneur, entrepreneurship };
+      return await this.entrepreneurService.create(dto, request, files);
   }
 
   @Post('public')
   @Public()
   @HttpCode(HttpStatus.CREATED)
-  async createPublic(
-    @Body() dto: CreateCompleteEntrepreneurDto,
-  ): Promise<Entrepreneur> {
-    return await this.entrepreneurService.create(dto);
+   @UseInterceptors(FilesInterceptor('files', 3))
+  async createPublic(@Body('person', ParseJsonPipe) person: any,
+    @Body('entrepreneur', ParseJsonPipe) entrepreneur: any,
+    @Body('entrepreneurship', ParseJsonPipe) entrepreneurship: any, @UploadedFiles() files: Express.Multer.File[]): Promise<Entrepreneur> {
+    const dto: CreateCompleteEntrepreneurDto = { person, entrepreneur, entrepreneurship };
+    return await this.entrepreneurService.create(dto, undefined, files); 
   }
 
   // ================== NUEVO (colocado ANTES del Put(':id')) ==================
@@ -87,12 +96,17 @@ export class EntrepreneurController {
 
   @Put(':id')
   @UseGuards(RoleGuard)
-  @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN, UserRole.FAIR_ADMIN, UserRole.ENTREPRENEUR)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN, UserRole.FAIR_ADMIN)
+  @UseInterceptors(FilesInterceptor('files', 3))
   async update(
     @Param('id', ParseIntPipe) id: number,
-    @Body() updateDto: UpdateCompleteEntrepreneurDto,
-  ): Promise<Entrepreneur> {
-    return await this.entrepreneurService.update(id, updateDto);
+    @Body('person', ParseJsonPipe) person: any,
+    @Body('entrepreneur', ParseJsonPipe) entrepreneur: any,
+    @Body('entrepreneurship', ParseJsonPipe) entrepreneurship: any,
+    @UploadedFiles() files: Express.Multer.File[]
+    ): Promise<Entrepreneur> {
+    const dto: UpdateCompleteEntrepreneurDto = { person, entrepreneur, entrepreneurship };
+    return await this.entrepreneurService.update(id, dto, files);
   }
 
   @Patch(':id/status')
