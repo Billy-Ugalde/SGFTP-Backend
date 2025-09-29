@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, UseGuards, Res, Req, Param } from '@nestjs/common';
+import { Controller, Post, Body, Get, UseGuards, Res, Req } from '@nestjs/common';
 import { AuthService } from '../services/auth.service';
 import { LoginDto } from '../dto/login.dto';
 import { RegisterDto } from '../dto/register.dto';
@@ -224,12 +224,6 @@ export class AuthController {
     }
 
     @Public()
-    @Get('validate-reset-token/:token')
-    async validateResetToken(@Param('token') token: string): Promise<{ valid: boolean; message?: string }> {
-        return await this.authService.validatePasswordResetToken(token);
-    }
-
-    @Public()
     @UseGuards(RateLimitGuard)
     @RateLimit(5, 15 * 60 * 1000) // 5 intentos por 15 minutos
     @Post('reset-password')
@@ -251,5 +245,4 @@ export class AuthController {
         
         return { message: result.message };
     }
-
 }

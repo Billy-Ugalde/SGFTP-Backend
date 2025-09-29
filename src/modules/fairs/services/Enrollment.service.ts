@@ -38,17 +38,6 @@ export class EnrrolmentService {
             if (!fair) throw new NotFoundException('La feria no existe');
             if (!entrepreneur) throw new NotFoundException('El emprendedor no existe');
 
-            //Valida que la feria esté activa
-            if (!fair.status) {
-                throw new BadRequestException('No se puede inscribir a una feria inactiva');
-            }
-
-            // Valida que la fecha de la feria no haya pasado
-            const currentDate = new Date();
-            if (fair.date && currentDate > fair.date) {
-                throw new BadRequestException('La feria ya ha finalizado, no se permiten nuevas inscripciones');
-            }
-
             const stand = await queryRunner.manager.findOne(Stand, {
                 where: { id_stand: dto.id_stand },
                 relations: ['entrepreneur', 'fair'],
@@ -220,10 +209,6 @@ export class EnrrolmentService {
 
         if (!enrollment) {
             throw new NotFoundException('La solicitud no existe');
-        }
-
-        if (!enrollment.fair.status) {
-            throw new BadRequestException('No se pueden modificar inscripciones de ferias inactivas');
         }
 
         if (enrollment.status !== EnrollmentStatus.PENDING) {
