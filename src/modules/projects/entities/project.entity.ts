@@ -3,7 +3,7 @@ import {
     PrimaryGeneratedColumn, UpdateDateColumn
 } from "typeorm";
 import { Activity } from "./activity.entity";
-import { MetricProject, ProjectStatus, TypeProject } from "../enums/project.enum";
+import { MetricProject, ProjectStatus } from "../enums/project.enum";
 @Index(['Name', 'Registration_date'], { unique: true })
 @Entity()
 export class Project {
@@ -34,11 +34,13 @@ export class Project {
     @UpdateDateColumn()
     UpdatedAt: Date;
 
-    @Column({ nullable: false })
+    @Column({
+        type: 'enum',
+        enum: ProjectStatus,
+        default: ProjectStatus.PENDING,
+        nullable: false
+    })
     Status: ProjectStatus;
-
-    @Column({ nullable: false })
-    Type_project: TypeProject;
 
     @Column({ nullable: false })
     Target_population: string;   //población objetivo a impactar con las campañas derivadas de este proyecto
