@@ -3,19 +3,17 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { Project } from "../entities/project.entity";
 import { Repository } from "typeorm";
 import { IProjectService } from "../interfaces/project.interface";
-import { ProjectStatusDto } from "../dto/project.dto";
-
+import { ProjectStatusDto } from "../dto/projectStatus.dto";
 
 @Injectable()
 export class ProjectService implements IProjectService {
-  updateStatus: any;
   constructor(
     @InjectRepository(Project)
     private projectRepository: Repository<Project>,
   ) { }
 
-  createProject() { }
-  updateProject() { }
+  createProject() { }  //Pendiente de hacer
+  updateProject() { }  //pendiente de hacer
 
   async getbyIdProject(id_project: number): Promise<Project> {
     const project = await this.projectRepository.findOne({ where: { Id_project: id_project } });

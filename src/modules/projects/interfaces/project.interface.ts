@@ -1,13 +1,13 @@
-import { ProjectStatusDto } from "../dto/project.dto";
+import { ProjectStatusDto } from "../dto/projectStatus.dto";
 import { Project } from "../entities/project.entity";
 
 
 export interface IProjectService {
-  //createProject();
-  //updateProject();
+  createProject();
+  updateProject();
   getbyIdProject(id__project: number): Promise<Project>
   getAllProject();
-  statusProject(id_project:number,projectStatusDto: ProjectStatusDto);
+  statusProject(id_project:number, projectStatusDto: ProjectStatusDto);
 }
 
 
