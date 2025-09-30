@@ -54,8 +54,17 @@ export class Project {
     @Column({ nullable: false })
     Metric_value: number;
 
-    @Column({default: false})
+    @Column({ default: false })
     Active: boolean;
+
+    @Column({ length: 500, nullable: true })
+    url_1?: string;
+
+    @Column({ length: 500, nullable: true })
+    url_2?: string;
+
+    @Column({ length: 500, nullable: true })
+    url_3?: string;
 
     @OneToMany(() => Activity, (activity) => activity.project)
     activity: Activity[];

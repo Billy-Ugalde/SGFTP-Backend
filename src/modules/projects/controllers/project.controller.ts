@@ -1,9 +1,10 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Param, ParseIntPipe, Patch, Post, Put } from "@nestjs/common";
+import { Body, Controller, Get, HttpCode, HttpStatus, Param, ParseIntPipe, Patch, Post, Put, UploadedFiles, UseInterceptors } from "@nestjs/common";
 import { ProjectService } from "../services/project.service";
 import { Project } from "../entities/project.entity";
 import { ProjectStatusDto } from "../dto/projectStatus.dto";
 import { CreateProjectDto } from "../dto/createProject.dto";
 import { UpdateProjectDto } from "../dto/updateProject.dto";
+import { FilesInterceptor } from "@nestjs/platform-express";
 
 @Controller('projects')
 export class ProjectController {
@@ -34,10 +35,12 @@ export class ProjectController {
 
     @Post()
     @HttpCode(HttpStatus.CREATED)
+    @UseInterceptors(FilesInterceptor('images', 3)) // Máximo 5 imágenes
     async createProject(
-        @Body()
-        createProject: CreateProjectDto): Promise<Project> {
-        return await this.projectservice.createProject(createProject);
+        @Body() createProjectDto: CreateProjectDto,
+        @UploadedFiles() images: Express.Multer.File[]
+    ): Promise<Project> {
+        return await this.projectservice.createProject(createProjectDto, images);
     }
 
     @Put(':id')
