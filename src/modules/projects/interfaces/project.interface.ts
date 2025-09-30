@@ -6,10 +6,9 @@ import { Project } from "../entities/project.entity";
 
 
 export interface IProjectService {
-  createProject(createprojectDto: CreateProjectDto): Promise<Project>;
+  createProject(createprojectDto: CreateProjectDto,images?: Express.Multer.File[]): Promise<Project>;
   updateProject(id_project: number,
-    updateProjectDto: UpdateProjectDto,
-    queryRunner: QueryRunner): Promise<Project>;
+    updateProjectDto: UpdateProjectDto, images?: Express.Multer.File[]): Promise<Project>;
   getMetricByProject(id_project: number);
   getbyIdProject(id_project: number): Promise<Project>
   getAllProject();

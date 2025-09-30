@@ -99,14 +99,17 @@ export class ProjectService implements IProjectService {
 
   async updateProject(
     id_project: number,
-    updateProjectDto: UpdateProjectDto
+    updateProjectDto: UpdateProjectDto,
+    images?: Express.Multer.File[]
   ): Promise<Project> {
-
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
 
     try {
+      const project = await this.getbyIdProject(id_project);
+      const filesToDelete: string[] = [];
+
       const updateData: Partial<Project> = {};
 
       if (updateProjectDto.Name) updateData.Name = updateProjectDto.Name;
@@ -119,32 +122,112 @@ export class ProjectService implements IProjectService {
       if (updateProjectDto.Location) updateData.Location = updateProjectDto.Location;
       if (updateProjectDto.Active !== undefined) updateData.Active = updateProjectDto.Active;
 
+      // Manejar actualización de imágenes
+      if (images && images.length > 0) {
+        console.log(`📁 Procesando ${images.length} imágenes para actualización`);
+
+        const folderName = `project_${id_project}`;
+        const fileMapping: { [key: string]: Express.Multer.File } = {};
+        let fileIndex = 0;
+
+        // Identificar qué campos necesitan reemplazo
+        for (const field of ['url_1', 'url_2', 'url_3'] as const) {
+          const fieldValue = updateProjectDto[field];
+
+          if (typeof fieldValue === 'string' && fieldValue.startsWith('__FILE_REPLACE_')) {
+            if (fileIndex < images.length) {
+              fileMapping[field] = images[fileIndex];
+              console.log(`🔄 Campo ${field} marcado para reemplazo`);
+              fileIndex++;
+            } else {
+              console.warn(`⚠️ No hay suficientes archivos para ${field}`);
+            }
+          }
+        }
+
+        // Procesar cada reemplazo
+        for (const [field, file] of Object.entries(fileMapping)) {
+          const currentUrl = project[field as keyof Project];
+
+          console.log(`🔄 Procesando ${field}`);
+
+          // Marcar archivo anterior para eliminación
+          if (currentUrl && typeof currentUrl === 'string' && currentUrl.trim() !== '') {
+            const fileId = this.googleDriveService.extractFileIdFromUrl(currentUrl);
+            if (fileId) {
+              filesToDelete.push(fileId);
+              console.log(`📝 Archivo anterior marcado para eliminación: ${fileId}`);
+            }
+          }
+
+          // Subir nuevo archivo
+          try {
+            console.log(`⬆️ Subiendo nuevo archivo...`);
+            const { url } = await this.googleDriveService.uploadFile(file, folderName);
+            switch (field) {
+              case 'url_1':
+                updateData.url_1 = url;
+                break;
+              case 'url_2':
+                updateData.url_2 = url;
+                break;
+              case 'url_3':
+                updateData.url_3 = url;
+                break;
+            }
+            console.log(`✅ Nueva URL: ${url}`);
+          } catch (uploadError) {
+            throw new InternalServerErrorException(
+              `Error subiendo imagen ${field}: ${uploadError.message}`
+            );
+          }
+        }
+      }
+
+      // Actualizar proyecto si hay cambios
       if (Object.keys(updateData).length > 0) {
         await queryRunner.manager.update(Project, id_project, updateData);
       }
 
-      const project = await queryRunner.manager.findOne(Project, {
-        where: { Id_project: id_project }
-      });
+      await queryRunner.commitTransaction();
+      console.log('✅ Transacción confirmada');
 
-      if (!project) {
-        throw new NotFoundException(`Proyecto con id ${id_project} no encontrado`);
+      // Eliminar archivos antiguos DESPUÉS del commit
+      if (filesToDelete.length > 0) {
+        console.log(`🗑️ Eliminando ${filesToDelete.length} archivos antiguos`);
+
+        Promise.all(
+          filesToDelete.map(async (fileId) => {
+            try {
+              await this.googleDriveService.deleteFile(fileId);
+              console.log(`✅ Archivo ${fileId} eliminado`);
+            } catch (deleteError) {
+              console.error(`⚠️ No se pudo eliminar ${fileId}:`, deleteError.message);
+            }
+          })
+        );
       }
 
-      await queryRunner.commitTransaction();
-      return project;
+      return await this.getbyIdProject(id_project);
 
     } catch (error) {
       await queryRunner.rollbackTransaction();
-      throw error;
+      console.error('❌ Error en actualización:', error.message);
 
+      if (error instanceof InternalServerErrorException) {
+        throw error;
+      }
+
+      throw new InternalServerErrorException(
+        `Error actualizando proyecto: ${error.message}`
+      );
     } finally {
       await queryRunner.release();
     }
   }
 
   async getbyIdProject(id_project: number): Promise<Project> {
-    const project = await this.projectRepository.findOne({ where: { Id_project: id_project } });
+    const project = await this.projectRepository.findOne({ where: { Id_project: id_project, }, relations: ['activity'] });
 
     if (!project) {
       throw new NotFoundException(`El proyecto con ID ${id_project} no fue encontrado`);
@@ -165,7 +248,9 @@ export class ProjectService implements IProjectService {
   }
 
   async getAllProject() {
-    return await this.projectRepository.find();
+    return await this.projectRepository.find({
+      relations: ['activity']
+    });
   }
 
   async statusProject(id_project: number, projectStatus: ProjectStatusDto) {

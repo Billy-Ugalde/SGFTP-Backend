@@ -44,7 +44,12 @@ export class ProjectController {
     }
 
     @Put(':id')
-    async updateProject(@Param('id', ParseIntPipe) id: number, @Body() updateProject: UpdateProjectDto): Promise<Project> {
-        return await this.projectservice.updateProject(id, updateProject);
+    @UseInterceptors(FilesInterceptor('images', 5))
+    async updateProject(
+        @Param('id', ParseIntPipe) id: number,
+        @Body() updateProject: UpdateProjectDto,
+        @UploadedFiles() images?: Express.Multer.File[]
+    ): Promise<Project> {
+        return await this.projectservice.updateProject(id, updateProject, images);
     }
 }
