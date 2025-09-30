@@ -1,8 +1,9 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Param, ParseIntPipe, Patch, Post } from "@nestjs/common";
+import { Body, Controller, Get, HttpCode, HttpStatus, Param, ParseIntPipe, Patch, Post, Put } from "@nestjs/common";
 import { ProjectService } from "../services/project.service";
 import { Project } from "../entities/project.entity";
 import { ProjectStatusDto } from "../dto/projectStatus.dto";
 import { CreateProjectDto } from "../dto/createProject.dto";
+import { UpdateProjectDto } from "../dto/updateProject.dto";
 
 @Controller('projects')
 export class ProjectController {
@@ -18,7 +19,7 @@ export class ProjectController {
         return await this.projectservice.getbyIdProject(id_project)
     }
 
-     @Get('metric/:id')
+    @Get('metric/:id')
     async getMetricByProject(@Param('id', ParseIntPipe) id_project: number) {
         return await this.projectservice.getMetricByProject(id_project)
     }
@@ -37,5 +38,10 @@ export class ProjectController {
         @Body()
         createProject: CreateProjectDto): Promise<Project> {
         return await this.projectservice.createProject(createProject);
+    }
+
+    @Put(':id')
+    async updateProject(@Param('id', ParseIntPipe) id: number, @Body() updateProject: UpdateProjectDto): Promise<Project> {
+        return await this.projectservice.updateProject(id, updateProject);
     }
 }

@@ -1,5 +1,5 @@
 import { IsDateString, IsEnum, IsInt, IsNotEmpty, IsOptional, IsString, Min } from "class-validator";
-import { MetricProject, ProjectStatus } from "../enums/project.enum";
+import { MetricProject } from "../enums/project.enum";
 
 
 export class CreateProjectDto {

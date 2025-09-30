@@ -6,7 +6,7 @@ import { IProjectService } from "../interfaces/project.interface";
 import { ProjectStatusDto } from "../dto/projectStatus.dto";
 import { CreateProjectDto } from "../dto/createProject.dto";
 import { ProjectStatus } from "../enums/project.enum";
-import { register } from "module";
+import { UpdateProjectDto } from "../dto/updateProject.dto";
 
 @Injectable()
 export class ProjectService implements IProjectService {
@@ -69,7 +69,51 @@ export class ProjectService implements IProjectService {
     }
   }
 
-  updateProject() { }  //pendiente de hacer
+  async updateProject(
+    id_project: number,
+    updateProjectDto: UpdateProjectDto
+  ): Promise<Project> {
+
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      const updateData: Partial<Project> = {};
+
+      if (updateProjectDto.Name) updateData.Name = updateProjectDto.Name;
+      if (updateProjectDto.Description) updateData.Description = updateProjectDto.Description;
+      if (updateProjectDto.Observations) updateData.Observations = updateProjectDto.Observations;
+      if (updateProjectDto.Aim) updateData.Aim = updateProjectDto.Aim;
+      if (updateProjectDto.Start_date) updateData.Start_date = updateProjectDto.Start_date;
+      if (updateProjectDto.End_date) updateData.End_date = updateProjectDto.End_date;
+      if (updateProjectDto.Target_population) updateData.Target_population = updateProjectDto.Target_population;
+      if (updateProjectDto.Location) updateData.Location = updateProjectDto.Location;
+      if (updateProjectDto.Active !== undefined) updateData.Active = updateProjectDto.Active;
+
+      if (Object.keys(updateData).length > 0) {
+        await queryRunner.manager.update(Project, id_project, updateData);
+      }
+
+      const project = await queryRunner.manager.findOne(Project, {
+        where: { Id_project: id_project }
+      });
+
+      if (!project) {
+        throw new NotFoundException(`Proyecto con id ${id_project} no encontrado`);
+      }
+
+      await queryRunner.commitTransaction();
+      return project;
+
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+
+    } finally {
+      await queryRunner.release();
+    }
+  }
 
   async getbyIdProject(id_project: number): Promise<Project> {
     const project = await this.projectRepository.findOne({ where: { Id_project: id_project } });
@@ -86,12 +130,10 @@ export class ProjectService implements IProjectService {
     if (!project) {
       throw new NotFoundException(`El proyecto con ID ${id_project} no fue encontrado`);
     }
-
-     return {
+    return {
       metric: project.Metrics,
       metric_value: project.Metric_value
     };
-
   }
 
   async getAllProject() {
@@ -116,7 +158,6 @@ export class ProjectService implements IProjectService {
     if (!updatedProject) {
       throw new NotFoundException(`No se pudo actualizar el estado del proyecto `);
     }
-
     return updatedProject;
   }
 }
