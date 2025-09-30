@@ -59,10 +59,16 @@ export class Activity {
     Aim: string      //objetivo de la actividad a lograr
 
     @Column()
-    Metric_campaign: MetricType;
+    Metric_activity: MetricType;
+
+    @Column({ type: 'int', default: 0 })
+    Metric_value: number;
 
     @Column()
     Active: boolean;
+
+    @Column({ length: 500, nullable: true })
+    url?: string;
 
     @ManyToOne(() => Project, (project) => project.activity, { nullable: false })
     @JoinColumn({ name: 'Id_project' })
