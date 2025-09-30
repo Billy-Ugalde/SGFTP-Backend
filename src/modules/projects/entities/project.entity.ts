@@ -23,10 +23,10 @@ export class Project {
     Aim: string;    //objetivo
 
     @Column({ type: 'datetime' })
-    Start_date: Date;
+    Start_date: string;
 
     @Column({ type: 'datetime', nullable: true })
-    End_date?: Date;
+    End_date?: string;
 
     @CreateDateColumn()
     Registration_date: Date;
@@ -51,7 +51,10 @@ export class Project {
     @Column({ nullable: false })
     Metrics: MetricProject;
 
-    @Column()
+    @Column({ nullable: false })
+    Metric_value: number;
+
+    @Column({default: false})
     Active: boolean;
 
     @OneToMany(() => Activity, (activity) => activity.project)
