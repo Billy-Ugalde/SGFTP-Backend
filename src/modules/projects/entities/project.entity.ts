@@ -51,6 +51,9 @@ export class Project {
     @Column({ nullable: false })
     Metrics: MetricProject;
 
+    @Column({ nullable: false })
+    Metric_value: number;
+
     @Column({default: false})
     Active: boolean;
 

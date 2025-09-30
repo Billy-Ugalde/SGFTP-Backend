@@ -9,13 +9,18 @@ export class ProjectController {
     constructor(private projectservice: ProjectService) { }
 
     @Get()
-    async getall(): Promise<Project[]> {
+    async getAllProject(): Promise<Project[]> {
         return await this.projectservice.getAllProject();
     }
 
     @Get(':id')
-    async getOne(@Param('id', ParseIntPipe) id_project: number): Promise<Project> {
+    async getbyIdProject(@Param('id', ParseIntPipe) id_project: number): Promise<Project> {
         return await this.projectservice.getbyIdProject(id_project)
+    }
+
+     @Get('metric/:id')
+    async getMetricByProject(@Param('id', ParseIntPipe) id_project: number) {
+        return await this.projectservice.getMetricByProject(id_project)
     }
 
     @Patch(':id')
@@ -28,7 +33,7 @@ export class ProjectController {
 
     @Post()
     @HttpCode(HttpStatus.CREATED)
-    async create(
+    async createProject(
         @Body()
         createProject: CreateProjectDto): Promise<Project> {
         return await this.projectservice.createProject(createProject);

@@ -80,6 +80,20 @@ export class ProjectService implements IProjectService {
     return project;
   }
 
+  async getMetricByProject(id_project: number) {
+    const project = await this.projectRepository.findOne({ where: { Id_project: id_project } });
+
+    if (!project) {
+      throw new NotFoundException(`El proyecto con ID ${id_project} no fue encontrado`);
+    }
+
+     return {
+      metric: project.Metrics,
+      metric_value: project.Metric_value
+    };
+
+  }
+
   async getAllProject() {
     return await this.projectRepository.find();
   }

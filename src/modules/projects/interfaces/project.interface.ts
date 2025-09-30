@@ -6,7 +6,8 @@ import { Project } from "../entities/project.entity";
 export interface IProjectService {
   createProject(createprojectDto: CreateProjectDto);
   updateProject();
-  getbyIdProject(id__project: number): Promise<Project>
+  getMetricByProject(id_project: number),
+  getbyIdProject(id_project: number): Promise<Project>
   getAllProject();
   statusProject(id_project: number, projectStatusDto: ProjectStatusDto);
 }
