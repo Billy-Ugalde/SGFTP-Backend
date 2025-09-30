@@ -14,6 +14,10 @@ import { Role } from '../../users/entities/role.entity';
 import { GoogleDriveService } from '../../google-drive/google-drive.service';
 import { UpdateEntrepreneurshipDto } from '../dto/entrepreneurship.dto';
 
+// ============ NUEVO: import requerido para la validación de permisos ============
+import { ForbiddenException } from '@nestjs/common';
+// ===================== FIN NUEVO =====================
+
 @Injectable()
 export class EntrepreneurService {
   constructor(
@@ -27,7 +31,6 @@ export class EntrepreneurService {
     private googleDriveService: GoogleDriveService,
   ) { }
 
-
   async findAllApproved(): Promise<Entrepreneur[]> {
     return await this.entrepreneurRepository.find({
       where: [
@@ -40,7 +43,6 @@ export class EntrepreneurService {
       }
     });
   }
-
 
   async findAllPending(): Promise<Entrepreneur[]> {
     return await this.entrepreneurRepository.find({
@@ -72,8 +74,7 @@ export class EntrepreneurService {
     await queryRunner.startTransaction();
 
     try {
-
-      const savedPerson = await this.personService.create(createDto.person, queryRunner);
+        const savedPerson = await this.personService.create(createDto.person, queryRunner);
 
       // Determinar estado inicial basado en si hay usuario autenticado y sus roles
       let initialStatus = EntrepreneurStatus.PENDING;
@@ -143,7 +144,6 @@ export class EntrepreneurService {
         );
       }
       await queryRunner.commitTransaction();
-
       return await this.findOne(createdEntrepreneur.id_entrepreneur);
     } catch (error) {
       await queryRunner.rollbackTransaction();
@@ -344,6 +344,42 @@ export class EntrepreneurService {
   }
 }
 
+  // ============ NUEVO: actualización permitida sólo al dueño con rol entrepreneur ============
+  async updateIfOwnerAndEntrepreneurRole(
+    id: number,
+    dto: UpdateCompleteEntrepreneurDto,
+    user: any,
+  ): Promise<Entrepreneur> {
+    // 1) Cargar el emprendedor con sus relaciones para validar ownership
+    const entrepreneur = await this.findOne(id);
+
+    // 2) Verificar que el usuario tenga el rol entrepreneur
+    const roleNames: string[] =
+      (typeof user?.getAllRoleNames === 'function'
+        ? user.getAllRoleNames()
+        : user?.roles?.map((r: any) => r?.name)) || [];
+
+    const hasEntrepreneurRole = roleNames.includes('entrepreneur');
+    if (!hasEntrepreneurRole) {
+      throw new ForbiddenException('No tiene permisos para actualizar este registro.');
+    }
+
+    // 3) Validar que sea el dueño (misma persona)
+    const userPersonId = user?.person?.id_person;
+    const isOwner =
+      !!userPersonId &&
+      (entrepreneur?.id_person === userPersonId ||
+        entrepreneur?.person?.id_person === userPersonId);
+
+    if (!isOwner) {
+      throw new ForbiddenException('Solo el dueño puede actualizar su registro.');
+    }
+
+    // 4) Reutilizar la lógica de update existente
+    return await this.update(id, dto);
+  }
+  // ===================== FIN NUEVO =====================
+
   async updateStatus(id: number, statusDto: UpdateStatusDto): Promise<Entrepreneur> {
     const entrepreneur = await this.findOne(id);
 
@@ -407,7 +443,6 @@ export class EntrepreneurService {
     }
 
     await this.entrepreneurRepository.save(entrepreneur);
-
     return await this.findOne(id);
   }
 
@@ -447,7 +482,4 @@ export class EntrepreneurService {
       await queryRunner.release();
     }
   }
-
-
-
 }
