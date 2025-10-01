@@ -7,7 +7,9 @@ import {
     IsOptional,
     IsNumber,
     Min,
-    IsInt
+    IsInt,
+    IsArray,
+    ValidateNested
 } from 'class-validator';
 import {
     TypeActivity,
@@ -16,6 +18,8 @@ import {
     TypeFavorite,
     MetricType
 } from '../enums/activity.enum';
+import { DateDto } from './createActivity.dto';
+import { Type } from 'class-transformer';
 
 export class UpdateActivityDto {
     @IsString()
@@ -84,7 +88,9 @@ export class UpdateActivityDto {
     @IsOptional()
     Active: boolean;
 
-    @IsNumber()
     @IsOptional()
-    Id_project: number;
+    @IsArray()
+    @ValidateNested({ each: true })
+    @Type(() => DateDto)
+    dateActivities: DateDto[];
 }

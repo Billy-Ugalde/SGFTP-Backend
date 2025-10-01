@@ -16,22 +16,22 @@ export class ActivityService implements IActivityService {
         @InjectRepository(Activity)
         private activityRepository: Repository<Activity>,
         @InjectRepository(DateActivity)
-        private dateActivityRepository: Repository<DateActivity>,
-        private dataSource: DataSource,
+        private dateActivityRepository: Repository<DateActivity>,  
+        private dataSource: DataSource,  
         private googleDriveService: GoogleDriveService,
         private projectService: ProjectService,
     ) { }
 
     async createActivity(
         createActivityDto: CreateActivityDto,
-        image?: Express.Multer.File  // Solo 1 imagen
+        image?: Express.Multer.File
     ): Promise<Activity> {
         const queryRunner = this.dataSource.createQueryRunner();
         await queryRunner.connect();
         await queryRunner.startTransaction();
 
         try {
-            // Verificar duplicado
+
             const existingActivity = await queryRunner.manager.findOne(Activity, {
                 where: { Name: createActivityDto.Name }
             });
@@ -42,10 +42,8 @@ export class ActivityService implements IActivityService {
                 );
             }
 
-            // Verificar que el proyecto existe
             const project = await this.projectService.getbyIdProject(createActivityDto.Id_project);
 
-            // Crear actividad (sin URL aún)
             const newActivity = queryRunner.manager.create(Activity, {
                 Name: createActivityDto.Name,
                 Description: createActivityDto.Description,
@@ -68,7 +66,7 @@ export class ActivityService implements IActivityService {
 
             const savedActivity = await queryRunner.manager.save(Activity, newActivity);
 
-            // Crear fechas asociadas
+
             if (createActivityDto.dates && createActivityDto.dates.length > 0) {
                 for (const dateDto of createActivityDto.dates) {
                     const dateActivity = queryRunner.manager.create(DateActivity, {
@@ -80,12 +78,11 @@ export class ActivityService implements IActivityService {
                 }
             }
 
-            // Subir imagen a Drive (solo 1)
             if (image) {
                 const folderName = `activity_${savedActivity.Id_activity}`;
                 const { url } = await this.googleDriveService.uploadFile(image, folderName);
 
-                // Actualizar actividad con la URL
+
                 await queryRunner.manager.update(Activity, savedActivity.Id_activity, {
                     url: url
                 });
@@ -116,8 +113,111 @@ export class ActivityService implements IActivityService {
         }
     }
 
-    updateActivity(id_activity: number, updateActivityDto: UpdateActivityDto, images?: Express.Multer.File[]): Promise<Activity> {
-        throw new Error("Method not implemented.");
+
+    async updateActivity(
+        id_activity: number,
+        updateActivityDto: UpdateActivityDto,
+        image?: Express.Multer.File
+    ): Promise<Activity> {
+        const queryRunner = this.dataSource.createQueryRunner();
+        await queryRunner.connect();
+        await queryRunner.startTransaction();
+
+        try {
+            const activity = await this.getbyIdActivity(id_activity);
+            let fileToDelete: string | null = null;
+
+            const updateData: Partial<Activity> = {};
+
+            if (updateActivityDto.Name) updateData.Name = updateActivityDto.Name;
+            if (updateActivityDto.Description) updateData.Description = updateActivityDto.Description;
+            if (updateActivityDto.Conditions) updateData.Conditions = updateActivityDto.Conditions;
+            if (updateActivityDto.Observations) updateData.Observations = updateActivityDto.Observations;
+            if (updateActivityDto.IsRecurring !== undefined) updateData.IsRecurring = updateActivityDto.IsRecurring;
+            if (updateActivityDto.IsFavorite) updateData.IsFavorite = updateActivityDto.IsFavorite;
+            if (updateActivityDto.OpenForRegistration !== undefined) updateData.OpenForRegistration = updateActivityDto.OpenForRegistration;
+            if (updateActivityDto.Type_activity) updateData.Type_activity = updateActivityDto.Type_activity;
+            if (updateActivityDto.Status_activity) updateData.Status_activity = updateActivityDto.Status_activity;
+            if (updateActivityDto.Approach) updateData.Approach = updateActivityDto.Approach;
+            if (updateActivityDto.Spaces !== undefined) updateData.Spaces = updateActivityDto.Spaces;
+            if (updateActivityDto.Location) updateData.Location = updateActivityDto.Location;
+            if (updateActivityDto.Aim) updateData.Aim = updateActivityDto.Aim;
+            if (updateActivityDto.Metric_activity) updateData.Metric_activity = updateActivityDto.Metric_activity;
+            if (updateActivityDto.Metric_value !== undefined) updateData.Metric_value = updateActivityDto.Metric_value;
+            if (updateActivityDto.Active !== undefined) updateData.Active = updateActivityDto.Active;
+
+
+            if (image) {
+                console.log(`📁 Procesando imagen para actualización`);
+
+                const folderName = `activity_${id_activity}`;
+                const currentUrl = activity.url;
+
+                if (currentUrl && currentUrl.trim() !== '') {
+                    const fileId = this.googleDriveService.extractFileIdFromUrl(currentUrl);
+                    if (fileId) {
+                        fileToDelete = fileId;
+                        console.log(`📝 Imagen anterior marcada para eliminación: ${fileId}`);
+                    }
+                }
+
+
+                try {
+                    console.log(`⬆️ Subiendo nueva imagen...`);
+                    const { url } = await this.googleDriveService.uploadFile(image, folderName);
+                    updateData.url = url;
+                    console.log(`✅ Nueva URL: ${url}`);
+                } catch (uploadError) {
+                    throw new InternalServerErrorException(
+                        `Error subiendo imagen: ${uploadError.message}`
+                    );
+                }
+            }
+
+
+            if (Object.keys(updateData).length > 0) {
+                await queryRunner.manager.update(Activity, id_activity, updateData);
+            }
+
+            if (updateActivityDto.dateActivities && updateActivityDto.dateActivities.length > 0) {
+                for (const dateDto of updateActivityDto.dateActivities) {
+                    if (dateDto.Id_dateActivity) {
+                        // Actualizar cada fecha existente por su ID
+                        await queryRunner.manager.update(DateActivity, dateDto.Id_dateActivity, {
+                            Start_date: dateDto.Start_date,
+                            End_date: dateDto.End_date
+                        });
+                    }
+                }
+            }
+
+            await queryRunner.commitTransaction();
+            console.log('✅ Transacción confirmada');
+
+            if (fileToDelete) {
+                console.log(`🗑️ Eliminando imagen antigua`);
+
+                this.googleDriveService.deleteFile(fileToDelete)
+                    .then(() => console.log(`✅ Imagen ${fileToDelete} eliminada`))
+                    .catch(error => console.error(`⚠️ No se pudo eliminar ${fileToDelete}:`, error.message));
+            }
+
+            return await this.getbyIdActivity(id_activity);
+
+        } catch (error) {
+            await queryRunner.rollbackTransaction();
+            console.error('❌ Error en actualización:', error.message);
+
+            if (error instanceof InternalServerErrorException) {
+                throw error;
+            }
+
+            throw new InternalServerErrorException(
+                `Error actualizando actividad: ${error.message}`
+            );
+        } finally {
+            await queryRunner.release();
+        }
     }
 
     async getAllActivities() {

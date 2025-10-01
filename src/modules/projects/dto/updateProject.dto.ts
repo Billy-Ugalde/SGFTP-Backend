@@ -1,5 +1,7 @@
-import { IsBoolean, IsDateString, IsEnum, IsInt, IsNotEmpty, IsOptional, IsString, Min } from "class-validator";
+import { IsArray, IsBoolean, IsDateString, IsEnum, IsInt, IsNotEmpty, IsOptional, IsString, Min, ValidateNested } from "class-validator";
 import { MetricProject } from "../enums/project.enum";
+import { Type } from "class-transformer";
+import { DateDto } from "./createActivity.dto";
 
 
 export class UpdateProjectDto {

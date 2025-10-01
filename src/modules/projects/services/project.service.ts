@@ -20,7 +20,7 @@ export class ProjectService implements IProjectService {
 
   async createProject(
     createprojectDto: CreateProjectDto,
-    images?: Express.Multer.File[] // ← Cambiar a "images"
+    images?: Express.Multer.File[]
   ): Promise<Project> {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
@@ -64,7 +64,7 @@ export class ProjectService implements IProjectService {
           urls.push(url);
         }
 
-        // Actualizar el proyecto con las URLs
+
         await queryRunner.manager.update(Project, savedproject.Id_project, {
           url_1: urls[0] || undefined,
           url_2: urls[1] || undefined,
@@ -124,7 +124,7 @@ export class ProjectService implements IProjectService {
       if (updateProjectDto.Metrics) updateData.Metrics = updateProjectDto.Metrics;
       if (updateProjectDto.Metric_value !== undefined) updateData.Metric_value = updateProjectDto.Metric_value;
 
-      // Manejar actualización de imágenes
+
       if (images && images.length > 0) {
         console.log(`📁 Procesando ${images.length} imágenes para actualización`);
 
@@ -132,7 +132,7 @@ export class ProjectService implements IProjectService {
         const fileMapping: { [key: string]: Express.Multer.File } = {};
         let fileIndex = 0;
 
-        // Identificar qué campos necesitan reemplazo
+
         for (const field of ['url_1', 'url_2', 'url_3'] as const) {
           const fieldValue = updateProjectDto[field];
 
@@ -147,13 +147,13 @@ export class ProjectService implements IProjectService {
           }
         }
 
-        // Procesar cada reemplazo
+
         for (const [field, file] of Object.entries(fileMapping)) {
           const currentUrl = project[field as keyof Project];
 
           console.log(`🔄 Procesando ${field}`);
 
-          // Marcar archivo anterior para eliminación
+
           if (currentUrl && typeof currentUrl === 'string' && currentUrl.trim() !== '') {
             const fileId = this.googleDriveService.extractFileIdFromUrl(currentUrl);
             if (fileId) {
@@ -162,7 +162,7 @@ export class ProjectService implements IProjectService {
             }
           }
 
-          // Subir nuevo archivo
+
           try {
             console.log(`⬆️ Subiendo nuevo archivo...`);
             const { url } = await this.googleDriveService.uploadFile(file, folderName);
@@ -186,7 +186,7 @@ export class ProjectService implements IProjectService {
         }
       }
 
-      // Actualizar proyecto si hay cambios
+
       if (Object.keys(updateData).length > 0) {
         await queryRunner.manager.update(Project, id_project, updateData);
       }
@@ -194,7 +194,7 @@ export class ProjectService implements IProjectService {
       await queryRunner.commitTransaction();
       console.log('✅ Transacción confirmada');
 
-      // Eliminar archivos antiguos DESPUÉS del commit
+
       if (filesToDelete.length > 0) {
         console.log(`🗑️ Eliminando ${filesToDelete.length} archivos antiguos`);
 

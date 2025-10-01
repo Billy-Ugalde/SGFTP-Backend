@@ -29,6 +29,10 @@ export class DateDto {
     @IsDateString()
     @IsOptional()
     End_date?: string;
+
+    @IsInt()
+    @IsOptional()
+    Id_dateActivity?: number;
 }
 
 export class CreateActivityDto {
@@ -105,7 +109,7 @@ export class CreateActivityDto {
     @IsArray()
     @ValidateNested({ each: true })
     @Type(() => DateDto)
-    dates: DateDto[];  // ← Agregar esto
+    dates: DateDto[];
 }
 
 

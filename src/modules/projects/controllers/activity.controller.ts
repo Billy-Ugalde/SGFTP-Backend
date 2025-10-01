@@ -2,11 +2,12 @@ import {
     Body, Controller, Get, HttpCode, HttpStatus, Param,
     ParseIntPipe, Patch, Post, Put, UploadedFile, UploadedFiles, UseInterceptors
 } from "@nestjs/common";
-import { FileInterceptor, FilesInterceptor } from "@nestjs/platform-express";
+import { FileInterceptor} from "@nestjs/platform-express";
 import { ActivityService } from "../services/activity.service";
 import { Activity } from "../entities/activity.entity";
 import { ActivityStatusDto } from "../dto/activityStatus.dto";
 import { CreateActivityDto } from "../dto/createActivity.dto";
+import { UpdateActivityDto } from "../dto/updateActivity.dto";
 
 @Controller('activities')
 export class ActivityController {
@@ -32,21 +33,21 @@ export class ActivityController {
 
     @Post()
     @HttpCode(HttpStatus.CREATED)
-    @UseInterceptors(FileInterceptor('image'))  // ✅ FileInterceptor para UNA imagen
+    @UseInterceptors(FileInterceptor('image'))  
     async createActivity(
         @Body() createActivityDto: CreateActivityDto,
-        @UploadedFile() image?: Express.Multer.File  // ✅ @UploadedFile para una sola
+        @UploadedFile() image?: Express.Multer.File  
     ): Promise<Activity> {
         return await this.activityservice.createActivity(createActivityDto, image);
     }
-    /*
-        @Put(':id')
-        @UseInterceptors(FilesInterceptor('images', 5))
-        async updateProject(
-            @Param('id', ParseIntPipe) id: number,
-            @Body() updateProject: UpdateProjectDto,
-            @UploadedFiles() images?: Express.Multer.File[]
-        ): Promise<Project> {
-            return await this.projectservice.updateProject(id, updateProject, images);
-        }*/
+
+    @Put(':id')
+    @UseInterceptors(FileInterceptor('image'))
+    async updateProject(
+        @Param('id', ParseIntPipe) id: number,
+        @Body() updateProject: UpdateActivityDto,
+        @UploadedFiles() image?: Express.Multer.File
+    ): Promise<Activity> {
+        return await this.activityservice.updateActivity(id, updateProject, image);
+    }
 }
