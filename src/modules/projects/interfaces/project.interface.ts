@@ -1,4 +1,3 @@
-import { QueryRunner } from "typeorm";
 import { CreateProjectDto } from "../dto/createProject.dto";
 import { ProjectStatusDto } from "../dto/projectStatus.dto";
 import { UpdateProjectDto } from "../dto/updateProject.dto";

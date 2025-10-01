@@ -28,8 +28,8 @@ export class Activity {
     @Column({ default: false })
     IsRecurring: boolean;  // Si es true, mostrar múltiples fechas
 
-    @Column()
-    IsFavorite: TypeFavorite;   //para  distingir las actividades favoritas, como escuelas y condominios
+    @Column({ nullable: true })  // ← Agregar nullable: true
+    IsFavorite?: TypeFavorite;   // ← Agregar ? para hacerlo opcional   //para  distingir las actividades favoritas, como escuelas y condominios
 
     @Column({ default: false })
     OpenForRegistration: boolean;  // abierta o no a la inscripción
@@ -41,10 +41,15 @@ export class Activity {
     UpdatedAt: Date;
 
     @Column({ nullable: false })
-    Type_campaign: TypeActivity;
+    Type_activity: TypeActivity;
 
-    @Column({ nullable: false })
-    Status_campaign: ActivityStatus;
+    @Column({
+        type: 'enum',
+        enum: ActivityStatus,
+        default: ActivityStatus.PENDING,
+        nullable: false
+    })
+    Status_activity: ActivityStatus;
 
     @Column({ nullable: false })
     Approach: TypeApproach;

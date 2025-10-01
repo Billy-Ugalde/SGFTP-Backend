@@ -5,7 +5,11 @@ import {
     IsEnum,
     IsOptional,
     IsNumber,
-    Min
+    Min,
+    IsInt,
+    IsDateString,
+    IsArray,
+    ValidateNested
 } from 'class-validator';
 import {
     TypeActivity,
@@ -14,6 +18,18 @@ import {
     TypeFavorite,
     MetricType
 } from '../enums/activity.enum';
+import { Type } from 'class-transformer';
+
+
+export class DateDto {
+    @IsDateString()
+    @IsNotEmpty()
+    Start_date: string;
+
+    @IsDateString()
+    @IsOptional()
+    End_date?: string;
+}
 
 export class CreateActivityDto {
     @IsString()
@@ -37,7 +53,7 @@ export class CreateActivityDto {
     IsRecurring?: boolean;
 
     @IsEnum(TypeFavorite)
-    @IsNotEmpty()
+    @IsOptional()
     IsFavorite: TypeFavorite;
 
     @IsBoolean()
@@ -46,11 +62,11 @@ export class CreateActivityDto {
 
     @IsEnum(TypeActivity)
     @IsNotEmpty()
-    Type_campaign: TypeActivity;
+    Type_activity: TypeActivity;
 
     @IsEnum(ActivityStatus)
     @IsNotEmpty()
-    Status_campaign: ActivityStatus;
+    Status_activity: ActivityStatus;
 
     @IsEnum(TypeApproach)
     @IsNotEmpty()
@@ -73,9 +89,10 @@ export class CreateActivityDto {
     @IsNotEmpty()
     Metric_activity: MetricType;
 
-    @IsNumber()
-    @IsNotEmpty()
-    Metric_value: number;
+    @IsInt()
+    @Min(0)
+    @IsOptional()
+    Metric_value?: number;
 
     @IsBoolean()
     @IsNotEmpty()
@@ -84,5 +101,11 @@ export class CreateActivityDto {
     @IsNumber()
     @IsNotEmpty()
     Id_project: number;
+
+    @IsArray()
+    @ValidateNested({ each: true })
+    @Type(() => DateDto)
+    dates: DateDto[];  // ← Agregar esto
 }
+
 
