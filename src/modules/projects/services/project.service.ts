@@ -121,6 +121,8 @@ export class ProjectService implements IProjectService {
       if (updateProjectDto.Target_population) updateData.Target_population = updateProjectDto.Target_population;
       if (updateProjectDto.Location) updateData.Location = updateProjectDto.Location;
       if (updateProjectDto.Active !== undefined) updateData.Active = updateProjectDto.Active;
+      if (updateProjectDto.Metrics) updateData.Metrics = updateProjectDto.Metrics;
+      if (updateProjectDto.Metric_value !== undefined) updateData.Metric_value = updateProjectDto.Metric_value;
 
       // Manejar actualización de imágenes
       if (images && images.length > 0) {
