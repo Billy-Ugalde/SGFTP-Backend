@@ -1,5 +1,7 @@
-import { IsBoolean, IsDateString, IsEnum, IsInt, IsNotEmpty, IsOptional, IsString, Min } from "class-validator";
-import { MetricProject, ProjectStatus } from "../enums/project.enum";
+import { IsArray, IsBoolean, IsDateString, IsEnum, IsInt, IsNotEmpty, IsOptional, IsString, Min, ValidateNested } from "class-validator";
+import { MetricProject } from "../enums/project.enum";
+import { Type } from "class-transformer";
+import { DateDto } from "./createActivity.dto";
 
 
 export class UpdateProjectDto {
@@ -38,5 +40,16 @@ export class UpdateProjectDto {
     @IsOptional()
     @IsBoolean()
     Active: boolean;
+
+    @IsOptional()
+    @IsEnum(MetricProject, {
+        message: `Las métricas deben ser: ${Object.values(MetricProject).join(', ')}`
+    })
+    Metrics: MetricProject;
+
+    @IsOptional()
+    @IsInt({ message: 'El valor de la métrica debe ser un número entero' })
+    @Min(0, { message: 'El valor de la métrica debe ser mayor o igual a 0' })
+    Metric_value: number;
 
 }
