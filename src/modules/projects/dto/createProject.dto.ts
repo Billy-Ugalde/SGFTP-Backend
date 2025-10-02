@@ -1,5 +1,6 @@
 import { IsDateString, IsEnum, IsInt, IsNotEmpty, IsOptional, IsString, Min } from "class-validator";
 import { MetricProject } from "../enums/project.enum";
+import { Type } from "class-transformer";
 
 export class CreateProjectDto {
     @IsNotEmpty({ message: 'El nombre es obligatorio' })
@@ -41,6 +42,7 @@ export class CreateProjectDto {
     Metrics: MetricProject;
 
     @IsNotEmpty({ message: 'El valor de la métrica es obligatorio' })
+    @Type(() => Number)
     @IsInt({ message: 'El valor de la métrica debe ser un número entero' })
     @Min(0, { message: 'El valor de la métrica debe ser mayor o igual a 0' })
     Metric_value: number;
