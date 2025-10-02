@@ -1,5 +1,6 @@
 import { CreateProjectDto } from "../dto/createProject.dto";
 import { ProjectStatusDto } from "../dto/projectStatus.dto";
+import { ToggleActiveDto } from "../dto/UdpateActive.dto";
 import { UpdateProjectDto } from "../dto/updateProject.dto";
 import { Project } from "../entities/project.entity";
 
@@ -12,6 +13,7 @@ export interface IProjectService {
   getbyIdProject(id_project: number): Promise<Project>
   getAllProject();
   statusProject(id_project: number, projectStatusDto: ProjectStatusDto);
+  toggleActive(id: number, toggleDto: ToggleActiveDto): Promise<Project>;
 }
 
 
