@@ -31,7 +31,6 @@ export class ActivityService implements IActivityService {
         await queryRunner.startTransaction();
 
         try {
-
             const existingActivity = await queryRunner.manager.findOne(Activity, {
                 where: { Name: createActivityDto.Name }
             });
@@ -66,7 +65,6 @@ export class ActivityService implements IActivityService {
 
             const savedActivity = await queryRunner.manager.save(Activity, newActivity);
 
-
             if (createActivityDto.dates && createActivityDto.dates.length > 0) {
                 for (const dateDto of createActivityDto.dates) {
                     const dateActivity = queryRunner.manager.create(DateActivity, {
@@ -81,7 +79,6 @@ export class ActivityService implements IActivityService {
             if (image) {
                 const folderName = `activity_${savedActivity.Id_activity}`;
                 const { url } = await this.googleDriveService.uploadFile(image, folderName);
-
 
                 await queryRunner.manager.update(Activity, savedActivity.Id_activity, {
                     url: url
@@ -112,7 +109,6 @@ export class ActivityService implements IActivityService {
             await queryRunner.release();
         }
     }
-
 
     async updateActivity(
         id_activity: number,
@@ -146,10 +142,7 @@ export class ActivityService implements IActivityService {
             if (updateActivityDto.Metric_value !== undefined) updateData.Metric_value = updateActivityDto.Metric_value;
             if (updateActivityDto.Active !== undefined) updateData.Active = updateActivityDto.Active;
 
-
             if (image) {
-                console.log(`📁 Procesando imagen para actualización`);
-
                 const folderName = `activity_${id_activity}`;
                 const currentUrl = activity.url;
 
@@ -157,23 +150,18 @@ export class ActivityService implements IActivityService {
                     const fileId = this.googleDriveService.extractFileIdFromUrl(currentUrl);
                     if (fileId) {
                         fileToDelete = fileId;
-                        console.log(`📝 Imagen anterior marcada para eliminación: ${fileId}`);
                     }
                 }
 
-
                 try {
-                    console.log(`⬆️ Subiendo nueva imagen...`);
                     const { url } = await this.googleDriveService.uploadFile(image, folderName);
                     updateData.url = url;
-                    console.log(`✅ Nueva URL: ${url}`);
                 } catch (uploadError) {
                     throw new InternalServerErrorException(
                         `Error subiendo imagen: ${uploadError.message}`
                     );
                 }
             }
-
 
             if (Object.keys(updateData).length > 0) {
                 await queryRunner.manager.update(Activity, id_activity, updateData);
@@ -182,7 +170,6 @@ export class ActivityService implements IActivityService {
             if (updateActivityDto.dateActivities && updateActivityDto.dateActivities.length > 0) {
                 for (const dateDto of updateActivityDto.dateActivities) {
                     if (dateDto.Id_dateActivity) {
-                        // Actualizar cada fecha existente por su ID
                         await queryRunner.manager.update(DateActivity, dateDto.Id_dateActivity, {
                             Start_date: dateDto.Start_date,
                             End_date: dateDto.End_date
@@ -192,21 +179,15 @@ export class ActivityService implements IActivityService {
             }
 
             await queryRunner.commitTransaction();
-            console.log('✅ Transacción confirmada');
 
             if (fileToDelete) {
-                console.log(`🗑️ Eliminando imagen antigua`);
-
-                this.googleDriveService.deleteFile(fileToDelete)
-                    .then(() => console.log(`✅ Imagen ${fileToDelete} eliminada`))
-                    .catch(error => console.error(`⚠️ No se pudo eliminar ${fileToDelete}:`, error.message));
+                this.googleDriveService.deleteFile(fileToDelete).catch(() => {});
             }
 
             return await this.getbyIdActivity(id_activity);
 
         } catch (error) {
             await queryRunner.rollbackTransaction();
-            console.error('❌ Error en actualización:', error.message);
 
             if (error instanceof InternalServerErrorException) {
                 throw error;
@@ -256,5 +237,18 @@ export class ActivityService implements IActivityService {
             throw new NotFoundException(`No se pudo actualizar el estado de la actividad `);
         }
         return updatedActivity;
+    }
+
+    async updateActive(id_activity: number, active: boolean): Promise<Activity> {
+        const activity = await this.activityRepository.findOne({
+            where: { Id_activity: id_activity }
+        });
+
+        if (!activity) {
+            throw new NotFoundException(`Actividad con ID ${id_activity} no encontrada`);
+        }
+
+        activity.Active = active;
+        return await this.activityRepository.save(activity);
     }
 }

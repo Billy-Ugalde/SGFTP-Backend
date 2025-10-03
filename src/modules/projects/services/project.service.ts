@@ -8,6 +8,7 @@ import { CreateProjectDto } from "../dto/createProject.dto";
 import { ProjectStatus } from "../enums/project.enum";
 import { UpdateProjectDto } from "../dto/updateProject.dto";
 import { GoogleDriveService } from "src/modules/google-drive/google-drive.service";
+import { ToggleActiveDto } from "../dto/UdpateActive.dto";
 
 @Injectable()
 export class ProjectService implements IProjectService {
@@ -275,4 +276,13 @@ export class ProjectService implements IProjectService {
     }
     return updatedProject;
   }
+
+   async toggleActive(id: number, toggleDto: ToggleActiveDto): Promise<Project> {
+      const project = await this.getbyIdProject(id);
+  
+      project.Active = toggleDto.active;
+  
+      await this.projectRepository.save(project);
+      return await this.getbyIdProject(id);
+    }
 }

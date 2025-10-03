@@ -5,6 +5,7 @@ import { ProjectStatusDto } from "../dto/projectStatus.dto";
 import { CreateProjectDto } from "../dto/createProject.dto";
 import { UpdateProjectDto } from "../dto/updateProject.dto";
 import { FilesInterceptor } from "@nestjs/platform-express";
+import { ToggleActiveDto } from "../dto/UdpateActive.dto";
 
 @Controller('projects')
 export class ProjectController {
@@ -31,6 +32,15 @@ export class ProjectController {
         @Body() projectStatus: ProjectStatusDto
     ): Promise<Project> {
         return await this.projectservice.statusProject(id, projectStatus);
+    }
+
+
+    @Patch('active/:id')
+    async statusActive(
+        @Param('id', ParseIntPipe) id: number,
+        @Body() projectStatusActive: ToggleActiveDto
+    ): Promise<Project> {
+        return await this.projectservice.toggleActive(id, projectStatusActive);
     }
 
     @Post()
