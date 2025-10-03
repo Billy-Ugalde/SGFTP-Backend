@@ -213,33 +213,39 @@ export class InformativeSeedService {
     await this.contentBlockService.updateOrCreateBatch(homeBlocks);
 
     const teamBlocks = [
+      // Presidenta
       { page: 'home', section: 'board_members', block_key: 'president_name', text_content: 'Sra. Lizbeth Cerdas Dinarte' },
-      { page: 'home', section: 'board_members', block_key: 'president_photo', image_url: '/src/assets/Presidenta.jpg' },
+      { page: 'home', section: 'board_members', block_key: 'president_photo', image_url: 'https://drive.google.com/thumbnail?id=1e811jszZ26WiotddFYydvIGi3sDShBvZ&sz=w1000' },
 
+      // Vice-Presidenta
       { page: 'home', section: 'board_members', block_key: 'vice_president_name', text_content: 'Yuly Viviana Arenas Vargas' },
-      { page: 'home', section: 'board_members', block_key: 'vice_president_photo', image_url: '/src/assets/Vicepresidenta.jpg' },
+      { page: 'home', section: 'board_members', block_key: 'vice_president_photo', image_url: 'https://drive.google.com/thumbnail?id=16pNs8CpwEdckZUroZ7Oer9QAl0TyxevT&sz=w1000' },
 
-      { page: 'home', section: 'board_members', block_key: 'secretary_name', text_content: 'Carlos Roberto Pizarro Barrantes' },
-      { page: 'home', section: 'board_members', block_key: 'secretary_photo', image_url: '/src/assets/Secretario.jpg' },
-
-      { page: 'home', section: 'board_members', block_key: 'treasurer_name', text_content: 'Melissa Vargas Vargas' },
-      { page: 'home', section: 'board_members', block_key: 'treasurer_photo', image_url: '/src/assets/Tesorera.jpg' },
-
+      // Director
       { page: 'home', section: 'board_members', block_key: 'director_name', text_content: 'Brandon Barrantes Corea' },
-      { page: 'home', section: 'board_members', block_key: 'director_photo', image_url: '/src/assets/Director_ejecutivo.jpg' },
+      { page: 'home', section: 'board_members', block_key: 'director_photo', image_url: 'https://drive.google.com/thumbnail?id=1dGqjPxXl4e2JtHRU-HixCSEJK1QHBx9q&sz=w1000' },
 
-      { page: 'home', section: 'board_members', block_key: 'vocal_name', text_content: 'Leonel Francisco Peralta Barrantes'},
-      { page: 'home', section: 'board_members', block_key: 'vocal_photo', image_url: '/src/assets/Vocal.jpg' },
+      // Tesorera
+      { page: 'home', section: 'board_members', block_key: 'treasurer_name', text_content: 'Melissa Vargas Vargas' },
+      { page: 'home', section: 'board_members', block_key: 'treasurer_photo', image_url: 'https://drive.google.com/thumbnail?id=1d_Ec6QgTLVyuOayag0najPfrDvcj827P&sz=w1000' },
 
-      { page: 'home', section: 'board_members', block_key: 'executive_representative_name', text_content: 'Carlos Roberto Pizarro Barrantes' },
-      { page: 'home', section: 'board_members', block_key: 'executive_representative_photo', image_url: '/src/assets/Secretario.jpg' },
+      // Secretario
+      { page: 'home', section: 'board_members', block_key: 'secretary_name', text_content: 'Carlos Roberto Pizarro Barrantes' },
+      { page: 'home', section: 'board_members', block_key: 'secretary_photo', image_url: 'https://drive.google.com/thumbnail?id=17_4TcuVTgziOCD7zbjKO2CZ0uMV8JtfJ&sz=w1000' },
+
+      // Vocal
+      { page: 'home', section: 'board_members', block_key: 'vocal_name', text_content: 'Carlos Roberto Pizarro Barrantes' },
+      { page: 'home', section: 'board_members', block_key: 'vocal_photo', image_url: 'https://drive.google.com/thumbnail?id=1SJql1leOzeYsVRiAkSiDj-ZgDRdCV21C&sz=w1000' },
+
+      { page: 'home', section: 'board_members', block_key: 'executive_representative_name', text_content: 'Leonel Francisco Peralta Barrantes' },
+      { page: 'home', section: 'board_members', block_key: 'executive_representative_photo', image_url: 'https://drive.google.com/thumbnail?id=17_4TcuVTgziOCD7zbjKO2CZ0uMV8JtfJ&sz=w1000' },
 
       { page: 'home', section: 'board_members', block_key: 'municipal_representative_name', text_content: 'Leonel Francisco Peralta Barrantes' },
-      { page: 'home', section: 'board_members', block_key: 'municipal_representative_photo', image_url: '/src/assets/Vocal.jpg' },
+      { page: 'home', section: 'board_members', block_key: 'municipal_representative_photo', image_url: 'https://drive.google.com/thumbnail?id=1DVyIchX9gh_ret0dZCDpmuwR3SRx2hbu&sz=w1000' },
 
-      { page: 'home', section: 'board_members', block_key: 'coordinator_name', text_content: 'Sr. Nombre Coordinador' },
-      { page: 'home', section: 'board_members', block_key: 'coordinator_photo', image_url: '/images/example.jpg' },
-    ]; 
+      { page: 'home', section: 'board_members', block_key: 'coordinator_name', text_content: 'Leonel Francisco Peralta Barrantes' },
+      { page: 'home', section: 'board_members', block_key: 'coordinator_photo', image_url: 'https://drive.google.com/thumbnail?id=1dGqos4kUIUazkn6Ah7db2zEVpPhey1tl&sz=w1000' },
+    ];
     await this.contentBlockService.updateOrCreateBatch(teamBlocks);
     
   }

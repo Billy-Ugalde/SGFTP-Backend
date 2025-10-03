@@ -115,9 +115,22 @@ export class ContentBlockService {
   async findByPageAndSection(page: string, section: string): Promise<Record<string, string | null>> {
     const blocks = await this.contentBlockRepository.find({ where: { page, section } });
     const out: Record<string, string | null> = {};
+    
     for (const b of blocks) {
-      out[b.block_key] = b.text_content ?? b.image_url ?? null;
+      // Obtener valores y hacer trim para verificar si tienen contenido real
+      const textValue = b.text_content?.trim() || '';
+      const imageValue = b.image_url?.trim() || '';
+      
+      // Priorizar el valor que tenga contenido real (no vacío)
+      if (textValue.length > 0) {
+        out[b.block_key] = textValue;
+      } else if (imageValue.length > 0) {
+        out[b.block_key] = imageValue;
+      } else {
+        out[b.block_key] = null;
+      }
     }
+    
     return out;
   }
 
@@ -179,10 +192,23 @@ export class ContentBlockService {
   // Helper function to validate the structure of the content
   private mapBlocksToSlim(blocks: ContentBlock[]): Record<string, Record<string, string | null>> {
     const out: Record<string, Record<string, string | null>> = {};
+    
     for (const b of blocks) {
       if (!out[b.section]) out[b.section] = {};
-      out[b.section][b.block_key] = b.text_content ?? b.image_url ?? null;
-    } 
+      
+      // Usar la misma lógica que findByPageAndSection
+      const textValue = b.text_content?.trim() || '';
+      const imageValue = b.image_url?.trim() || '';
+      
+      if (textValue.length > 0) {
+        out[b.section][b.block_key] = textValue;
+      } else if (imageValue.length > 0) {
+        out[b.section][b.block_key] = imageValue;
+      } else {
+        out[b.section][b.block_key] = null;
+      }
+    }
+    
     return out;
   }
 

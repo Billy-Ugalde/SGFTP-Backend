@@ -2,6 +2,8 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import * as cookieParser from 'cookie-parser';
+import * as express from 'express'; 
+import { join } from 'path';
 
 async function bootstrap() {
 
@@ -13,6 +15,10 @@ async function bootstrap() {
     exposedHeaders: ['Content-Disposition'],
     credentials: true,
   });
+
+  // Servir archivos estáticos desde la carpeta public
+  app.use('/images', express.static(join(__dirname, '..', 'public', 'images')));
+
 
   app.useGlobalPipes(
     new ValidationPipe({
