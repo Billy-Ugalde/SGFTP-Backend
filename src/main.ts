@@ -4,23 +4,29 @@ import { ValidationPipe } from '@nestjs/common';
 import * as cookieParser from 'cookie-parser';
 
 async function bootstrap() {
-
   const app = await NestFactory.create(AppModule);
   app.use(cookieParser());
 
   app.enableCors({
-    origin: 'http://localhost:5173',     //solo admite peticiones de esta dirección
+    origin: 'http://localhost:5173',
     exposedHeaders: ['Content-Disposition'],
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
   });
 
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
-      forbidNonWhitelisted: true,  // Hace que en las peticiones HTPP en los json que se manden sean cabalmente como se definen en los dtos
-      transform: true
+      forbidNonWhitelisted: true,
+      transform: true,
+      transformOptions: {
+        enableImplicitConversion: true,
+      },
     }),
   );
-  await app.listen(process.env.PORT ?? 3001); // este puerto va a ser por defecto
+  
+  await app.listen(process.env.PORT ?? 3001);
+  console.log(`Application is running on: http://localhost:${process.env.PORT ?? 3001}`);
 }
 bootstrap();

@@ -1,13 +1,14 @@
 import {
     Body, Controller, Get, HttpCode, HttpStatus, Param,
-    ParseIntPipe, Patch, Post, Put, UploadedFile, UploadedFiles, UseInterceptors
+    ParseIntPipe, Patch, Post, Put, UploadedFile, UseInterceptors
 } from "@nestjs/common";
-import { FileInterceptor} from "@nestjs/platform-express";
+import { FileInterceptor } from "@nestjs/platform-express";
 import { ActivityService } from "../services/activity.service";
 import { Activity } from "../entities/activity.entity";
 import { ActivityStatusDto } from "../dto/activityStatus.dto";
 import { CreateActivityDto } from "../dto/createActivity.dto";
 import { UpdateActivityDto } from "../dto/updateActivity.dto";
+import { ParseJsonFieldsInterceptor } from "../../../common/interceptors/parse-json-fields.interceptor";
 
 @Controller('activities')
 export class ActivityController {
@@ -31,9 +32,17 @@ export class ActivityController {
         return await this.activityservice.statusActivity(id_activity, activityStatus);
     }
 
+    @Patch('active/:id')
+    async toggleActive(
+        @Param('id', ParseIntPipe) id_activity: number,
+        @Body() body: { active: boolean }
+    ): Promise<Activity> {
+        return await this.activityservice.updateActive(id_activity, body.active);
+    }
+
     @Post()
     @HttpCode(HttpStatus.CREATED)
-    @UseInterceptors(FileInterceptor('image'))  
+    @UseInterceptors(FileInterceptor('image'), ParseJsonFieldsInterceptor)
     async createActivity(
         @Body() createActivityDto: CreateActivityDto,
         @UploadedFile() image?: Express.Multer.File  
@@ -42,12 +51,12 @@ export class ActivityController {
     }
 
     @Put(':id')
-    @UseInterceptors(FileInterceptor('image'))
-    async updateProject(
+    @UseInterceptors(FileInterceptor('image'), ParseJsonFieldsInterceptor)
+    async updateActivity(
         @Param('id', ParseIntPipe) id: number,
-        @Body() updateProject: UpdateActivityDto,
-        @UploadedFiles() image?: Express.Multer.File
+        @Body() updateActivityDto: UpdateActivityDto,
+        @UploadedFile() image?: Express.Multer.File
     ): Promise<Activity> {
-        return await this.activityservice.updateActivity(id, updateProject, image);
+        return await this.activityservice.updateActivity(id, updateActivityDto, image);
     }
 }
