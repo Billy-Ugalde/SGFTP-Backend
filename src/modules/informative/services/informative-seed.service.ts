@@ -10,8 +10,10 @@ export class InformativeSeedService {
   ) {}
 
   async seedInformativeContent(): Promise<void> {
+    console.log('🌱 Starting informative content seeding...');
     await this.seedContentBlocks();
     await this.seedContactInfo();
+    console.log('✅ Informative content seeding completed');
   }
 
   private async seedContentBlocks() {
