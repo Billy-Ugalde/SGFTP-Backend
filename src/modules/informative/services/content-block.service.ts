@@ -167,25 +167,23 @@ export class ContentBlockService {
 
   private async upsertByNaturalKey(createOrUpdateDto: CreateContentBlockDto): Promise<ContentBlock> {
     const { page, section, block_key } = createOrUpdateDto;
-    
+
     // Buscar bloque existente
     const existing = await this.contentBlockRepository.findOne({
       where: { page, section, block_key }
     });
 
     if (existing) {
-      // Actualizar bloque existente
-      if (createOrUpdateDto.text_content !== undefined) {
-        existing.text_content = createOrUpdateDto.text_content;
-      }
-      if (createOrUpdateDto.image_url !== undefined) {
-        existing.image_url = createOrUpdateDto.image_url;
-      }
-      return this.contentBlockRepository.save(existing);
+      // Si el bloque ya existe, NO actualizamos nada (preservar datos existentes)
+      // Esto previene que el seeder sobrescriba contenido editado manualmente
+      console.log(`ℹ️  Block ${page}/${section}/${block_key} already exists, skipping update`);
+      return existing;
     } else {
-      // Crear nuevo bloque
+      // Crear nuevo bloque solo si no existe
       const newBlock = this.contentBlockRepository.create(createOrUpdateDto);
-      return this.contentBlockRepository.save(newBlock);
+      const saved = await this.contentBlockRepository.save(newBlock);
+      console.log(`✅ Created new block: ${page}/${section}/${block_key}`);
+      return saved;
     }
   }
 
