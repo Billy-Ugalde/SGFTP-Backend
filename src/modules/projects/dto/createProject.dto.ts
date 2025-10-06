@@ -1,5 +1,4 @@
-import { IsDateString, IsEnum, IsInt, IsNotEmpty, IsOptional, IsString, Min } from "class-validator";
-import { MetricProject } from "../enums/project.enum";
+import { IsDateString, IsInt, IsNotEmpty, IsOptional, IsString, Min } from "class-validator";
 import { Type } from "class-transformer";
 
 export class CreateProjectDto {
@@ -35,16 +34,21 @@ export class CreateProjectDto {
     @IsString({ message: 'La ubicación debe ser una cadena de texto' })
     Location: string;
 
-    @IsNotEmpty({ message: 'Las métricas son obligatorias' })
-    @IsEnum(MetricProject, {
-        message: `Las métricas deben ser: ${Object.values(MetricProject).join(', ')}`
-    })
-    Metrics: MetricProject;
+    @IsNotEmpty({ message: 'El valor de la métrica es obligatorio' })
+    @Type(() => Number)
+    @IsInt({ message: 'El valor de la métrica debe ser un número entero' })
+    @Min(0, { message: 'El valor de la métrica debe ser mayor o igual a 0' })
+    METRIC_TOTAL_BENEFICIATED: number;
 
     @IsNotEmpty({ message: 'El valor de la métrica es obligatorio' })
     @Type(() => Number)
     @IsInt({ message: 'El valor de la métrica debe ser un número entero' })
     @Min(0, { message: 'El valor de la métrica debe ser mayor o igual a 0' })
-    Metric_value: number;
+    METRIC_TOTAL_WASTE_COLLECTED: number;
 
+    @IsNotEmpty({ message: 'El valor de la métrica es obligatorio' })
+    @Type(() => Number)
+    @IsInt({ message: 'El valor de la métrica debe ser un número entero' })
+    @Min(0, { message: 'El valor de la métrica debe ser mayor o igual a 0' })
+    METRIC_TOTAL_TREES_PLANTED: number;
 }

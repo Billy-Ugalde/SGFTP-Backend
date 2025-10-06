@@ -3,7 +3,7 @@ import {
     PrimaryGeneratedColumn, UpdateDateColumn
 } from "typeorm";
 import { Activity } from "./activity.entity";
-import { MetricProject, ProjectStatus } from "../enums/project.enum";
+import {ProjectStatus } from "../enums/project.enum";
 @Index(['Name', 'Registration_date'], { unique: true })
 @Entity()
 export class Project {
@@ -49,10 +49,13 @@ export class Project {
     Location: string;            //ubicacion general
 
     @Column({ nullable: false })
-    Metrics: MetricProject;
+    METRIC_TOTAL_BENEFICIATED: number;
 
     @Column({ nullable: false })
-    Metric_value: number;
+    METRIC_TOTAL_WASTE_COLLECTED: number;
+
+    @Column({ nullable: false })
+    METRIC_TOTAL_TREES_PLANTED: number;
 
     @Column({ default: false })
     Active: boolean;
@@ -65,6 +68,15 @@ export class Project {
 
     @Column({ length: 500, nullable: true })
     url_3?: string;
+
+    @Column({ length: 500, nullable: true })
+    url_4?: string;
+
+    @Column({ length: 500, nullable: true })
+    url_5?: string;
+
+    @Column({ length: 500, nullable: true })
+    url_6?: string;
 
     @OneToMany(() => Activity, (activity) => activity.project)
     activity: Activity[];
