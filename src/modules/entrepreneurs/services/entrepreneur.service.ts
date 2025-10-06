@@ -349,6 +349,7 @@ export class EntrepreneurService {
     id: number,
     dto: UpdateCompleteEntrepreneurDto,
     user: any,
+    files?: Express.Multer.File[],
   ): Promise<Entrepreneur> {
     // 1) Cargar el emprendedor con sus relaciones para validar ownership
     const entrepreneur = await this.findOne(id);
@@ -375,8 +376,8 @@ export class EntrepreneurService {
       throw new ForbiddenException('Solo el dueño puede actualizar su registro.');
     }
 
-    // 4) Reutilizar la lógica de update existente
-    return await this.update(id, dto);
+    // 4) Reutilizar la lógica de update existente con archivos
+    return await this.update(id, dto, files);
   }
   // ===================== FIN NUEVO =====================
 
