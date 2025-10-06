@@ -47,8 +47,9 @@ export class ProjectService implements IProjectService {
         End_date: createprojectDto.End_date,
         Target_population: createprojectDto.Target_population,
         Location: createprojectDto.Location,
-        Metrics: createprojectDto.Metrics,
-        Metric_value: 0,
+        METRIC_TOTAL_BENEFICIATED: createprojectDto.METRIC_TOTAL_BENEFICIATED,
+        METRIC_TOTAL_WASTE_COLLECTED: createprojectDto.METRIC_TOTAL_WASTE_COLLECTED,
+        METRIC_TOTAL_TREES_PLANTED: createprojectDto.METRIC_TOTAL_TREES_PLANTED,
         Active: false,
         Status: ProjectStatus.PENDING
       });
@@ -122,8 +123,9 @@ export class ProjectService implements IProjectService {
       if (updateProjectDto.Target_population) updateData.Target_population = updateProjectDto.Target_population;
       if (updateProjectDto.Location) updateData.Location = updateProjectDto.Location;
       if (updateProjectDto.Active !== undefined) updateData.Active = updateProjectDto.Active;
-      if (updateProjectDto.Metrics) updateData.Metrics = updateProjectDto.Metrics;
-      if (updateProjectDto.Metric_value !== undefined) updateData.Metric_value = updateProjectDto.Metric_value;
+      if (updateProjectDto.METRIC_TOTAL_TREES_PLANTED) updateData.METRIC_TOTAL_TREES_PLANTED = updateProjectDto.METRIC_TOTAL_TREES_PLANTED;
+      if (updateProjectDto.METRIC_TOTAL_WASTE_COLLECTED) updateData.METRIC_TOTAL_WASTE_COLLECTED = updateProjectDto.METRIC_TOTAL_WASTE_COLLECTED;
+      if (updateProjectDto.METRIC_TOTAL_BENEFICIATED) updateData.METRIC_TOTAL_BENEFICIATED = updateProjectDto.METRIC_TOTAL_BENEFICIATED;
 
 
       if (images && images.length > 0) {
@@ -245,8 +247,9 @@ export class ProjectService implements IProjectService {
       throw new NotFoundException(`El proyecto con ID ${id_project} no fue encontrado`);
     }
     return {
-      metric: project.Metrics,
-      metric_value: project.Metric_value
+      METRIC_TOTAL_BENEFICIATED: project.METRIC_TOTAL_BENEFICIATED,
+      TOTAL_WASTE_COLLECTED: project.METRIC_TOTAL_WASTE_COLLECTED,
+      TOTAL_TREES_PLANTED: project.METRIC_TOTAL_TREES_PLANTED,
     };
   }
 
@@ -277,12 +280,12 @@ export class ProjectService implements IProjectService {
     return updatedProject;
   }
 
-   async toggleActive(id: number, toggleDto: ToggleActiveDto): Promise<Project> {
-      const project = await this.getbyIdProject(id);
-  
-      project.Active = toggleDto.active;
-  
-      await this.projectRepository.save(project);
-      return await this.getbyIdProject(id);
-    }
+  async toggleActive(id: number, toggleDto: ToggleActiveDto): Promise<Project> {
+    const project = await this.getbyIdProject(id);
+
+    project.Active = toggleDto.active;
+
+    await this.projectRepository.save(project);
+    return await this.getbyIdProject(id);
+  }
 }
