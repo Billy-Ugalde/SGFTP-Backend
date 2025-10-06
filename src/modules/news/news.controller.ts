@@ -45,9 +45,16 @@ export class NewsController {
   }
 
   @Get()
-  @Public()
+  @UseGuards(RoleGuard)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN, UserRole.CONTENT_ADMIN)
   getAll() {
     return this.newsService.getAll();
+  }
+
+  @Get('published')
+  @Public()
+  getAllPublished() {
+    return this.newsService.getAllPublished();
   }
 
   @Get(':id')
