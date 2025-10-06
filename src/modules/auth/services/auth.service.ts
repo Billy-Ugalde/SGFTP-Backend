@@ -100,9 +100,11 @@ export class AuthService {
 
         return {
             ...cookieConfig,
-            maxAge: isRefreshToken 
-            ? 7 * 24 * 60 * 60 * 1000    // 7 días para refresh token
-            : 15 * 60 * 1000,            // 15 minutos para access token
+            maxAge: isRefreshToken
+            ? 30 * 24 * 60 * 60 * 1000   // 30 días para refresh token
+            : isProduction
+                ? 60 * 60 * 1000          // 1 hora en producción
+                : 2 * 60 * 60 * 1000,     // 2 horas en desarrollo
         };
     }
 
