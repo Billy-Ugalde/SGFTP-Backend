@@ -85,12 +85,19 @@ export class EntrepreneurController {
   // Ruta para que el dueño (usuario autenticado con rol entrepreneur) actualice su propio registro
   @Put('public/:id')
   @HttpCode(HttpStatus.OK)
+  @UseGuards(RoleGuard)
+  @Roles(UserRole.ENTREPRENEUR)
+  @UseInterceptors(FilesInterceptor('files', 3))
   async updateOwn(
     @Param('id', ParseIntPipe) id: number,
-    @Body() dto: UpdateCompleteEntrepreneurDto,
+    @Body('person', ParseJsonPipe) person: any,
+    @Body('entrepreneur', ParseJsonPipe) entrepreneur: any,
+    @Body('entrepreneurship', ParseJsonPipe) entrepreneurship: any,
+    @UploadedFiles() files: Express.Multer.File[],
     @Req() req: any,
   ): Promise<Entrepreneur> {
-    return this.entrepreneurService.updateIfOwnerAndEntrepreneurRole(id, dto, req.user);
+    const dto: UpdateCompleteEntrepreneurDto = { person, entrepreneur, entrepreneurship };
+    return this.entrepreneurService.updateIfOwnerAndEntrepreneurRole(id, dto, req.user, files);
   }
   // ================== FIN NUEVO =================================================
 

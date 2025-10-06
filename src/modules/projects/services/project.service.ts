@@ -1,6 +1,7 @@
 import { ConflictException, Injectable, InternalServerErrorException, NotFoundException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Project } from "../entities/project.entity";
+import { Activity } from "../entities/activity.entity";
 import { DataSource, QueryFailedError, Repository } from "typeorm";
 import { IProjectService } from "../interfaces/project.interface";
 import { ProjectStatusDto } from "../dto/projectStatus.dto";
@@ -15,6 +16,8 @@ export class ProjectService implements IProjectService {
   constructor(
     @InjectRepository(Project)
     private projectRepository: Repository<Project>,
+    @InjectRepository(Activity)
+    private activityRepository: Repository<Activity>,
     private dataSource: DataSource,
     private googleDriveService: GoogleDriveService,
   ) { }
