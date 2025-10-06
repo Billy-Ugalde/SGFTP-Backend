@@ -71,6 +71,9 @@ export class ProjectService implements IProjectService {
           url_1: urls[0] || undefined,
           url_2: urls[1] || undefined,
           url_3: urls[2] || undefined,
+          url_4: urls[3] || undefined,
+          url_5: urls[4] || undefined,
+          url_6: urls[5] || undefined,
         });
       }
 
@@ -123,9 +126,9 @@ export class ProjectService implements IProjectService {
       if (updateProjectDto.Target_population) updateData.Target_population = updateProjectDto.Target_population;
       if (updateProjectDto.Location) updateData.Location = updateProjectDto.Location;
       if (updateProjectDto.Active !== undefined) updateData.Active = updateProjectDto.Active;
-      if (updateProjectDto.METRIC_TOTAL_TREES_PLANTED) updateData.METRIC_TOTAL_TREES_PLANTED = updateProjectDto.METRIC_TOTAL_TREES_PLANTED;
-      if (updateProjectDto.METRIC_TOTAL_WASTE_COLLECTED) updateData.METRIC_TOTAL_WASTE_COLLECTED = updateProjectDto.METRIC_TOTAL_WASTE_COLLECTED;
-      if (updateProjectDto.METRIC_TOTAL_BENEFICIATED) updateData.METRIC_TOTAL_BENEFICIATED = updateProjectDto.METRIC_TOTAL_BENEFICIATED;
+      if (updateProjectDto.METRIC_TOTAL_TREES_PLANTED !== undefined) updateData.METRIC_TOTAL_TREES_PLANTED = updateProjectDto.METRIC_TOTAL_TREES_PLANTED;
+      if (updateProjectDto.METRIC_TOTAL_WASTE_COLLECTED !== undefined) updateData.METRIC_TOTAL_WASTE_COLLECTED = updateProjectDto.METRIC_TOTAL_WASTE_COLLECTED;
+      if (updateProjectDto.METRIC_TOTAL_BENEFICIATED !== undefined) updateData.METRIC_TOTAL_BENEFICIATED = updateProjectDto.METRIC_TOTAL_BENEFICIATED;
 
 
       if (images && images.length > 0) {
@@ -135,8 +138,7 @@ export class ProjectService implements IProjectService {
         const fileMapping: { [key: string]: Express.Multer.File } = {};
         let fileIndex = 0;
 
-
-        for (const field of ['url_1', 'url_2', 'url_3'] as const) {
+        for (const field of ['url_1', 'url_2', 'url_3', 'url_4', 'url_5', 'url_6'] as const) {
           const fieldValue = updateProjectDto[field];
 
           if (typeof fieldValue === 'string' && fieldValue.startsWith('__FILE_REPLACE_')) {
@@ -165,21 +167,10 @@ export class ProjectService implements IProjectService {
             }
           }
 
-
           try {
             console.log(`⬆️ Subiendo nuevo archivo...`);
             const { url } = await this.googleDriveService.uploadFile(file, folderName);
-            switch (field) {
-              case 'url_1':
-                updateData.url_1 = url;
-                break;
-              case 'url_2':
-                updateData.url_2 = url;
-                break;
-              case 'url_3':
-                updateData.url_3 = url;
-                break;
-            }
+            updateData[field] = url;
             console.log(`✅ Nueva URL: ${url}`);
           } catch (uploadError) {
             throw new InternalServerErrorException(
@@ -188,7 +179,6 @@ export class ProjectService implements IProjectService {
           }
         }
       }
-
 
       if (Object.keys(updateData).length > 0) {
         await queryRunner.manager.update(Project, id_project, updateData);
@@ -201,7 +191,7 @@ export class ProjectService implements IProjectService {
       if (filesToDelete.length > 0) {
         console.log(`🗑️ Eliminando ${filesToDelete.length} archivos antiguos`);
 
-        Promise.all(
+        await Promise.all(
           filesToDelete.map(async (fileId) => {
             try {
               await this.googleDriveService.deleteFile(fileId);
@@ -240,12 +230,14 @@ export class ProjectService implements IProjectService {
     return project;
   }
 
+
   async getMetricByProject(id_project: number) {
-    const project = await this.projectRepository.findOne({ where: { Id_project: id_project } });
+    const project = await this.getbyIdProject(id_project);
 
     if (!project) {
       throw new NotFoundException(`El proyecto con ID ${id_project} no fue encontrado`);
     }
+
     return {
       METRIC_TOTAL_BENEFICIATED: project.METRIC_TOTAL_BENEFICIATED,
       TOTAL_WASTE_COLLECTED: project.METRIC_TOTAL_WASTE_COLLECTED,
@@ -259,33 +251,18 @@ export class ProjectService implements IProjectService {
     });
   }
 
-  async statusProject(id_project: number, projectStatus: ProjectStatusDto) {
-
-    const project = await this.projectRepository.findOne({
-      where: { Id_project: id_project }
-    });
-
+  async statusProject(id_project: number, projectStatus: ProjectStatusDto): Promise<Project> {
+    const project = this.getbyIdProject(id_project);
     if (!project) {
       throw new NotFoundException(`El proyecto con ID ${id_project} no fue encontrado`);
     }
     await this.projectRepository.update(id_project, { Status: projectStatus.Status });
-
-    const updatedProject = await this.projectRepository.findOne({
-      where: { Id_project: id_project }
-    });
-
-    if (!updatedProject) {
-      throw new NotFoundException(`No se pudo actualizar el estado del proyecto `);
-    }
-    return updatedProject;
+    return await this.getbyIdProject(id_project);
   }
 
   async toggleActive(id: number, toggleDto: ToggleActiveDto): Promise<Project> {
     const project = await this.getbyIdProject(id);
-
     project.Active = toggleDto.active;
-
-    await this.projectRepository.save(project);
-    return await this.getbyIdProject(id);
+    return await this.projectRepository.save(project); // Ya retorna el proyecto actualizado
   }
 }

@@ -69,6 +69,15 @@ export class Project {
     @Column({ length: 500, nullable: true })
     url_3?: string;
 
+    @Column({ length: 500, nullable: true })
+    url_4?: string;
+
+    @Column({ length: 500, nullable: true })
+    url_5?: string;
+
+    @Column({ length: 500, nullable: true })
+    url_6?: string;
+
     @OneToMany(() => Activity, (activity) => activity.project)
     activity: Activity[];
 }
