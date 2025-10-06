@@ -233,6 +233,20 @@ export class ProjectService implements IProjectService {
     return project;
   }
 
+  async getActivitiesByProject(id_project: number): Promise<Activity[]> {
+
+    await this.getbyIdProject(id_project);
+
+    return await this.activityRepository.find({
+      where: {
+        project: { Id_project: id_project }
+      },
+      relations: ['dateActivities'],
+      order: {
+        Registration_date: 'DESC'
+      }
+    });
+  }
 
   async getMetricByProject(id_project: number) {
     const project = await this.getbyIdProject(id_project);
