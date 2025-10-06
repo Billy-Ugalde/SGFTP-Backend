@@ -1,6 +1,7 @@
 import { ConflictException, Injectable, InternalServerErrorException, NotFoundException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Project } from "../entities/project.entity";
+import { Activity } from "../entities/activity.entity";
 import { DataSource, QueryFailedError, Repository } from "typeorm";
 import { IProjectService } from "../interfaces/project.interface";
 import { ProjectStatusDto } from "../dto/projectStatus.dto";
@@ -15,6 +16,8 @@ export class ProjectService implements IProjectService {
   constructor(
     @InjectRepository(Project)
     private projectRepository: Repository<Project>,
+    @InjectRepository(Activity)
+    private activityRepository: Repository<Activity>,
     private dataSource: DataSource,
     private googleDriveService: GoogleDriveService,
   ) { }
@@ -236,6 +239,21 @@ export class ProjectService implements IProjectService {
       throw new NotFoundException(`El proyecto con ID ${id_project} no fue encontrado`);
     }
     return project;
+  }
+
+  async getActivitiesByProject(id_project: number): Promise<Activity[]> {
+
+    await this.getbyIdProject(id_project);
+    
+    return await this.activityRepository.find({
+      where: { 
+        project: { Id_project: id_project } 
+      },
+      relations: ['dateActivities'],
+      order: {
+        Registration_date: 'DESC'
+      }
+    });
   }
 
   async getMetricByProject(id_project: number) {
