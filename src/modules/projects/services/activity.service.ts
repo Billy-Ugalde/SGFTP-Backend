@@ -9,6 +9,8 @@ import { ProjectService } from "./project.service";
 import { IActivityService } from "../interfaces/activity.interface";
 import { ActivityStatusDto } from "../dto/activityStatus.dto";
 import { UpdateActivityDto } from "../dto/updateActivity.dto";
+import { ACTIVITY_TYPE_TO_PROJECT_METRIC } from "../Constants/activity-metrics.constant";
+import { Project } from "../entities/project.entity"; 
 
 @Injectable()
 export class ActivityService implements IActivityService {
@@ -16,15 +18,15 @@ export class ActivityService implements IActivityService {
         @InjectRepository(Activity)
         private activityRepository: Repository<Activity>,
         @InjectRepository(DateActivity)
-        private dateActivityRepository: Repository<DateActivity>,  
-        private dataSource: DataSource,  
+        private dateActivityRepository: Repository<DateActivity>,
+        private dataSource: DataSource,
         private googleDriveService: GoogleDriveService,
         private projectService: ProjectService,
     ) { }
 
     async createActivity(
         createActivityDto: CreateActivityDto,
-        image?: Express.Multer.File
+        images?: Express.Multer.File[]
     ): Promise<Activity> {
         const queryRunner = this.dataSource.createQueryRunner();
         await queryRunner.connect();
@@ -76,13 +78,26 @@ export class ActivityService implements IActivityService {
                 }
             }
 
-            if (image) {
+            if (images && images.length > 0) {
                 const folderName = `activity_${savedActivity.Id_activity}`;
-                const { url } = await this.googleDriveService.uploadFile(image, folderName);
+                const urls: string[] = [];
 
+                // Subir cada imagen al Drive
+                for (const image of images) {
+                    const { url } = await this.googleDriveService.uploadFile(image, folderName);
+                    urls.push(url);
+                }
+
+                // Asignar las URLs (hasta 3)
                 await queryRunner.manager.update(Activity, savedActivity.Id_activity, {
-                    url: url
+                    url1: urls[0] || undefined,
+                    url2: urls[1] || undefined,
+                    url3: urls[2] || undefined
                 });
+            }
+
+            if (createActivityDto.Metric_value && createActivityDto.Metric_value > 0) {
+                await this.updateProjectMetrics(savedActivity.Id_activity, queryRunner, createActivityDto.Metric_value);
             }
 
             await queryRunner.commitTransaction();
@@ -113,7 +128,7 @@ export class ActivityService implements IActivityService {
     async updateActivity(
         id_activity: number,
         updateActivityDto: UpdateActivityDto,
-        image?: Express.Multer.File
+        images?: Express.Multer.File[]
     ): Promise<Activity> {
         const queryRunner = this.dataSource.createQueryRunner();
         await queryRunner.connect();
@@ -121,9 +136,13 @@ export class ActivityService implements IActivityService {
 
         try {
             const activity = await this.getbyIdActivity(id_activity);
-            let fileToDelete: string | null = null;
+            const filesToDelete: string[] = [];
 
             const updateData: Partial<Activity> = {};
+
+            const oldMetricActivity = activity.Metric_activity;
+            const metricActivityChanged = updateActivityDto.Metric_activity &&
+                updateActivityDto.Metric_activity !== oldMetricActivity;
 
             if (updateActivityDto.Name) updateData.Name = updateActivityDto.Name;
             if (updateActivityDto.Description) updateData.Description = updateActivityDto.Description;
@@ -142,20 +161,36 @@ export class ActivityService implements IActivityService {
             if (updateActivityDto.Metric_value !== undefined) updateData.Metric_value = updateActivityDto.Metric_value;
             if (updateActivityDto.Active !== undefined) updateData.Active = updateActivityDto.Active;
 
-            if (image) {
+            if (images && images.length > 0) {
                 const folderName = `activity_${id_activity}`;
-                const currentUrl = activity.url;
-
-                if (currentUrl && currentUrl.trim() !== '') {
-                    const fileId = this.googleDriveService.extractFileIdFromUrl(currentUrl);
-                    if (fileId) {
-                        fileToDelete = fileId;
-                    }
-                }
 
                 try {
-                    const { url } = await this.googleDriveService.uploadFile(image, folderName);
-                    updateData.url = url;
+                    if (images[0]) {
+                        if (activity.url1 && activity.url1.trim() !== '') {
+                            const fileId = this.googleDriveService.extractFileIdFromUrl(activity.url1);
+                            if (fileId) filesToDelete.push(fileId);
+                        }
+                        const { url } = await this.googleDriveService.uploadFile(images[0], folderName);
+                        updateData.url1 = url;
+                    }
+
+                    if (images[1]) {
+                        if (activity.url2 && activity.url2.trim() !== '') {
+                            const fileId = this.googleDriveService.extractFileIdFromUrl(activity.url2);
+                            if (fileId) filesToDelete.push(fileId);
+                        }
+                        const { url } = await this.googleDriveService.uploadFile(images[1], folderName);
+                        updateData.url2 = url;
+                    }
+
+                    if (images[2]) {
+                        if (activity.url3 && activity.url3.trim() !== '') {
+                            const fileId = this.googleDriveService.extractFileIdFromUrl(activity.url3);
+                            if (fileId) filesToDelete.push(fileId);
+                        }
+                        const { url } = await this.googleDriveService.uploadFile(images[2], folderName);
+                        updateData.url3 = url;
+                    }
                 } catch (uploadError) {
                     throw new InternalServerErrorException(
                         `Error subiendo imagen: ${uploadError.message}`
@@ -178,10 +213,31 @@ export class ActivityService implements IActivityService {
                 }
             }
 
+            if (metricActivityChanged) {
+                await this.recalculateProjectMetricForType(
+                    activity.project.Id_project,
+                    oldMetricActivity,
+                    id_activity,
+                    queryRunner
+                );
+
+                await this.recalculateProjectMetricForType(
+                    activity.project.Id_project,
+                    updateActivityDto.Metric_activity,
+                    null,
+                    queryRunner
+                );
+            } else if (updateActivityDto.Metric_value !== undefined) {
+
+                await this.updateProjectMetrics(id_activity, queryRunner, updateActivityDto.Metric_value);
+            }
+
             await queryRunner.commitTransaction();
 
-            if (fileToDelete) {
-                this.googleDriveService.deleteFile(fileToDelete).catch(() => {});
+            if (filesToDelete.length > 0) {
+                filesToDelete.forEach(fileId => {
+                    this.googleDriveService.deleteFile(fileId).catch(() => { });
+                });
             }
 
             return await this.getbyIdActivity(id_activity);
@@ -199,6 +255,65 @@ export class ActivityService implements IActivityService {
         } finally {
             await queryRunner.release();
         }
+    }
+
+    private async updateProjectMetrics(activityId: number, queryRunner: any, newMetricValue: number): Promise<void> {
+        const activity = await queryRunner.manager.findOne(Activity, {
+            where: { Id_activity: activityId },
+            relations: ['project']
+        });
+
+        if (!activity || !activity.project) {
+            return;
+        }
+
+        const projectMetricField = ACTIVITY_TYPE_TO_PROJECT_METRIC[activity.Metric_activity];
+
+        if (!projectMetricField) {
+            return;
+        }
+        const otherActivities = await queryRunner.manager
+            .createQueryBuilder(Activity, 'activity')
+            .where('activity.Id_project = :projectId', { projectId: activity.project.Id_project })
+            .andWhere('activity.Metric_activity = :metricActivity', { metricActivity: activity.Metric_activity })
+            .andWhere('activity.Id_activity != :activityId', { activityId: activityId })
+            .getMany();
+        const otherActivitiesTotal = otherActivities.reduce((sum, act) => sum + (act.Metric_value || 0), 0);
+        const totalMetric = otherActivitiesTotal + newMetricValue;
+
+        await queryRunner.manager.update(Project, activity.project.Id_project, {
+            [projectMetricField]: totalMetric
+        });
+    }
+
+    private async recalculateProjectMetricForType(
+        projectId: number,
+        metricActivity: string,
+        excludeActivityId: number | null,
+        queryRunner: any
+    ): Promise<void> {
+        const projectMetricField = ACTIVITY_TYPE_TO_PROJECT_METRIC[metricActivity];
+
+        if (!projectMetricField) {
+            return;
+        }
+
+        const query = queryRunner.manager
+            .createQueryBuilder(Activity, 'activity')
+            .where('activity.Id_project = :projectId', { projectId })
+            .andWhere('activity.Metric_activity = :metricActivity', { metricActivity });
+
+        if (excludeActivityId) {
+            query.andWhere('activity.Id_activity != :excludeActivityId', { excludeActivityId });
+        }
+
+        const activities = await query.getMany();
+
+        const totalMetric = activities.reduce((sum, act) => sum + (act.Metric_value || 0), 0);
+
+        await queryRunner.manager.update(Project, projectId, {
+            [projectMetricField]: totalMetric
+        });
     }
 
     async getAllActivities() {
