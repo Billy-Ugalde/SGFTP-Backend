@@ -2,7 +2,7 @@
 import { Injectable, NotFoundException, InternalServerErrorException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
-import { News } from './entities/news.entity';
+import { News, NewsStatus } from './entities/news.entity';
 import { UpdateNewsDto } from './dto/update-news.dto';
 import { NewsStatusDto } from './dto/news-status.dto'; 
 import { CreateNewsDto } from './dto/create-news.dto';
@@ -23,27 +23,30 @@ export class NewsService {
         await queryRunner.startTransaction();
 
         try {
-            let imageUrl: string | undefined;
-            
-            // 🚀 Subir archivo a Drive si existe
-            if (file) {
-                console.log('📤 Subiendo imagen a Google Drive...');
-                const timestamp = Date.now();
-                const folderName = `news_temp_${timestamp}`;
-                
-                const { url } = await this.googleDriveService.uploadFile(file, folderName);
-                imageUrl = url;
-                console.log('✅ Imagen subida exitosamente:', imageUrl);
-            }
-
-            // Crear la noticia con la URL generada
+            // 1️⃣ PRIMERO crear la noticia sin imagen
             const newNews = this.newsRepository.create({
                 ...createNewsDto,
-                image_url: imageUrl,
+                // image_url se establecerá después
             });
 
             const savedNews = await queryRunner.manager.save(News, newNews);
             console.log('✅ Noticia creada con ID:', savedNews.id_news);
+
+            let imageUrl: string | undefined;
+
+            // 2️⃣ LUEGO subir imagen con el ID real
+            if (file) {
+                console.log('📤 Subiendo imagen a Google Drive...');
+                const folderName = `news_${savedNews.id_news}`;
+                
+                const { url } = await this.googleDriveService.uploadFile(file, folderName);
+                imageUrl = url;
+                console.log('✅ Imagen subida exitosamente:', imageUrl);
+
+                // 3️⃣ ACTUALIZAR la noticia con la URL de la imagen
+                savedNews.image_url = imageUrl;
+                await queryRunner.manager.save(News, savedNews);
+            }
 
             await queryRunner.commitTransaction();
             return savedNews;
@@ -61,9 +64,20 @@ export class NewsService {
 
     async getAll(): Promise<News[]> {
         return this.newsRepository.find({
-            order: { publicationDate: 'DESC' }
+            order: { createdAt: 'DESC' }
         });
-    }       
+    } 
+    
+    async getAllPublished(): Promise<News[]> {
+        return await this.newsRepository.find({
+        where: {
+            status: NewsStatus.PUBLISHED
+        },
+        order: {
+            publicationDate: 'DESC'
+        }
+        });
+    }
 
     async getOne(id_news: number): Promise<News> {
         const news = await this.newsRepository.findOne({ 

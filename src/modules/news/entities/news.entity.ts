@@ -1,4 +1,4 @@
-import {Column, Entity, PrimaryGeneratedColumn} from 'typeorm';
+import {Column, CreateDateColumn, Entity, PrimaryGeneratedColumn} from 'typeorm';
 
 export enum NewsStatus {
     PUBLISHED = 'published',
@@ -17,8 +17,8 @@ export class News {
     @Column({ type: 'text' })
     content: string;            
 
-    @Column({ type: 'varchar', length: 255 })
-    image_url: string;   
+    @Column({ type: 'varchar', length: 255,nullable: true })
+    image_url?: string;   
 
     @Column({ type: 'date', default: () => '(CURDATE())' })
     publicationDate: Date;
@@ -30,6 +30,9 @@ export class News {
             enum: NewsStatus,
             default: NewsStatus.DRAFT })
     status: NewsStatus;
+
+    @CreateDateColumn()
+    createdAt: Date;
 
     @Column({
         type: 'timestamp',
