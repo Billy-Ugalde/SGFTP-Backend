@@ -5,10 +5,11 @@ import { Activity } from "../entities/activity.entity";
 
 
 export interface IActivityService {
-  createActivity(createActivityDto: CreateActivityDto, image?: Express.Multer.File): Promise<Activity>;
+  createActivity(createActivityDto: CreateActivityDto, images?: Express.Multer.File[]): Promise<Activity>
   updateActivity(id_activity: number,
-    updateActivityDto: UpdateActivityDto, image?: Express.Multer.File): Promise<Activity>;
+    updateActivityDto: UpdateActivityDto, images?: Express.Multer.File[]): Promise<Activity>;
   getbyIdActivity(id_activity: number): Promise<Activity>
   getAllActivities();
   statusActivity(id_activity: number, activityStatusDto: ActivityStatusDto);
+  updateActive(id_activity: number, active: boolean): Promise<Activity>;
 }
