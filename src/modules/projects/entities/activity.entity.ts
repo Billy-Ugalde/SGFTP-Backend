@@ -73,7 +73,13 @@ export class Activity {
     Active: boolean;
 
     @Column({ length: 500, nullable: true })
-    url?: string;
+    url1?: string;
+
+    @Column({ length: 500, nullable: true })
+    url2?: string;
+
+    @Column({ length: 500, nullable: true })
+    url3?: string;
 
     @ManyToOne(() => Project, (project) => project.activity, { nullable: false })
     @JoinColumn({ name: 'Id_project' })

@@ -53,7 +53,7 @@ export class ProjectController {
 
     @Post()
     @HttpCode(HttpStatus.CREATED)
-    @UseInterceptors(FilesInterceptor('images', 3)) // Máximo 5 imágenes
+    @UseInterceptors(FilesInterceptor('images', 6)) // Máximo 5 imágenes
     async createProject(
         @Body() createProjectDto: CreateProjectDto,
         @UploadedFiles() images: Express.Multer.File[]
@@ -62,7 +62,7 @@ export class ProjectController {
     }
 
     @Put(':id')
-    @UseInterceptors(FilesInterceptor('images', 5))
+    @UseInterceptors(FilesInterceptor('images', 6))
     async updateProject(
         @Param('id', ParseIntPipe) id: number,
         @Body() updateProject: UpdateProjectDto,
