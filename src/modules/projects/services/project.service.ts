@@ -106,119 +106,126 @@ export class ProjectService implements IProjectService {
   }
 
   async updateProject(
-    id_project: number,
-    updateProjectDto: UpdateProjectDto,
-    images?: Express.Multer.File[]
-  ): Promise<Project> {
-    const queryRunner = this.dataSource.createQueryRunner();
-    await queryRunner.connect();
-    await queryRunner.startTransaction();
+  id_project: number,
+  updateProjectDto: UpdateProjectDto,
+  images?: Express.Multer.File[]
+): Promise<Project> {
+  const queryRunner = this.dataSource.createQueryRunner();
+  await queryRunner.connect();
+  await queryRunner.startTransaction();
 
-    try {
-      const project = await this.getbyIdProject(id_project);
-      const filesToDelete: string[] = [];
+  try {
+    const project = await this.getbyIdProject(id_project);
+    const filesToDelete: string[] = [];
+    const updateData: Partial<Project> = {};
 
-      const updateData: Partial<Project> = {};
+    // 1. Actualizar campos básicos
+    if (updateProjectDto.Name) updateData.Name = updateProjectDto.Name;
+    if (updateProjectDto.Description) updateData.Description = updateProjectDto.Description;
+    if (updateProjectDto.Observations) updateData.Observations = updateProjectDto.Observations;
+    if (updateProjectDto.Aim) updateData.Aim = updateProjectDto.Aim;
+    if (updateProjectDto.Start_date) updateData.Start_date = updateProjectDto.Start_date;
+    if (updateProjectDto.End_date) updateData.End_date = updateProjectDto.End_date;
+    if (updateProjectDto.Target_population) updateData.Target_population = updateProjectDto.Target_population;
+    if (updateProjectDto.Location) updateData.Location = updateProjectDto.Location;
+    if (updateProjectDto.Active !== undefined) updateData.Active = updateProjectDto.Active;
 
-      if (updateProjectDto.Name) updateData.Name = updateProjectDto.Name;
-      if (updateProjectDto.Description) updateData.Description = updateProjectDto.Description;
-      if (updateProjectDto.Observations) updateData.Observations = updateProjectDto.Observations;
-      if (updateProjectDto.Aim) updateData.Aim = updateProjectDto.Aim;
-      if (updateProjectDto.Start_date) updateData.Start_date = updateProjectDto.Start_date;
-      if (updateProjectDto.End_date) updateData.End_date = updateProjectDto.End_date;
-      if (updateProjectDto.Target_population) updateData.Target_population = updateProjectDto.Target_population;
-      if (updateProjectDto.Location) updateData.Location = updateProjectDto.Location;
-      if (updateProjectDto.Active !== undefined) updateData.Active = updateProjectDto.Active;
+    // 2. Procesar imágenes si existen
+    if (images && images.length > 0) {
+      console.log(`📁 Procesando ${images.length} imágenes para actualización`);
 
-      if (images && images.length > 0) {
-        console.log(`📁 Procesando ${images.length} imágenes para actualización`);
+      const folderName = `project_${id_project}`;
+      const imageFields = ['url_1', 'url_2', 'url_3', 'url_4', 'url_5', 'url_6'] as const;
 
-        const folderName = `project_${id_project}`;
-        const fileMapping: { [key: string]: Express.Multer.File } = {};
-        let fileIndex = 0;
+      // Procesar cada imagen en orden
+      for (let i = 0; i < images.length && i < imageFields.length; i++) {
+        const field = imageFields[i];
+        const file = images[i];
+        const currentUrl = project[field];
 
-        for (const field of ['url_1', 'url_2', 'url_3', 'url_4', 'url_5', 'url_6'] as const) {
-          const fieldValue = updateProjectDto[field];
+        console.log(`🔄 Procesando ${field} con archivo: ${file.originalname}`);
 
-          if (typeof fieldValue === 'string' && fieldValue.startsWith('__FILE_REPLACE_')) {
-            if (fileIndex < images.length) {
-              fileMapping[field] = images[fileIndex];
-              console.log(`🔄 Campo ${field} marcado para reemplazo`);
-              fileIndex++;
-            } else {
-              console.warn(`⚠️ No hay suficientes archivos para ${field}`);
-            }
+        // Eliminar imagen anterior si existe
+        if (currentUrl && typeof currentUrl === 'string' && currentUrl.trim() !== '') {
+          const fileId = this.googleDriveService.extractFileIdFromUrl(currentUrl);
+          if (fileId) {
+            filesToDelete.push(fileId);
+            console.log(`📝 Archivo anterior marcado para eliminación: ${fileId}`);
           }
         }
 
-
-        for (const [field, file] of Object.entries(fileMapping)) {
-          const currentUrl = project[field as keyof Project];
-
-          console.log(`🔄 Procesando ${field}`);
-
-
-          if (currentUrl && typeof currentUrl === 'string' && currentUrl.trim() !== '') {
-            const fileId = this.googleDriveService.extractFileIdFromUrl(currentUrl);
-            if (fileId) {
-              filesToDelete.push(fileId);
-              console.log(`📝 Archivo anterior marcado para eliminación: ${fileId}`);
-            }
-          }
-
-          try {
-            console.log(`⬆️ Subiendo nuevo archivo...`);
-            const { url } = await this.googleDriveService.uploadFile(file, folderName);
-            updateData[field] = url;
-            console.log(`✅ Nueva URL: ${url}`);
-          } catch (uploadError) {
-            throw new InternalServerErrorException(
-              `Error subiendo imagen ${field}: ${uploadError.message}`
-            );
-          }
+        try {
+          console.log(`⬆️ Subiendo nuevo archivo para ${field}...`);
+          const { url } = await this.googleDriveService.uploadFile(file, folderName);
+          updateData[field] = url;
+          console.log(`✅ Nueva URL para ${field}: ${url}`);
+        } catch (uploadError) {
+          console.error(`❌ Error subiendo imagen ${field}:`, uploadError);
+          throw new InternalServerErrorException(
+            `Error subiendo imagen ${field}: ${uploadError.message}`
+          );
         }
       }
 
-      if (Object.keys(updateData).length > 0) {
-        await queryRunner.manager.update(Project, id_project, updateData);
+      // Para campos restantes sin imagen nueva, mantener los valores actuales
+      for (let i = images.length; i < imageFields.length; i++) {
+        const field = imageFields[i];
+        if (project[field]) {
+          updateData[field] = project[field];
+        }
       }
-
-      await queryRunner.commitTransaction();
-      console.log('✅ Transacción confirmada');
-
-
-      if (filesToDelete.length > 0) {
-        console.log(`🗑️ Eliminando ${filesToDelete.length} archivos antiguos`);
-
-        await Promise.all(
-          filesToDelete.map(async (fileId) => {
-            try {
-              await this.googleDriveService.deleteFile(fileId);
-              console.log(`✅ Archivo ${fileId} eliminado`);
-            } catch (deleteError) {
-              console.error(`⚠️ No se pudo eliminar ${fileId}:`, deleteError.message);
-            }
-          })
-        );
-      }
-
-      return await this.getbyIdProject(id_project);
-
-    } catch (error) {
-      await queryRunner.rollbackTransaction();
-      console.error('❌ Error en actualización:', error.message);
-
-      if (error instanceof InternalServerErrorException) {
-        throw error;
-      }
-
-      throw new InternalServerErrorException(
-        `Error actualizando proyecto: ${error.message}`
-      );
-    } finally {
-      await queryRunner.release();
+    } else {
+      // Si no hay imágenes nuevas, mantener todas las existentes
+      const imageFields = ['url_1', 'url_2', 'url_3', 'url_4', 'url_5', 'url_6'] as const;
+      imageFields.forEach(field => {
+        if (project[field]) {
+          updateData[field] = project[field];
+        }
+      });
     }
+
+    // 3. Aplicar la actualización
+    if (Object.keys(updateData).length > 0) {
+      await queryRunner.manager.update(Project, id_project, updateData);
+      console.log('✅ Campos actualizados en la base de datos');
+    }
+
+    await queryRunner.commitTransaction();
+    console.log('✅ Transacción confirmada');
+
+    // 4. Eliminar archivos antiguos (después del commit)
+    if (filesToDelete.length > 0) {
+      console.log(`🗑️ Eliminando ${filesToDelete.length} archivos antiguos`);
+
+      await Promise.all(
+        filesToDelete.map(async (fileId) => {
+          try {
+            await this.googleDriveService.deleteFile(fileId);
+            console.log(`✅ Archivo ${fileId} eliminado de Google Drive`);
+          } catch (deleteError) {
+            console.error(`⚠️ No se pudo eliminar ${fileId}:`, deleteError.message);
+          }
+        })
+      );
+    }
+
+    return await this.getbyIdProject(id_project);
+
+  } catch (error) {
+    await queryRunner.rollbackTransaction();
+    console.error('❌ Error en actualización:', error.message);
+
+    if (error instanceof InternalServerErrorException) {
+      throw error;
+    }
+
+    throw new InternalServerErrorException(
+      `Error actualizando proyecto: ${error.message}`
+    );
+  } finally {
+    await queryRunner.release();
   }
+}
 
   async getbyIdProject(id_project: number): Promise<Project> {
     const project = await this.projectRepository.findOne({ where: { Id_project: id_project, }, relations: ['activity'] });
