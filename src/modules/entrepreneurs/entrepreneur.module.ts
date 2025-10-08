@@ -13,7 +13,7 @@ import { AuthModule } from "../auth/auth.module";
 import { GoogleDriveModule } from "../google-drive/google-drive.module";
 import { ImageProxyController } from "../google-drive/image-proxy.controller";
 import { SharedModule } from "../shared/shared.module";
-
+import { EntrepreneurNotificationsModule } from "../entrepreneurs-notifications/entrepreneur-notifications.module";
 @Module({
     imports: [
         TypeOrmModule.forFeature([
@@ -25,7 +25,8 @@ import { SharedModule } from "../shared/shared.module";
         PersonModule,
         AuthModule,
         GoogleDriveModule, 
-        SharedModule
+        SharedModule,
+        EntrepreneurNotificationsModule,
     ],
     controllers: [EntrepreneurController,ImageProxyController],
     providers: [

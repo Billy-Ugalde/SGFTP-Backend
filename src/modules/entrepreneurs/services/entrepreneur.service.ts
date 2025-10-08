@@ -13,11 +13,8 @@ import { AccountInvitationService } from '../../auth/services/account-invitation
 import { Role } from '../../users/entities/role.entity';
 import { GoogleDriveService } from '../../google-drive/google-drive.service';
 import { UpdateEntrepreneurshipDto } from '../dto/entrepreneurship.dto';
-
-// ============ NUEVO: import requerido para la validación de permisos ============
 import { ForbiddenException } from '@nestjs/common';
-// ===================== FIN NUEVO =====================
-
+import { EntrepreneurNotificationService } from 'src/modules/entrepreneurs-notifications/services/entrepreneur-notification.service';
 @Injectable()
 export class EntrepreneurService {
   constructor(
@@ -29,6 +26,7 @@ export class EntrepreneurService {
     private authService: AuthService,
     private accountInvitationService: AccountInvitationService,
     private googleDriveService: GoogleDriveService,
+    private entrepreneurNotificationService: EntrepreneurNotificationService,
   ) { }
 
   async findAllApproved(): Promise<Entrepreneur[]> {
@@ -379,7 +377,7 @@ export class EntrepreneurService {
     // 4) Reutilizar la lógica de update existente con archivos
     return await this.update(id, dto, files);
   }
-  // ===================== FIN NUEVO =====================
+  
 
   async updateStatus(id: number, statusDto: UpdateStatusDto): Promise<Entrepreneur> {
     const entrepreneur = await this.findOne(id);
@@ -465,6 +463,15 @@ export class EntrepreneurService {
 
       if (entrepreneur.status !== EntrepreneurStatus.PENDING) {
         throw new BadRequestException(`Solo se pueden eliminar emprendedores con estado 'pending'`);
+      }
+
+      if (entrepreneur.person?.email) {
+        try {
+          await this.entrepreneurNotificationService.sendEntrepreneurRejectionEmail(entrepreneur);
+          console.log('✅ Email de rechazo enviado (remove)');
+        } catch (emailError) {
+          console.error('⚠️ Error enviando email:', emailError);
+        }
       }
 
       if (entrepreneur.entrepreneurship) {
