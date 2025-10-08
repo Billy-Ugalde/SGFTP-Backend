@@ -17,6 +17,7 @@ import { SecurityHeadersMiddleware } from './middleware/security-headers.middlew
 import { CorsMiddleware } from './middleware/cors.middleware';
 import { NotificationsModule } from './modules/fairs-notifications/notifications.module';
 import { ProjectModule } from './modules/projects/project.module';
+import { NewslettersModule } from './modules/newsletters/newsletters.module';
 
 @Module({
   imports: [
@@ -38,7 +39,7 @@ import { ProjectModule } from './modules/projects/project.module';
       }),
       inject: [ConfigService],
     }),FairModule, EntrepreneurModule, InformativeModule, SubscribersModule,
-    NewsModule, UserModule, AuthModule, SharedModule, NotificationsModule, ProjectModule],
+    NewsModule, UserModule, AuthModule, SharedModule, NotificationsModule, ProjectModule, NewslettersModule],
   controllers: [AppController],
   providers: [AppService, GlobalSeedService],
 })
