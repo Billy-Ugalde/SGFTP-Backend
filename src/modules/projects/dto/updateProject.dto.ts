@@ -38,21 +38,21 @@ export class UpdateProjectDto {
     @IsBoolean()
     Active: boolean;
 
-    @IsOptional({ message: 'El valor de la métrica es obligatorio' })
+    @IsOptional()
     @Type(() => Number)
     @IsInt({ message: 'El valor de la métrica debe ser un número entero' })
     @Min(0, { message: 'El valor de la métrica debe ser mayor o igual a 0' })
-    METRIC_TOTAL_BENEFICIATED: number;
+    METRIC_TOTAL_BENEFICIATED?: number = 0;
 
-    @IsOptional({ message: 'El valor de la métrica es obligatorio' })
+    @IsOptional()
     @Type(() => Number)
     @IsInt({ message: 'El valor de la métrica debe ser un número entero' })
     @Min(0, { message: 'El valor de la métrica debe ser mayor o igual a 0' })
-    METRIC_TOTAL_WASTE_COLLECTED: number;
+    METRIC_TOTAL_WASTE_COLLECTED?: number = 0;
 
-    @IsOptional({ message: 'El valor de la métrica es obligatorio' })
+    @IsOptional()
     @Type(() => Number)
     @IsInt({ message: 'El valor de la métrica debe ser un número entero' })
     @Min(0, { message: 'El valor de la métrica debe ser mayor o igual a 0' })
-    METRIC_TOTAL_TREES_PLANTED: number;
+    METRIC_TOTAL_TREES_PLANTED?: number = 0;
 }
