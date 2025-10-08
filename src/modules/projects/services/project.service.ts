@@ -50,9 +50,9 @@ export class ProjectService implements IProjectService {
         End_date: createprojectDto.End_date,
         Target_population: createprojectDto.Target_population,
         Location: createprojectDto.Location,
-        METRIC_TOTAL_BENEFICIATED: createprojectDto.METRIC_TOTAL_BENEFICIATED,
-        METRIC_TOTAL_WASTE_COLLECTED: createprojectDto.METRIC_TOTAL_WASTE_COLLECTED,
-        METRIC_TOTAL_TREES_PLANTED: createprojectDto.METRIC_TOTAL_TREES_PLANTED,
+        METRIC_TOTAL_BENEFICIATED: 0,
+        METRIC_TOTAL_WASTE_COLLECTED: 0,
+        METRIC_TOTAL_TREES_PLANTED: 0,
         Active: false,
         Status: ProjectStatus.PENDING
       });
@@ -129,10 +129,6 @@ export class ProjectService implements IProjectService {
       if (updateProjectDto.Target_population) updateData.Target_population = updateProjectDto.Target_population;
       if (updateProjectDto.Location) updateData.Location = updateProjectDto.Location;
       if (updateProjectDto.Active !== undefined) updateData.Active = updateProjectDto.Active;
-      if (updateProjectDto.METRIC_TOTAL_TREES_PLANTED !== undefined) updateData.METRIC_TOTAL_TREES_PLANTED = updateProjectDto.METRIC_TOTAL_TREES_PLANTED;
-      if (updateProjectDto.METRIC_TOTAL_WASTE_COLLECTED !== undefined) updateData.METRIC_TOTAL_WASTE_COLLECTED = updateProjectDto.METRIC_TOTAL_WASTE_COLLECTED;
-      if (updateProjectDto.METRIC_TOTAL_BENEFICIATED !== undefined) updateData.METRIC_TOTAL_BENEFICIATED = updateProjectDto.METRIC_TOTAL_BENEFICIATED;
-
 
       if (images && images.length > 0) {
         console.log(`📁 Procesando ${images.length} imágenes para actualización`);
