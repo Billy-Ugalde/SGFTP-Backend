@@ -185,7 +185,7 @@ export class NewsletterService {
     await this.transporter.sendMail(mailOptions);
   }
 
-  async getCampaigns(page: number = 1, limit: number = 10) {
+  async getCampaigns(page: number = 1, limit: number = 5) {
     const [campaigns, total] = await this.campaignRepository.findAndCount({
       relations: ['sentBy', 'sentBy.person'],
       order: { sentAt: 'DESC' },

@@ -176,13 +176,13 @@ export class ContentBlockService {
     if (existing) {
       // Si el bloque ya existe, NO actualizamos nada (preservar datos existentes)
       // Esto previene que el seeder sobrescriba contenido editado manualmente
-      console.log(`ℹ️  Block ${page}/${section}/${block_key} already exists, skipping update`);
+      //console.log(`ℹ️  Block ${page}/${section}/${block_key} already exists, skipping update`);
       return existing;
     } else {
       // Crear nuevo bloque solo si no existe
       const newBlock = this.contentBlockRepository.create(createOrUpdateDto);
       const saved = await this.contentBlockRepository.save(newBlock);
-      console.log(`✅ Created new block: ${page}/${section}/${block_key}`);
+      //console.log(`✅ Created new block: ${page}/${section}/${block_key}`);
       return saved;
     }
   }
