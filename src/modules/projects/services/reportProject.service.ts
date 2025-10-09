@@ -7,9 +7,9 @@ import { IReportProjectService, ReportData } from '../interfaces/reportProject.i
 import { Activity } from '../entities/activity.entity';
 import { ActivityStatus } from '../enums/activity.enum';
 import * as PDFDocument from 'pdfkit';
+import * as XLSX from 'xlsx';
 
 type PDFDoc = PDFDocument;
-
 @Injectable()
 export class ReportProjectService implements IReportProjectService {
     constructor(
@@ -45,8 +45,211 @@ export class ReportProjectService implements IReportProjectService {
         });
     }
 
-    createReportProjectXLSX(id_project: number): Promise<Buffer> {
-        throw new Error('Method not implemented.');
+    async createReportProjectXLSX(id_project: number): Promise<Buffer> {
+        try {
+            const reportData: ReportData = await this.getByProjectReport(id_project);
+
+            const workbook = XLSX.utils.book_new();
+
+            // HOJA 1: RESUMEN DEL PROYECTO
+            const summaryData: (string | number | boolean)[][] = [];
+
+            summaryData.push(['REPORTE DE PROYECTO']);
+            summaryData.push([`Generado: ${new Date().toLocaleDateString('es-ES')}`]);
+            summaryData.push([]);
+
+            summaryData.push(['INFORMACIÓN DEL PROYECTO']);
+            summaryData.push(['Campo', 'Valor']);
+            summaryData.push(['Nombre', reportData.project.Name || '']);
+            summaryData.push(['Descripción', reportData.project.Description || '']);
+            summaryData.push(['Objetivo', reportData.project.Aim || '']);
+            summaryData.push(['Ubicación', reportData.project.Location || '']);
+            summaryData.push(['Estado', this.translateProjectStatus(reportData.project.Status)]);
+            summaryData.push(['Población Objetivo', reportData.project.Target_population || '']);
+            summaryData.push(['Fecha Inicio', reportData.project.Start_date]);
+            summaryData.push(['Fecha Fin', reportData.project.End_date]);
+            summaryData.push([]);
+
+            summaryData.push(['MÉTRICAS DE IMPACTO']);
+            summaryData.push(['Métrica', 'Valor']);
+            summaryData.push(['Total Beneficiados', reportData.project.METRIC_TOTAL_BENEFICIATED || 0]);
+            summaryData.push(['Total Residuos Recolectados (kg)', reportData.project.METRIC_TOTAL_WASTE_COLLECTED || 0]);
+            summaryData.push(['Total Árboles Plantados', reportData.project.METRIC_TOTAL_TREES_PLANTED || 0]);
+            summaryData.push([]);
+
+            summaryData.push(['ESTADÍSTICAS DE ACTIVIDADES']);
+            summaryData.push(['Estado', 'Cantidad']);
+            summaryData.push(['Total de Actividades', reportData.statistics.total_activities || 0]);
+            summaryData.push(['Pendientes', reportData.statistics.pending_activities || 0]);
+            summaryData.push(['En Planificación', reportData.statistics.planning_activities || 0]);
+            summaryData.push(['En Ejecución', reportData.statistics.execution_activities || 0]);
+            summaryData.push(['Suspendidas', reportData.statistics.suspended_activities || 0]);
+            summaryData.push(['Finalizadas', reportData.statistics.finished_activities || 0]);
+
+            const summarySheet = XLSX.utils.aoa_to_sheet(summaryData);
+            summarySheet['!cols'] = [
+                { wch: 30 },
+                { wch: 50 }
+            ];
+            XLSX.utils.book_append_sheet(workbook, summarySheet, 'Resumen');
+
+            // HOJA 2: DETALLE DE ACTIVIDADES
+            const activitiesData: (string | number | boolean)[][] = [];
+
+            activitiesData.push(['DETALLE DE ACTIVIDADES']);
+            activitiesData.push([`Total de Actividades: ${reportData.activities.length}`]);
+            activitiesData.push([]);
+
+            activitiesData.push([
+                'N°',
+                'Nombre',
+                'Descripción',
+                'Objetivo',
+                'Ubicación',
+                'Fecha Inicio',
+                'Fecha Fin',
+                'Tipo',
+                'Estado',
+                'Enfoque',
+                'Abierto a Inscripción',
+                'Métrica',
+                'Valor'
+            ]);
+
+            reportData.activities.forEach((activity, index) => {
+                activitiesData.push([
+                    index + 1,
+                    activity.Name || '',
+                    activity.Description || '',
+                    activity.Aim || '',
+                    activity.Location || '',
+                    activity.Start_date || '',
+                    activity.End_date || '',
+                    this.translateActivityType(activity.Type_activity),
+                    this.translateActivityStatus(activity.Status_activity),
+                    this.translateApproach(activity.Approach),
+                    activity.OpenForRegistration ? 'Sí' : 'No',
+                    this.translateMetric(activity.Metric_activity),
+                    activity.Metric_value || 0
+                ]);
+            });
+
+            const activitiesSheet = XLSX.utils.aoa_to_sheet(activitiesData);
+            activitiesSheet['!cols'] = [
+                { wch: 5 },
+                { wch: 30 },
+                { wch: 50 },
+                { wch: 40 },
+                { wch: 30 },
+                { wch: 20 },
+                { wch: 20 },
+                { wch: 20 },
+                { wch: 15 },
+                { wch: 15 },
+                { wch: 20 },
+                { wch: 25 },
+                { wch: 15 }
+            ];
+            XLSX.utils.book_append_sheet(workbook, activitiesSheet, 'Actividades');
+
+            // HOJA 3: ESTADÍSTICAS PARA GRÁFICOS
+            const statsData: (string | number | boolean)[][] = [];
+
+            statsData.push(['DATOS PARA GRÁFICOS']);
+            statsData.push([]);
+
+            statsData.push(['Distribución por Estado']);
+            statsData.push(['Estado', 'Cantidad']);
+            statsData.push(['Pendientes', reportData.statistics.pending_activities || 0]);
+            statsData.push(['En Planificación', reportData.statistics.planning_activities || 0]);
+            statsData.push(['En Ejecución', reportData.statistics.execution_activities || 0]);
+            statsData.push(['Suspendidas', reportData.statistics.suspended_activities || 0]);
+            statsData.push(['Finalizadas', reportData.statistics.finished_activities || 0]);
+            statsData.push([]);
+
+            const typeDistribution: Record<string, number> = {};
+            reportData.activities.forEach(activity => {
+                const type = this.translateActivityType(activity.Type_activity);
+                typeDistribution[type] = (typeDistribution[type] || 0) + 1;
+            });
+
+            statsData.push(['Distribución por Tipo de Actividad']);
+            statsData.push(['Tipo', 'Cantidad']);
+            Object.entries(typeDistribution).forEach(([type, count]) => {
+                statsData.push([type, count]);
+            });
+            statsData.push([]);
+
+            const approachDistribution: Record<string, number> = {};
+            reportData.activities.forEach(activity => {
+                const approach = this.translateApproach(activity.Approach);
+                approachDistribution[approach] = (approachDistribution[approach] || 0) + 1;
+            });
+
+            statsData.push(['Distribución por Enfoque']);
+            statsData.push(['Enfoque', 'Cantidad']);
+            Object.entries(approachDistribution).forEach(([approach, count]) => {
+                statsData.push([approach, count]);
+            });
+            statsData.push([]);
+
+            statsData.push(['Métricas de Impacto Acumuladas']);
+            statsData.push(['Métrica', 'Valor Total']);
+            statsData.push(['Beneficiados', reportData.project.METRIC_TOTAL_BENEFICIATED || 0]);
+            statsData.push(['Residuos Recolectados (kg)', reportData.project.METRIC_TOTAL_WASTE_COLLECTED || 0]);
+            statsData.push(['Árboles Plantados', reportData.project.METRIC_TOTAL_TREES_PLANTED || 0]);
+
+            const statsSheet = XLSX.utils.aoa_to_sheet(statsData);
+            statsSheet['!cols'] = [
+                { wch: 35 },
+                { wch: 15 }
+            ];
+            XLSX.utils.book_append_sheet(workbook, statsSheet, 'Estadísticas');
+
+            // HOJA 4: CRONOGRAMA
+            const scheduleData: (string | number | boolean)[][] = [];
+
+            scheduleData.push(['CRONOGRAMA DE ACTIVIDADES']);
+            scheduleData.push([]);
+            scheduleData.push(['Actividad', 'Fecha Inicio', 'Fecha Fin', 'Estado']);
+
+            const sortedActivities = [...reportData.activities].sort((a, b) => {
+                const dateA = a.Start_date ? new Date(a.Start_date).getTime() : 0;
+                const dateB = b.Start_date ? new Date(b.Start_date).getTime() : 0;
+                return dateA - dateB;
+            });
+
+            sortedActivities.forEach(activity => {
+                if (activity.Start_date) {
+                    scheduleData.push([
+                        activity.Name || '',
+                        activity.Start_date,
+                        activity.End_date || '',
+                        this.translateActivityStatus(activity.Status_activity)
+                    ]);
+                }
+            });
+
+            const scheduleSheet = XLSX.utils.aoa_to_sheet(scheduleData);
+            scheduleSheet['!cols'] = [
+                { wch: 35 },
+                { wch: 20 },
+                { wch: 20 },
+                { wch: 20 }
+            ];
+            XLSX.utils.book_append_sheet(workbook, scheduleSheet, 'Cronograma');
+
+            const excelBuffer = XLSX.write(workbook, {
+                bookType: 'xlsx',
+                type: 'buffer'
+            });
+
+            return Buffer.from(excelBuffer);
+
+        } catch (error) {
+            console.error('Error generando reporte Excel:', error);
+            throw new Error(`Error al generar el reporte Excel: ${error.message}`);
+        }
     }
 
     async getByProjectReport(id_project: number): Promise<ReportData> {
@@ -237,10 +440,10 @@ export class ReportProjectService implements IReportProjectService {
         this.addField(doc, 'Suspendidas:', statistics.suspended_activities.toString());
         this.addField(doc, 'Finalizadas:', statistics.finished_activities.toString());
 
-        
+
         doc.addPage();
 
-       
+
         doc.fontSize(14)
             .font('Helvetica-Bold')
             .fillColor('#2c3e50')
@@ -248,7 +451,7 @@ export class ReportProjectService implements IReportProjectService {
             .moveDown(1);
 
         activities.forEach((activity, index) => {
-          
+
             if (doc.y > 600) {
                 doc.addPage();
             }
