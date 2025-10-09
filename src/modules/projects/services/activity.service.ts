@@ -10,7 +10,7 @@ import { IActivityService } from "../interfaces/activity.interface";
 import { ActivityStatusDto } from "../dto/activityStatus.dto";
 import { UpdateActivityDto } from "../dto/updateActivity.dto";
 import { ACTIVITY_TYPE_TO_PROJECT_METRIC } from "../Constants/activity-metrics.constant";
-import { Project } from "../entities/project.entity"; 
+import { Project } from "../entities/project.entity";
 
 @Injectable()
 export class ActivityService implements IActivityService {
@@ -160,42 +160,58 @@ export class ActivityService implements IActivityService {
             if (updateActivityDto.Metric_activity) updateData.Metric_activity = updateActivityDto.Metric_activity;
             if (updateActivityDto.Metric_value !== undefined) updateData.Metric_value = updateActivityDto.Metric_value;
             if (updateActivityDto.Active !== undefined) updateData.Active = updateActivityDto.Active;
-
+            
             if (images && images.length > 0) {
+                console.log(`📁 Procesando ${images.length} imágenes para actualización`);
+
                 const folderName = `activity_${id_activity}`;
+                const imageFields = ['url1', 'url2', 'url3'] as const;
 
-                try {
-                    if (images[0]) {
-                        if (activity.url1 && activity.url1.trim() !== '') {
-                            const fileId = this.googleDriveService.extractFileIdFromUrl(activity.url1);
-                            if (fileId) filesToDelete.push(fileId);
+                // Procesar cada imagen en orden
+                for (let i = 0; i < images.length && i < imageFields.length; i++) {
+                    const field = imageFields[i];
+                    const file = images[i];
+                    const currentUrl = activity[field];
+
+                    console.log(`🔄 Procesando ${field} con archivo: ${file.originalname}`);
+
+                    // Eliminar imagen anterior si existe
+                    if (currentUrl && typeof currentUrl === 'string' && currentUrl.trim() !== '') {
+                        const fileId = this.googleDriveService.extractFileIdFromUrl(currentUrl);
+                        if (fileId) {
+                            filesToDelete.push(fileId);
+                            console.log(`📝 Archivo anterior marcado para eliminación: ${fileId}`);
                         }
-                        const { url } = await this.googleDriveService.uploadFile(images[0], folderName);
-                        updateData.url1 = url;
                     }
 
-                    if (images[1]) {
-                        if (activity.url2 && activity.url2.trim() !== '') {
-                            const fileId = this.googleDriveService.extractFileIdFromUrl(activity.url2);
-                            if (fileId) filesToDelete.push(fileId);
-                        }
-                        const { url } = await this.googleDriveService.uploadFile(images[1], folderName);
-                        updateData.url2 = url;
+                    try {
+                        console.log(`⬆️ Subiendo nuevo archivo para ${field}...`);
+                        const { url } = await this.googleDriveService.uploadFile(file, folderName);
+                        updateData[field] = url;
+                        console.log(`✅ Nueva URL para ${field}: ${url}`);
+                    } catch (uploadError) {
+                        console.error(`❌ Error subiendo imagen ${field}:`, uploadError);
+                        throw new InternalServerErrorException(
+                            `Error subiendo imagen ${field}: ${uploadError.message}`
+                        );
                     }
-
-                    if (images[2]) {
-                        if (activity.url3 && activity.url3.trim() !== '') {
-                            const fileId = this.googleDriveService.extractFileIdFromUrl(activity.url3);
-                            if (fileId) filesToDelete.push(fileId);
-                        }
-                        const { url } = await this.googleDriveService.uploadFile(images[2], folderName);
-                        updateData.url3 = url;
-                    }
-                } catch (uploadError) {
-                    throw new InternalServerErrorException(
-                        `Error subiendo imagen: ${uploadError.message}`
-                    );
                 }
+
+                // Para campos restantes sin imagen nueva, mantener los valores actuales
+                for (let i = images.length; i < imageFields.length; i++) {
+                    const field = imageFields[i];
+                    if (activity[field]) {
+                        updateData[field] = activity[field];
+                    }
+                }
+            } else {
+                // Si no hay imágenes nuevas, mantener todas las existentes
+                const imageFields = ['url1', 'url2', 'url3'] as const;
+                imageFields.forEach(field => {
+                    if (activity[field]) {
+                        updateData[field] = activity[field];
+                    }
+                });
             }
 
             if (Object.keys(updateData).length > 0) {
@@ -234,10 +250,20 @@ export class ActivityService implements IActivityService {
 
             await queryRunner.commitTransaction();
 
+            // Eliminar archivos antiguos (después del commit)
             if (filesToDelete.length > 0) {
-                filesToDelete.forEach(fileId => {
-                    this.googleDriveService.deleteFile(fileId).catch(() => { });
-                });
+                console.log(`🗑️ Eliminando ${filesToDelete.length} archivos antiguos`);
+
+                await Promise.all(
+                    filesToDelete.map(async (fileId) => {
+                        try {
+                            await this.googleDriveService.deleteFile(fileId);
+                            console.log(`✅ Archivo ${fileId} eliminado de Google Drive`);
+                        } catch (deleteError) {
+                            console.error(`⚠️ No se pudo eliminar ${fileId}:`, deleteError.message);
+                        }
+                    })
+                );
             }
 
             return await this.getbyIdActivity(id_activity);
