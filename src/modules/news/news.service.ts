@@ -166,6 +166,12 @@ export class NewsService {
 
     async updateStatus(id_news: number, { status }: NewsStatusDto): Promise<News> {
         const news = await this.getOne(id_news);
+
+        // Si el estado cambia a 'published' y aún no tiene fecha de publicación, establecerla
+        if (status === NewsStatus.PUBLISHED && !news.publicationDate) {
+            news.publicationDate = new Date();
+        }
+
         news.status = status;
         return this.newsRepository.save(news);
     }

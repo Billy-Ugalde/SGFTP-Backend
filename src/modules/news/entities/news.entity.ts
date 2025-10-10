@@ -18,10 +18,10 @@ export class News {
     content: string;            
 
     @Column({ type: 'varchar', length: 255,nullable: true })
-    image_url?: string;   
+    image_url?: string;
 
-    @Column({ type: 'date', default: () => '(CURDATE())' })
-    publicationDate: Date;
+    @Column({ type: 'date', nullable: true })
+    publicationDate?: Date;
 
     @Column({ type: 'varchar', length: 255 })
     author: string; 
