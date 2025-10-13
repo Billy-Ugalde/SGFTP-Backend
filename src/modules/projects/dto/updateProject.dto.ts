@@ -55,4 +55,29 @@ export class UpdateProjectDto {
     @IsInt({ message: 'El valor de la métrica debe ser un número entero' })
     @Min(0, { message: 'El valor de la métrica debe ser mayor o igual a 0' })
     METRIC_TOTAL_TREES_PLANTED?: number = 0;
+
+    @IsOptional()
+    @IsString()
+    url_1_action?: 'keep' | 'replace' | 'delete' | 'add';
+
+    @IsOptional()
+    @IsString()
+    url_2_action?: 'keep' | 'replace' | 'delete' | 'add';
+
+    @IsOptional()
+    @IsString()
+    url_3_action?: 'keep' | 'replace' | 'delete' | 'add';
+
+    @IsOptional()
+    @IsString()
+    url_4_action?: 'keep' | 'replace' | 'delete' | 'add';
+
+    @IsOptional()
+    @IsString()
+    url_5_action?: 'keep' | 'replace' | 'delete' | 'add';
+
+    @IsOptional()
+    @IsString()
+    url_6_action?: 'keep' | 'replace' | 'delete' | 'add';
+    [key: string]: any;
 }
