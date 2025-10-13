@@ -5,8 +5,9 @@ import { Activity } from "../entities/activity.entity"
 import { ProjectStatusDto } from "../dto/projectStatus.dto";
 import { CreateProjectDto } from "../dto/createProject.dto";
 import { UpdateProjectDto } from "../dto/updateProject.dto";
-import { FilesInterceptor } from "@nestjs/platform-express";
+import { FileFieldsInterceptor, FilesInterceptor } from "@nestjs/platform-express";
 import { ToggleActiveDto } from "../dto/UdpateActive.dto";
+import { ProjectFiles } from "../interfaces/project.interface";
 
 @Controller('projects')
 export class ProjectController {
@@ -53,21 +54,28 @@ export class ProjectController {
 
     @Post()
     @HttpCode(HttpStatus.CREATED)
-    @UseInterceptors(FilesInterceptor('images', 6)) // Máximo 5 imágenes
+    @UseInterceptors(FilesInterceptor('images', 6)) 
     async createProject(
         @Body() createProjectDto: CreateProjectDto,
         @UploadedFiles() images: Express.Multer.File[]
     ): Promise<Project> {
         return await this.projectservice.createProject(createProjectDto, images);
     }
-
     @Put(':id')
-    @UseInterceptors(FilesInterceptor('images', 6))
+    @UseInterceptors(FileFieldsInterceptor([
+        { name: 'url_1_file', maxCount: 1 },
+        { name: 'url_2_file', maxCount: 1 },
+        { name: 'url_3_file', maxCount: 1 },
+        { name: 'url_4_file', maxCount: 1 },
+        { name: 'url_5_file', maxCount: 1 },
+        { name: 'url_6_file', maxCount: 1 },
+        { name: 'images', maxCount: 6 }
+    ]))
     async updateProject(
         @Param('id', ParseIntPipe) id: number,
         @Body() updateProject: UpdateProjectDto,
-        @UploadedFiles() images?: Express.Multer.File[]
+        @UploadedFiles() files?: ProjectFiles
     ): Promise<Project> {
-        return await this.projectservice.updateProject(id, updateProject, images);
+        return await this.projectservice.updateProject(id, updateProject, files);
     }
 }

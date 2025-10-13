@@ -3,7 +3,7 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { Project } from "../entities/project.entity";
 import { Activity } from "../entities/activity.entity";
 import { DataSource, QueryFailedError, Repository } from "typeorm";
-import { IProjectService } from "../interfaces/project.interface";
+import { IProjectService , ProjectFiles} from "../interfaces/project.interface";
 import { ProjectStatusDto } from "../dto/projectStatus.dto";
 import { CreateProjectDto } from "../dto/createProject.dto";
 import { ProjectStatus } from "../enums/project.enum";
@@ -105,10 +105,10 @@ export class ProjectService implements IProjectService {
     }
   }
 
-  async updateProject(
+async updateProject(
   id_project: number,
   updateProjectDto: UpdateProjectDto,
-  images?: Express.Multer.File[]
+  files?: ProjectFiles  
 ): Promise<Project> {
   const queryRunner = this.dataSource.createQueryRunner();
   await queryRunner.connect();
@@ -130,80 +130,138 @@ export class ProjectService implements IProjectService {
     if (updateProjectDto.Location) updateData.Location = updateProjectDto.Location;
     if (updateProjectDto.Active !== undefined) updateData.Active = updateProjectDto.Active;
 
-    // 2. Procesar imágenes si existen
-    if (images && images.length > 0) {
-      console.log(`📁 Procesando ${images.length} imágenes para actualización`);
+    // 2. Procesar imágenes con acciones específicas
+    const imageFields = ['url_1', 'url_2', 'url_3', 'url_4', 'url_5', 'url_6'] as const;
+    const folderName = `project_${id_project}`;
+    
+    // Función para obtener archivo específico por campo
+    const getFileForField = (fieldName: string): Express.Multer.File | undefined => {
+      if (!files) return undefined;
+      
+      // Buscar en field names específicos (url_1_file, url_2_file, etc.)
+      const specificField = `${fieldName}_file` as keyof typeof files;
+      const fileArray = files[specificField];
+      
+      if (fileArray && fileArray.length > 0) {
+        return fileArray[0];
+      }
+      
+      // Fallback: buscar en el array 'images' por orden
+      if (files.images && files.images.length > 0) {
+        const index = imageFields.indexOf(fieldName as any);
+        if (index >= 0 && index < files.images.length) {
+          return files.images[index];
+        }
+      }
+      
+      return undefined;
+    };
 
-      const folderName = `project_${id_project}`;
-      const imageFields = ['url_1', 'url_2', 'url_3', 'url_4', 'url_5', 'url_6'] as const;
+    // Procesar cada campo de imagen
+    for (const field of imageFields) {
+      const actionField = `${field}_action` as keyof UpdateProjectDto;
+      const action = updateProjectDto[actionField] as string;
+      const currentUrl = project[field];
 
-      // Procesar cada imagen en orden
-      for (let i = 0; i < images.length && i < imageFields.length; i++) {
-        const field = imageFields[i];
-        const file = images[i];
-        const currentUrl = project[field];
-
-        console.log(`🔄 Procesando ${field} con archivo: ${file.originalname}`);
-
-        // Eliminar imagen anterior si existe
-        if (currentUrl && typeof currentUrl === 'string' && currentUrl.trim() !== '') {
-          const fileId = this.googleDriveService.extractFileIdFromUrl(currentUrl);
-          if (fileId) {
-            filesToDelete.push(fileId);
-            console.log(`📝 Archivo anterior marcado para eliminación: ${fileId}`);
+      switch (action) {
+        case 'keep':
+          // Mantener la URL existente
+          if (currentUrl) {
+            updateData[field] = currentUrl;
+          } else {
+            updateData[field] = '';
           }
-        }
+          break;
 
-        try {
-          console.log(`⬆️ Subiendo nuevo archivo para ${field}...`);
-          const { url } = await this.googleDriveService.uploadFile(file, folderName);
-          updateData[field] = url;
-          console.log(`✅ Nueva URL para ${field}: ${url}`);
-        } catch (uploadError) {
-          console.error(`❌ Error subiendo imagen ${field}:`, uploadError);
-          throw new InternalServerErrorException(
-            `Error subiendo imagen ${field}: ${uploadError.message}`
-          );
-        }
-      }
+        case 'replace':
+          // Obtener archivo específico para este campo
+          const replaceFile = getFileForField(field);
+          
+          if (replaceFile) {
+            // Marcar imagen anterior para eliminación
+            if (currentUrl && typeof currentUrl === 'string' && currentUrl.trim() !== '') {
+              const fileId = this.googleDriveService.extractFileIdFromUrl(currentUrl);
+              if (fileId) {
+                filesToDelete.push(fileId);
+              }
+            }
+            
+            // Subir nueva imagen
+            try {
+              const { url } = await this.googleDriveService.uploadFile(replaceFile, folderName);
+              updateData[field] = url;
+            } catch (uploadError) {
+              throw new InternalServerErrorException(
+                `Error subiendo imagen ${field}: ${uploadError.message}`
+              );
+            }
+          } else {
+            // Si no hay archivo nuevo pero la acción es replace, mantener el actual
+            if (currentUrl) {
+              updateData[field] = currentUrl;
+            } else {
+              updateData[field] = '';
+            }
+          }
+          break;
 
-      // Para campos restantes sin imagen nueva, mantener los valores actuales
-      for (let i = images.length; i < imageFields.length; i++) {
-        const field = imageFields[i];
-        if (project[field]) {
-          updateData[field] = project[field];
-        }
+        case 'delete':
+          // Eliminar imagen
+          if (currentUrl && typeof currentUrl === 'string' && currentUrl.trim() !== '') {
+            const fileId = this.googleDriveService.extractFileIdFromUrl(currentUrl);
+            if (fileId) {
+              filesToDelete.push(fileId);
+            }
+          }
+          // Establecer campo vacío (no NULL)
+          updateData[field] = '';
+          break;
+
+        case 'add':
+          // Obtener archivo específico para este campo
+          const addFile = getFileForField(field);
+          
+          if (addFile) {
+            try {
+              const { url } = await this.googleDriveService.uploadFile(addFile, folderName);
+              updateData[field] = url;
+            } catch (uploadError) {
+              throw new InternalServerErrorException(
+                `Error subiendo imagen ${field}: ${uploadError.message}`
+              );
+            }
+          } else {
+            // Si no hay archivo, mantener vacío
+            updateData[field] = '';
+          }
+          break;
+
+        default:
+          // Sin acción definida: mantener el valor actual
+          if (currentUrl) {
+            updateData[field] = currentUrl;
+          } else {
+            updateData[field] = '';
+          }
+          break;
       }
-    } else {
-      // Si no hay imágenes nuevas, mantener todas las existentes
-      const imageFields = ['url_1', 'url_2', 'url_3', 'url_4', 'url_5', 'url_6'] as const;
-      imageFields.forEach(field => {
-        if (project[field]) {
-          updateData[field] = project[field];
-        }
-      });
     }
 
-    // 3. Aplicar la actualización
+    // 3. Aplicar actualización
     if (Object.keys(updateData).length > 0) {
       await queryRunner.manager.update(Project, id_project, updateData);
-      console.log('✅ Campos actualizados en la base de datos');
     }
 
     await queryRunner.commitTransaction();
-    console.log('✅ Transacción confirmada');
 
     // 4. Eliminar archivos antiguos (después del commit)
     if (filesToDelete.length > 0) {
-      console.log(`🗑️ Eliminando ${filesToDelete.length} archivos antiguos`);
-
       await Promise.all(
         filesToDelete.map(async (fileId) => {
           try {
             await this.googleDriveService.deleteFile(fileId);
-            console.log(`✅ Archivo ${fileId} eliminado de Google Drive`);
           } catch (deleteError) {
-            console.error(`⚠️ No se pudo eliminar ${fileId}:`, deleteError.message);
+            // Silenciosamente continuar si falla la eliminación
           }
         })
       );
@@ -213,7 +271,6 @@ export class ProjectService implements IProjectService {
 
   } catch (error) {
     await queryRunner.rollbackTransaction();
-    console.error('❌ Error en actualización:', error.message);
 
     if (error instanceof InternalServerErrorException) {
       throw error;
