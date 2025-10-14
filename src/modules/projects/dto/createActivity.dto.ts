@@ -93,11 +93,6 @@ export class CreateActivityDto {
     @IsNotEmpty()
     Metric_activity: MetricType;
 
-    @IsOptional()
-    @Type(() => Number)
-    @IsInt()
-    @Min(0)
-    Metric_value: number = 0;
 
     @IsBoolean()
     @IsNotEmpty()

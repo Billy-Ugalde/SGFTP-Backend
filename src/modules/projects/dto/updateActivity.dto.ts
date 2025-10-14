@@ -79,7 +79,6 @@ export class UpdateActivityDto {
     @IsOptional()
     Metric_activity: MetricType;
 
-
     @IsOptional()
     @Type(() => Number)
     @IsInt()

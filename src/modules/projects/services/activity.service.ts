@@ -96,10 +96,6 @@ export class ActivityService implements IActivityService {
                 });
             }
 
-            if (createActivityDto.Metric_value && createActivityDto.Metric_value > 0) {
-                await this.updateProjectMetrics(savedActivity.Id_activity, queryRunner, createActivityDto.Metric_value);
-            }
-
             await queryRunner.commitTransaction();
             return await this.getbyIdActivity(savedActivity.Id_activity);
 
@@ -162,7 +158,7 @@ export class ActivityService implements IActivityService {
             if (updateActivityDto.Active !== undefined) updateData.Active = updateActivityDto.Active;
 
             // 2. Procesar imágenes con acciones específicas
-            const imageFields = ['url_1', 'url_2', 'url_3'] as const;
+            const imageFields = ['url1', 'url2', 'url3'] as const;
             const folderName = `activity_${id_activity}`;
 
             // Función para obtener archivo específico por campo
