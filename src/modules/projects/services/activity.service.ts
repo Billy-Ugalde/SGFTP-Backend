@@ -60,7 +60,7 @@ export class ActivityService implements IActivityService {
                 Location: createActivityDto.Location,
                 Aim: createActivityDto.Aim,
                 Metric_activity: createActivityDto.Metric_activity,
-                Metric_value: createActivityDto.Metric_value || 0,
+                Metric_value: 0,
                 Active: createActivityDto.Active,
                 project: project
             });

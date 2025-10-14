@@ -79,10 +79,12 @@ export class UpdateActivityDto {
     @IsOptional()
     Metric_activity: MetricType;
 
-    @IsInt()
+
     @IsOptional()
+    @Type(() => Number)
+    @IsInt()
     @Min(0)
-    Metric_value: number;
+    Metric_value: number = 0;
 
     @IsBoolean()
     @IsOptional()
