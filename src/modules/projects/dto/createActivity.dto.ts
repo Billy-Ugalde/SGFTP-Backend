@@ -58,7 +58,7 @@ export class CreateActivityDto {
 
     @IsEnum(TypeFavorite)
     @IsOptional()
-    IsFavorite: TypeFavorite;
+    IsFavorite?: TypeFavorite;
 
     @IsBoolean()
     @IsNotEmpty()
@@ -93,7 +93,6 @@ export class CreateActivityDto {
     @IsNotEmpty()
     Metric_activity: MetricType;
 
-
     @IsBoolean()
     @IsNotEmpty()
     Active: boolean;
@@ -107,5 +106,3 @@ export class CreateActivityDto {
     @Type(() => DateDto)
     dates: DateDto[];
 }
-
-

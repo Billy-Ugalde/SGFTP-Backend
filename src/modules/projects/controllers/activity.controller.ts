@@ -1,6 +1,6 @@
 import {
     Body, Controller, Get, HttpCode, HttpStatus, Param,
-    ParseIntPipe, Patch, Post, Put, UploadedFile, UploadedFiles, UseInterceptors
+    ParseIntPipe, Patch, Post, Put, UploadedFiles, UseInterceptors
 } from "@nestjs/common";
 import { FileFieldsInterceptor, FilesInterceptor } from "@nestjs/platform-express";
 import { ActivityService } from "../services/activity.service";
@@ -9,6 +9,7 @@ import { ActivityStatusDto } from "../dto/activityStatus.dto";
 import { CreateActivityDto } from "../dto/createActivity.dto";
 import { UpdateActivityDto } from "../dto/updateActivity.dto";
 import { ActivityFiles } from "../interfaces/activity.interface";
+import { ParseJsonFieldsInterceptor } from "src/common/interceptors/parse-json-fields.interceptor";
 
 @Controller('activities')
 export class ActivityController {
@@ -42,7 +43,7 @@ export class ActivityController {
 
     @Post()
     @HttpCode(HttpStatus.CREATED)
-    @UseInterceptors(FilesInterceptor('images', 3))
+    @UseInterceptors(FilesInterceptor('images', 3), ParseJsonFieldsInterceptor)
     async createActivity(
         @Body() createActivityDto: CreateActivityDto,
         @UploadedFiles() images: Express.Multer.File[]
@@ -51,12 +52,15 @@ export class ActivityController {
     }
 
     @Put(':id')
-    @UseInterceptors(FileFieldsInterceptor([
-        { name: 'url_1_file', maxCount: 1 },
-        { name: 'url_2_file', maxCount: 1 },
-        { name: 'url_3_file', maxCount: 1 },
-        { name: 'images', maxCount: 3 }
-    ]))
+    @UseInterceptors(
+        FileFieldsInterceptor([
+            { name: 'url_1_file', maxCount: 1 },
+            { name: 'url_2_file', maxCount: 1 },
+            { name: 'url_3_file', maxCount: 1 },
+            { name: 'images', maxCount: 3 }
+        ]),
+        ParseJsonFieldsInterceptor
+    )
     async updateActivity(
         @Param('id', ParseIntPipe) id: number,
         @Body() updateActivityDto: UpdateActivityDto,

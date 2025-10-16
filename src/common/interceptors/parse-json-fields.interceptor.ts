@@ -22,16 +22,27 @@ export class ParseJsonFieldsInterceptor implements NestInterceptor {
       const booleanFields = ['Active', 'OpenForRegistration', 'IsRecurring'];
       booleanFields.forEach(field => {
         if (request.body[field] !== undefined) {
-          request.body[field] = request.body[field] === 'true' || request.body[field] === true;
+          if (typeof request.body[field] === 'string') {
+            request.body[field] = request.body[field] === 'true';
+          } else {
+            request.body[field] = Boolean(request.body[field]);
+          }
         }
       });
       
       const numberFields = ['Id_project', 'Spaces', 'Metric_value'];
       numberFields.forEach(field => {
-        if (request.body[field] !== undefined && request.body[field] !== '') {
-          request.body[field] = Number(request.body[field]);
+        if (request.body[field] !== undefined && request.body[field] !== null && request.body[field] !== '') {
+          const numValue = Number(request.body[field]);
+          if (!isNaN(numValue)) {
+            request.body[field] = numValue;
+          }
         }
       });
+
+      if (request.body.IsFavorite === '' || request.body.IsFavorite === 'undefined' || request.body.IsFavorite === null) {
+        delete request.body.IsFavorite;
+      }
     }
     
     return next.handle();
