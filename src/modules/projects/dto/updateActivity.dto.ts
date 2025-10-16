@@ -79,10 +79,11 @@ export class UpdateActivityDto {
     @IsOptional()
     Metric_activity: MetricType;
 
-    @IsInt()
     @IsOptional()
+    @Type(() => Number)
+    @IsInt()
     @Min(0)
-    Metric_value: number;
+    Metric_value: number = 0;
 
     @IsBoolean()
     @IsOptional()
@@ -93,4 +94,18 @@ export class UpdateActivityDto {
     @ValidateNested({ each: true })
     @Type(() => DateDto)
     dateActivities: DateDto[];
+
+
+    @IsOptional()
+    @IsString()
+    url_1_action?: 'keep' | 'replace' | 'delete' | 'add';
+
+    @IsOptional()
+    @IsString()
+    url_2_action?: 'keep' | 'replace' | 'delete' | 'add';
+
+    @IsOptional()
+    @IsString()
+    url_3_action?: 'keep' | 'replace' | 'delete' | 'add';
+    [key: string]: any;
 }
