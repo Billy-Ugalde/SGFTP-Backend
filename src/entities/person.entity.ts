@@ -2,6 +2,7 @@ import { Entity, PrimaryGeneratedColumn, Column, OneToMany, OneToOne, CreateDate
 import { Entrepreneur } from '../modules/entrepreneurs/entities/entrepreneur.entity';
 import { Phone } from './phone.entity';
 import { User } from 'src/modules/users/entities/user.entity';
+import { Volunteer } from 'src/modules/volunteers/entities/volunteer.entitie';
 
 @Entity()
 export class Person {
@@ -38,6 +39,11 @@ export class Person {
   @OneToOne(() => Entrepreneur, (entrepreneur) => entrepreneur.person)
   entrepreneur: Entrepreneur;
 
+  @OneToOne(() => Volunteer, (volunteer) => volunteer.person)
+  volunteer: Volunteer;
+
   @OneToOne(() => User, user => user.person)
   user: User;
 }
+
+
