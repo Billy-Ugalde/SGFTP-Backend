@@ -13,27 +13,26 @@ export class Mailbox {
     Id_mailbox: number;
 
     @Column({ type: 'varchar' })
-    Name: string
+    Organization: string   // de donde viene la persona independiente Universidad entre otros
 
     @Column({ type: 'varchar' })
     Description: string;
 
     @Column({ type: 'varchar' })
-    affair: string;  //asunto
+    Affair: string;  //asunto
 
     @CreateDateColumn()
-    registration_date: Date;
+    Registration_date: Date;
 
     @Column({ type: 'int', default: 0 })
-    hour_volunteer: number;
+    Hour_volunteer: number;
 
     @Column({ length: 500, nullable: true })
-    document1?: string;
+    Document1: string;  //  curriculum obligatorio pdf
 
     @Column({ length: 500, nullable: true })
-    document2?: string;
+    Document2?: string;
 
     @Column({ length: 500, nullable: true })
-    document3?: string;
-
+    Document3?: string;
 }

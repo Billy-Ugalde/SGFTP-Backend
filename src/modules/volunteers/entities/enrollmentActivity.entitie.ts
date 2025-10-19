@@ -6,16 +6,15 @@ import { EnrollmentActivityStatus } from "../enums/enrollmentActivity.enum";
 export class Activity_enrollment {
 
     @PrimaryGeneratedColumn()
-    id_enrrolment_activity: number
+    Id_enrrolment_activity: number
 
     @CreateDateColumn()
-    registration_date: Date;
+    Registration_date: Date;
 
     @Column({
         type: 'enum',
         enum: EnrollmentActivityStatus,
         default: EnrollmentActivityStatus.PENDING
     })
-    status: EnrollmentActivityStatus;
-
+    Status: EnrollmentActivityStatus;
 }
