@@ -6,6 +6,7 @@ import {
 import { Project } from "./project.entity";
 import { ActivityStatus, MetricType, TypeActivity, TypeApproach, TypeFavorite } from "../enums/activity.enum";
 import { DateActivity } from "src/modules/projects/entities/date.entity";
+import { Metric_value } from "./activityValues.entity";
 @Index(['Name', 'Registration_date'], { unique: true })
 @Entity()
 
@@ -67,7 +68,7 @@ export class Activity {
     Metric_activity: MetricType;
 
     @Column({ type: 'int', default: 0 })
-    Metric_value: number;
+    Total_metric_value: number;
 
     @Column()
     Active: boolean;
@@ -87,4 +88,7 @@ export class Activity {
 
     @OneToMany(() => DateActivity, (dateActivities) => dateActivities.activity)
     dateActivities: DateActivity[];
+
+    @OneToMany(() => Metric_value, (metric_value) => metric_value.activity)
+    metric_value: Metric_value[];
 }
