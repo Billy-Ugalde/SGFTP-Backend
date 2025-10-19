@@ -384,4 +384,42 @@ export class AuthService {
             userName: user.person.first_name
         };
     }
+
+    //REENVIAR TOKEN DE ACTIVACIÓN - Para tokens vencidos
+    async resendActivationToken(email: string): Promise<{
+        message: string;
+        userEmail?: string;
+        userName?: string;
+        activationToken?: string;
+        userRoles?: string[];
+    }> {
+        // 1. Buscar usuario pendiente de activación
+        const user = await this.userAuthService.findPendingActivationByEmail(email);
+
+        // Mensaje genérico por seguridad (no revelar si email existe)
+        const successMessage = 'Si existe una cuenta pendiente de activación con este email, recibirás un nuevo enlace de activación.';
+
+        if (!user) {
+            // Email no existe o ya está activado - retornar éxito pero no hacer nada
+            return { message: successMessage };
+        }
+
+        // 2. Validar que realmente esté pendiente (doble verificación)
+        if (user.status === true || user.isEmailVerified === true || user.password) {
+            // Cuenta ya activada - no revelar esto al usuario
+            return { message: successMessage };
+        }
+
+        // 3. Regenerar token de activación
+        const { token, expiresAt } = await this.userAuthService.regenerateActivationToken(user.id_user);
+
+        return {
+            message: successMessage,
+            // Datos para el controlador (manejo de email)
+            userEmail: user.person.email,
+            userName: `${user.person.first_name} ${user.person.first_lastname}`,
+            activationToken: token,
+            userRoles: user.roles.map(r => r.name)
+        };
+    }
 }

@@ -234,4 +234,35 @@ export class UserAuthService implements IUserAuthService {
             failedLoginAttempts: 0 // Reset intentos fallidos
         });
     }
+
+    /**
+     * Busca usuario pendiente de activación por email
+     * (no activado, sin contraseña, puede tener token expirado)
+     */
+    async findPendingActivationByEmail(email: string): Promise<User | null> {
+        return await this.userRepository.findOne({
+            where: {
+                person: { email },
+                status: false,           // No activado
+                isEmailVerified: false   // Email no verificado
+            },
+            relations: ['person', 'roles']
+        });
+    }
+
+    /**
+     * Regenera token de activación para usuario pendiente
+     */
+    async regenerateActivationToken(userId: number): Promise<{ token: string; expiresAt: Date }> {
+        const newToken = require('crypto').randomBytes(32).toString('hex');
+        const expiresAt = new Date();
+        expiresAt.setHours(expiresAt.getHours() + 72); // 72 horas
+
+        await this.userRepository.update(userId, {
+            activation_token: newToken,
+            activation_expires: expiresAt
+        });
+
+        return { token: newToken, expiresAt };
+    }
 }
