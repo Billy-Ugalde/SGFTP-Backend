@@ -13,16 +13,20 @@ export class MailboxService implements IMailboxService {
     private mailboxRepository: Repository<Mailbox>,
     private dataSource: DataSource,
   ) { }
-    createActivity(createMailboxDto: CreateMailboxDto): Promise<Mailbox> {
-        throw new Error("Method not implemented.");
-    }
-    updateActivity(id_mailbox: number, updateMailboxDto: UpdateMailboxDto): Promise<Mailbox> {
-        throw new Error("Method not implemented.");
-    }
-    getbyIdActivity(id_mailbox: number): Promise<Mailbox> {
-        throw new Error("Method not implemented.");
-    }
-    getAllMailbox() {
-        throw new Error("Method not implemented.");
-    }
+
+  createMailbox(createMailboxDto: CreateMailboxDto): Promise<Mailbox> {
+    throw new Error("Method not implemented.");
+  }
+
+  updateMailbox(id_mailbox: number, updateMailboxDto: UpdateMailboxDto): Promise<Mailbox> {
+    throw new Error("Method not implemented.");
+  }
+
+  getMailboxById(id_mailbox: number): Promise<Mailbox> {
+    throw new Error("Method not implemented.");
+  }
+
+  getAllMailbox(): Promise<Mailbox[]> {
+    throw new Error("Method not implemented.");
+  }
 }
