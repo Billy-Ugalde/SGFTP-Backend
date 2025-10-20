@@ -6,6 +6,7 @@ import {
 import { Project } from "./project.entity";
 import { ActivityStatus, MetricType, TypeActivity, TypeApproach, TypeFavorite } from "../enums/activity.enum";
 import { DateActivity } from "src/modules/projects/entities/date.entity";
+import { Activity_enrollment } from "src/modules/volunteers/entities/enrollmentActivity.entitie";
 @Index(['Name', 'Registration_date'], { unique: true })
 @Entity()
 
@@ -87,4 +88,7 @@ export class Activity {
 
     @OneToMany(() => DateActivity, (dateActivities) => dateActivities.activity)
     dateActivities: DateActivity[];
+
+    @OneToMany(() => Activity_enrollment, (enrollment) => enrollment.activity, { nullable: true })
+    volunteer_enrollments?: Activity_enrollment[];
 }

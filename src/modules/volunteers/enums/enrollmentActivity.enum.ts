@@ -1,5 +1,6 @@
 export enum EnrollmentActivityStatus {
-    PENDING = 'pending',
-    APPROVED = 'approved',
-    REJECTED = 'rejected'
+    ENROLLED = 'enrolled',      // Inscrito
+    ATTENDED = 'attended',      // Asistió
+    NOT_ATTENDED = 'not_attended', // No asistió
+    CANCELLED = 'cancelled'     // Canceló inscripción
 }
