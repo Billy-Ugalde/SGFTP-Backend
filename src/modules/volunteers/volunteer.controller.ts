@@ -109,6 +109,18 @@ export class VolunteerController {
     return await this.volunteerService.getVolunteerEnrollments(id_volunteer);
   }
 
+  @Get(':id_volunteer/activity-enrollments/upcoming')
+  @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN, UserRole.FAIR_ADMIN, UserRole.VOLUNTEER)
+  async getVolunteerUpcomingEnrollments(@Param('id_volunteer', ParseIntPipe) id_volunteer: number) {
+    return await this.volunteerService.getVolunteerUpcomingEnrollments(id_volunteer);
+  }
+
+  @Get(':id_volunteer/activity-enrollments/past')
+  @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN, UserRole.FAIR_ADMIN, UserRole.VOLUNTEER)
+  async getVolunteerPastEnrollments(@Param('id_volunteer', ParseIntPipe) id_volunteer: number) {
+    return await this.volunteerService.getVolunteerPastEnrollments(id_volunteer);
+  }
+
   @Get('activity/:id_activity/activity-enrollments')
   @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN, UserRole.FAIR_ADMIN)
   async getActivityEnrollments(@Param('id_activity', ParseIntPipe) id_activity: number) {
@@ -150,6 +162,18 @@ export class VolunteerController {
   @Roles(UserRole.VOLUNTEER)
   async getMyEnrollments(@CurrentUser() user: User) {
     return await this.volunteerService.getMyEnrollments(user.id_user);
+  }
+
+  @Get('me/activity-enrollments/upcoming')
+  @Roles(UserRole.VOLUNTEER)
+  async getMyUpcomingEnrollments(@CurrentUser() user: User) {
+    return await this.volunteerService.getMyUpcomingEnrollments(user.id_user);
+  }
+
+  @Get('me/activity-enrollments/past')
+  @Roles(UserRole.VOLUNTEER)
+  async getMyPastEnrollments(@CurrentUser() user: User) {
+    return await this.volunteerService.getMyPastEnrollments(user.id_user);
   }
 
   @Post('me/activity-enrollment')

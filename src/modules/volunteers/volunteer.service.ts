@@ -203,10 +203,62 @@ export class VolunteerService {
 
     return await this.enrollmentRepository.find({
       where: { id_volunteer },
-      relations: ['activity', 'activity.project'],
+      relations: ['activity', 'activity.project', 'activity.dateActivities'],
       order: {
         enrollment_date: 'DESC'
       }
+    });
+  }
+
+  async getVolunteerUpcomingEnrollments(id_volunteer: number): Promise<Activity_enrollment[]> {
+    await this.findOne(id_volunteer); // Verificar que existe
+
+    const enrollments = await this.enrollmentRepository.find({
+      where: { id_volunteer },
+      relations: ['activity', 'activity.project', 'activity.dateActivities'],
+      order: {
+        enrollment_date: 'DESC'
+      }
+    });
+
+    // Filtrar solo las actividades futuras
+    const now = new Date();
+    return enrollments.filter(enrollment => {
+      if (!enrollment.activity?.dateActivities || enrollment.activity.dateActivities.length === 0) {
+        return false;
+      }
+
+      // Si tiene múltiples fechas, verificar si alguna es futura
+      return enrollment.activity.dateActivities.some(dateActivity => {
+        const activityDate = new Date(dateActivity.Start_date);
+        return activityDate >= now;
+      });
+    });
+  }
+
+  async getVolunteerPastEnrollments(id_volunteer: number): Promise<Activity_enrollment[]> {
+    await this.findOne(id_volunteer); // Verificar que existe
+
+    const enrollments = await this.enrollmentRepository.find({
+      where: { id_volunteer },
+      relations: ['activity', 'activity.project', 'activity.dateActivities'],
+      order: {
+        enrollment_date: 'DESC'
+      }
+    });
+
+    // Filtrar solo las actividades pasadas
+    const now = new Date();
+    return enrollments.filter(enrollment => {
+      if (!enrollment.activity?.dateActivities || enrollment.activity.dateActivities.length === 0) {
+        return false;
+      }
+
+      // Si tiene múltiples fechas, verificar si TODAS son pasadas
+      return enrollment.activity.dateActivities.every(dateActivity => {
+        const activityDate = new Date(dateActivity.Start_date);
+        return activityDate < now;
+      });
     });
   }
 
@@ -547,10 +599,68 @@ export class VolunteerService {
 
     return await this.enrollmentRepository.find({
       where: { id_volunteer: volunteer.id_volunteer },
-      relations: ['activity', 'activity.project'],
+      relations: ['activity', 'activity.project', 'activity.dateActivities'],
       order: {
         enrollment_date: 'DESC'
       }
+    });
+  }
+
+  /**
+   * Obtener mis inscripciones futuras (voluntario autenticado)
+   */
+  async getMyUpcomingEnrollments(userId: number): Promise<Activity_enrollment[]> {
+    const volunteer = await this.findByUserId(userId);
+
+    const enrollments = await this.enrollmentRepository.find({
+      where: { id_volunteer: volunteer.id_volunteer },
+      relations: ['activity', 'activity.project', 'activity.dateActivities'],
+      order: {
+        enrollment_date: 'DESC'
+      }
+    });
+
+    // Filtrar solo las actividades futuras
+    const now = new Date();
+    return enrollments.filter(enrollment => {
+      if (!enrollment.activity?.dateActivities || enrollment.activity.dateActivities.length === 0) {
+        return false;
+      }
+
+      // Si tiene múltiples fechas, verificar si alguna es futura
+      return enrollment.activity.dateActivities.some(dateActivity => {
+        const activityDate = new Date(dateActivity.Start_date);
+        return activityDate >= now;
+      });
+    });
+  }
+
+  /**
+   * Obtener mis inscripciones pasadas (voluntario autenticado)
+   */
+  async getMyPastEnrollments(userId: number): Promise<Activity_enrollment[]> {
+    const volunteer = await this.findByUserId(userId);
+
+    const enrollments = await this.enrollmentRepository.find({
+      where: { id_volunteer: volunteer.id_volunteer },
+      relations: ['activity', 'activity.project', 'activity.dateActivities'],
+      order: {
+        enrollment_date: 'DESC'
+      }
+    });
+
+    // Filtrar solo las actividades pasadas
+    const now = new Date();
+    return enrollments.filter(enrollment => {
+      if (!enrollment.activity?.dateActivities || enrollment.activity.dateActivities.length === 0) {
+        return false;
+      }
+
+      // Si tiene múltiples fechas, verificar si TODAS son pasadas
+      return enrollment.activity.dateActivities.every(dateActivity => {
+        const activityDate = new Date(dateActivity.Start_date);
+        return activityDate < now;
+      });
     });
   }
 
