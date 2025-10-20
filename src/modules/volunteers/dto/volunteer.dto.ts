@@ -10,22 +10,12 @@ export class CreateVolunteerDto {
   id_person: number;
 
   @IsOptional()
-  @IsArray()
-  @IsString({ each: true })
-  skills?: string[]; // Array de habilidades
-
-  @IsOptional()
   @IsBoolean()
   is_active?: boolean;
 }
 
 // DTO para actualizar un voluntario (admin)
 export class UpdateVolunteerDto {
-  @IsOptional()
-  @IsArray()
-  @IsString({ each: true })
-  skills?: string[];
-
   @IsOptional()
   @IsBoolean()
   is_active?: boolean;
@@ -73,11 +63,6 @@ export class PublicRegisterVolunteerDto {
   @ValidateNested()
   @Type(() => CreatePersonDto)
   person: CreatePersonDto;
-
-  @IsOptional()
-  @IsArray()
-  @IsString({ each: true })
-  skills?: string[];
 }
 
 // DTO para inscripción pública (voluntario nuevo)
@@ -86,37 +71,21 @@ export class PublicEnrollActivityDto {
   @Type(() => CreatePersonDto)
   person: CreatePersonDto;
 
-  @IsOptional()
-  @IsArray()
-  @IsString({ each: true })
-  skills?: string[];
-
   @IsNumber()
   id_activity: number;
-
-  @IsOptional()
-  @IsString()
-  notes?: string;
 }
 
 // ========== DTOs VOLUNTEER (Autenticado) ==========
 
 // DTO para actualizar perfil propio
 export class UpdateOwnProfileDto {
-  @IsOptional()
-  @IsArray()
-  @IsString({ each: true })
-  skills?: string[];
+  // Vacío por ahora - puede eliminarse o usarse para futuras actualizaciones
 }
 
 // DTO para inscribirse a actividad (voluntario autenticado)
 export class SelfEnrollActivityDto {
   @IsNumber()
   id_activity: number;
-
-  @IsOptional()
-  @IsString()
-  notes?: string;
 }
 
 // ========== DTOs ENROLLMENT (General) ==========
@@ -128,10 +97,6 @@ export class EnrollVolunteerDto {
 
   @IsNumber()
   id_activity: number;
-
-  @IsOptional()
-  @IsString()
-  notes?: string;
 }
 
 // DTO para actualizar el estado de inscripción
@@ -142,15 +107,9 @@ export class UpdateEnrollmentDto {
   @IsOptional()
   @IsDateString()
   attendance_date?: string;
-
-  @IsOptional()
-  @IsString()
-  notes?: string;
 }
 
-// DTO para cancelar inscripción
+// DTO para cancelar inscripción (vacío - solo para consistencia)
 export class CancelEnrollmentDto {
-  @IsOptional()
-  @IsString()
-  notes?: string;
+  // Vacío - la cancelación no necesita datos adicionales
 }

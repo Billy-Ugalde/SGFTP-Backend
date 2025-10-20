@@ -1,6 +1,6 @@
 import { Column, PrimaryGeneratedColumn, Entity, ManyToOne, JoinColumn, CreateDateColumn, UpdateDateColumn } from "typeorm";
 import { EnrollmentActivityStatus } from "../enums/enrollmentActivity.enum";
-import { Volunteer } from "./volunteer.entitie";
+import { Volunteer } from "./volunteer.entity";
 import { Activity } from "src/modules/projects/entities/activity.entity";
 
 @Entity('activity_enrollment')
@@ -27,9 +27,6 @@ export class Activity_enrollment {
 
     @Column({ type: 'timestamp', nullable: true })
     attendance_date: Date;
-
-    @Column({ type: 'text', nullable: true })
-    notes: string;
 
     @UpdateDateColumn()
     updated_at: Date;

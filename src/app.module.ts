@@ -48,7 +48,7 @@ import { VolunteerModule } from './modules/volunteers/volunteer.module';
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
     consumer
-      .apply(SecurityHeadersMiddleware)
+      .apply(CorsMiddleware, SecurityHeadersMiddleware)
       .forRoutes('*');
   }
 }

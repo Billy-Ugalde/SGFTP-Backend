@@ -1,15 +1,12 @@
 import { Person } from "src/entities/person.entity";
 import { Column, PrimaryGeneratedColumn, OneToOne, OneToMany, Entity, JoinColumn, CreateDateColumn, UpdateDateColumn } from "typeorm";
-import { Activity_enrollment } from "./enrollmentActivity.entitie";
+import { Activity_enrollment } from "./enrollmentActivity.entity";
 
 @Entity('volunteers')
 export class Volunteer {
 
     @PrimaryGeneratedColumn()
     id_volunteer: number;
-
-    @Column({ type: 'text', nullable: true })
-    skills?: string; // JSON con array de habilidades: ["comunicaci�n", "log�stica", "cocina"]
 
     @Column({ type: 'boolean', default: true })
     is_active: boolean;

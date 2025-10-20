@@ -80,13 +80,13 @@ export class VolunteerController {
 
   // ========== Activity Enrollments ==========
 
-  @Post('enroll')
+  @Post('activity-enrollment')
   @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN, UserRole.FAIR_ADMIN, UserRole.VOLUNTEER)
   async enrollToActivity(@Body() enrollDto: EnrollVolunteerDto) {
     return await this.volunteerService.enrollToActivity(enrollDto);
   }
 
-  @Patch('enrollment/:id_enrollment')
+  @Patch('activity-enrollment/:id_enrollment')
   @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN, UserRole.FAIR_ADMIN)
   async updateEnrollmentStatus(
     @Param('id_enrollment', ParseIntPipe) id_enrollment: number,
@@ -95,22 +95,21 @@ export class VolunteerController {
     return await this.volunteerService.updateEnrollmentStatus(id_enrollment, updateDto);
   }
 
-  @Patch('enrollment/:id_enrollment/cancel')
+  @Patch('activity-enrollment/:id_enrollment/cancel')
   @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN, UserRole.FAIR_ADMIN, UserRole.VOLUNTEER)
   async cancelEnrollment(
-    @Param('id_enrollment', ParseIntPipe) id_enrollment: number,
-    @Body() cancelDto: CancelEnrollmentDto
+    @Param('id_enrollment', ParseIntPipe) id_enrollment: number
   ) {
-    return await this.volunteerService.cancelEnrollment(id_enrollment, cancelDto.notes);
+    return await this.volunteerService.cancelEnrollment(id_enrollment);
   }
 
-  @Get(':id_volunteer/enrollments')
+  @Get(':id_volunteer/activity-enrollments')
   @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN, UserRole.FAIR_ADMIN, UserRole.VOLUNTEER)
   async getVolunteerEnrollments(@Param('id_volunteer', ParseIntPipe) id_volunteer: number) {
     return await this.volunteerService.getVolunteerEnrollments(id_volunteer);
   }
 
-  @Get('activity/:id_activity/enrollments')
+  @Get('activity/:id_activity/activity-enrollments')
   @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN, UserRole.FAIR_ADMIN)
   async getActivityEnrollments(@Param('id_activity', ParseIntPipe) id_activity: number) {
     return await this.volunteerService.getActivityEnrollments(id_activity);
@@ -147,13 +146,13 @@ export class VolunteerController {
     return await this.volunteerService.updateOwnProfile(user.id_user, dto);
   }
 
-  @Get('me/enrollments')
+  @Get('me/activity-enrollments')
   @Roles(UserRole.VOLUNTEER)
   async getMyEnrollments(@CurrentUser() user: User) {
     return await this.volunteerService.getMyEnrollments(user.id_user);
   }
 
-  @Post('me/enroll')
+  @Post('me/activity-enrollment')
   @Roles(UserRole.VOLUNTEER)
   async selfEnrollToActivity(
     @CurrentUser() user: User,
@@ -162,13 +161,12 @@ export class VolunteerController {
     return await this.volunteerService.selfEnrollToActivity(user.id_user, dto);
   }
 
-  @Patch('me/enrollment/:id_enrollment/cancel')
+  @Patch('me/activity-enrollment/:id_enrollment/cancel')
   @Roles(UserRole.VOLUNTEER)
   async cancelMyEnrollment(
     @CurrentUser() user: User,
-    @Param('id_enrollment', ParseIntPipe) id_enrollment: number,
-    @Body() cancelDto: CancelEnrollmentDto
+    @Param('id_enrollment', ParseIntPipe) id_enrollment: number
   ) {
-    return await this.volunteerService.cancelMyEnrollment(user.id_user, id_enrollment, cancelDto.notes);
+    return await this.volunteerService.cancelMyEnrollment(user.id_user, id_enrollment);
   }
 }

@@ -106,8 +106,8 @@ export class ContentBlockController {
     return this.contentService.updateHeroBackground(file);
   }
 
-  //@UseGuards(RoleGuard)
-//@Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN, UserRole.CONTENT_ADMIN)
+@UseGuards(RoleGuard)
+@Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN, UserRole.CONTENT_ADMIN)
 @Patch('board-member/:role/photo')
 @UseInterceptors(FileInterceptor('image'))
 async updateBoardMemberPhoto(

@@ -1,8 +1,7 @@
-import { Injectable, NotFoundException, BadRequestException, ConflictException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource } from 'typeorm';
-import { Volunteer } from './entities/volunteer.entitie';
-import { Activity_enrollment } from './entities/enrollmentActivity.entitie';
+import { Injectable, NotFoundException, BadRequestException, ConflictException, Inject } from '@nestjs/common';
+import { DataSource } from 'typeorm';
+import { Volunteer } from './entities/volunteer.entity';
+import { Activity_enrollment } from './entities/enrollmentActivity.entity';
 import {
   CreateVolunteerDto,
   UpdateVolunteerDto,
@@ -19,14 +18,17 @@ import { Phone } from 'src/entities/phone.entity';
 import { User } from '../users/entities/user.entity';
 import { Role } from '../users/entities/role.entity';
 import * as bcrypt from 'bcrypt';
+import { IVolunteerRepository } from './interfaces/volunteer.repository.interface';
+import { IEnrollmentRepository } from './interfaces/enrollment.repository.interface';
+import { VOLUNTEER_REPOSITORY_TOKEN, ENROLLMENT_REPOSITORY_TOKEN } from './constants/injection-tokens';
 
 @Injectable()
 export class VolunteerService {
   constructor(
-    @InjectRepository(Volunteer)
-    private volunteerRepository: Repository<Volunteer>,
-    @InjectRepository(Activity_enrollment)
-    private enrollmentRepository: Repository<Activity_enrollment>,
+    @Inject(VOLUNTEER_REPOSITORY_TOKEN)
+    private volunteerRepository: IVolunteerRepository,
+    @Inject(ENROLLMENT_REPOSITORY_TOKEN)
+    private enrollmentRepository: IEnrollmentRepository,
     private dataSource: DataSource,
   ) { }
 
@@ -97,7 +99,6 @@ export class VolunteerService {
 
       const volunteer = this.volunteerRepository.create({
         person: person,
-        skills: createDto.skills ? JSON.stringify(createDto.skills) : undefined,
         is_active: createDto.is_active ?? true,
       });
 
@@ -117,10 +118,6 @@ export class VolunteerService {
     const volunteer = await this.findOne(id);
 
     const updateData: Partial<Volunteer> = {};
-
-    if (updateDto.skills !== undefined) {
-      updateData.skills = JSON.stringify(updateDto.skills);
-    }
 
     if (updateDto.is_active !== undefined) {
       updateData.is_active = updateDto.is_active;
@@ -159,7 +156,6 @@ export class VolunteerService {
     const enrollment = this.enrollmentRepository.create({
       id_volunteer: enrollDto.id_volunteer,
       id_activity: enrollDto.id_activity,
-      notes: enrollDto.notes,
       status: EnrollmentActivityStatus.ENROLLED
     });
 
@@ -185,14 +181,10 @@ export class VolunteerService {
       enrollment.attendance_date = new Date(updateDto.attendance_date);
     }
 
-    if (updateDto.notes !== undefined) {
-      enrollment.notes = updateDto.notes;
-    }
-
     return await this.enrollmentRepository.save(enrollment);
   }
 
-  async cancelEnrollment(id_enrollment: number, notes?: string): Promise<Activity_enrollment> {
+  async cancelEnrollment(id_enrollment: number): Promise<Activity_enrollment> {
     const enrollment = await this.enrollmentRepository.findOne({
       where: { id_enrollment_activity: id_enrollment }
     });
@@ -202,9 +194,6 @@ export class VolunteerService {
     }
 
     enrollment.status = EnrollmentActivityStatus.CANCELLED;
-    if (notes) {
-      enrollment.notes = notes;
-    }
 
     return await this.enrollmentRepository.save(enrollment);
   }
@@ -300,7 +289,6 @@ export class VolunteerService {
       // 7. Crear Volunteer
       const volunteer = queryRunner.manager.create(Volunteer, {
         person: savedPerson,
-        skills: dto.skills ? JSON.stringify(dto.skills) : undefined,
         is_active: true,
       });
 
@@ -406,7 +394,6 @@ export class VolunteerService {
           // Crear perfil de voluntario
           volunteer = queryRunner.manager.create(Volunteer, {
             person: existingPerson,
-            skills: dto.skills ? JSON.stringify(dto.skills) : undefined,
             is_active: true,
           });
 
@@ -459,7 +446,6 @@ export class VolunteerService {
         // Crear voluntario
         volunteer = queryRunner.manager.create(Volunteer, {
           person: savedPerson,
-          skills: dto.skills ? JSON.stringify(dto.skills) : undefined,
           is_active: true,
         });
 
@@ -470,7 +456,6 @@ export class VolunteerService {
       const enrollment = queryRunner.manager.create(Activity_enrollment, {
         id_volunteer: volunteer.id_volunteer,
         id_activity: dto.id_activity,
-        notes: dto.notes,
         status: EnrollmentActivityStatus.ENROLLED
       });
 
@@ -512,17 +497,13 @@ export class VolunteerService {
   }
 
   /**
-   * Actualizar perfil propio (solo skills)
+   * Actualizar perfil propio
+   * Por ahora no hay campos editables, pero mantenemos el método para futuras extensiones
    */
   async updateOwnProfile(userId: number, dto: UpdateOwnProfileDto): Promise<Volunteer> {
     const volunteer = await this.findByUserId(userId);
 
-    if (dto.skills !== undefined) {
-      await this.volunteerRepository.update(volunteer.id_volunteer, {
-        skills: JSON.stringify(dto.skills)
-      });
-    }
-
+    // Sin campos para actualizar por ahora
     return await this.findOne(volunteer.id_volunteer);
   }
 
@@ -552,7 +533,6 @@ export class VolunteerService {
     const enrollment = this.enrollmentRepository.create({
       id_volunteer: volunteer.id_volunteer,
       id_activity: dto.id_activity,
-      notes: dto.notes,
       status: EnrollmentActivityStatus.ENROLLED
     });
 
@@ -577,7 +557,7 @@ export class VolunteerService {
   /**
    * Cancelar mi inscripción (voluntario autenticado)
    */
-  async cancelMyEnrollment(userId: number, id_enrollment: number, notes?: string): Promise<Activity_enrollment> {
+  async cancelMyEnrollment(userId: number, id_enrollment: number): Promise<Activity_enrollment> {
     const volunteer = await this.findByUserId(userId);
 
     const enrollment = await this.enrollmentRepository.findOne({
@@ -596,9 +576,6 @@ export class VolunteerService {
     }
 
     enrollment.status = EnrollmentActivityStatus.CANCELLED;
-    if (notes) {
-      enrollment.notes = notes;
-    }
 
     return await this.enrollmentRepository.save(enrollment);
   }
