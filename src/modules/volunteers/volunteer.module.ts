@@ -9,6 +9,7 @@ import { Person } from 'src/entities/person.entity';
 import { Phone } from 'src/entities/phone.entity';
 import { User } from '../users/entities/user.entity';
 import { Role } from '../users/entities/role.entity';
+import { Mailbox } from './entities/mailbox.entity';
 
 @Module({
   imports: [
@@ -18,7 +19,8 @@ import { Role } from '../users/entities/role.entity';
       Person,
       Phone,
       User,
-      Role
+      Role,
+      Mailbox
     ]),
     AuthModule
   ],

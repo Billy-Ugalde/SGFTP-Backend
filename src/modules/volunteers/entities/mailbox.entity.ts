@@ -1,11 +1,11 @@
 import {
     Column, CreateDateColumn, Entity, Index, JoinColumn, ManyToOne,
-    OneToMany,
     PrimaryGeneratedColumn, UpdateDateColumn
 } from "typeorm";
+import { Volunteer } from "./volunteer.entitie";
 
 
-@Index(['Name', 'Registration_date'], { unique: true })
+@Index(['Affair', 'Registration_date'], { unique: true })
 @Entity()
 
 export class Mailbox {
@@ -35,4 +35,8 @@ export class Mailbox {
 
     @Column({ length: 500, nullable: true })
     Document3?: string;
+
+    @ManyToOne(() => Volunteer, (volunteer) => volunteer.mailboxes)
+    @JoinColumn({ name: 'id_volunteer' })
+    volunteer: Volunteer;
 }
