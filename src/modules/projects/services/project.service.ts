@@ -328,6 +328,17 @@ async updateProject(
     });
   }
 
+  async getActivePublicProjects(): Promise<Project[]> {
+    return await this.projectRepository.find({
+      where: {
+        Active: true
+      },
+      order: {
+        Registration_date: 'DESC'
+      }
+    });
+  }
+
   async statusProject(id_project: number, projectStatus: ProjectStatusDto): Promise<Project> {
     const project = this.getbyIdProject(id_project);
     if (!project) {

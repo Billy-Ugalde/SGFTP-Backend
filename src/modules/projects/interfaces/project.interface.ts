@@ -21,6 +21,7 @@ export interface IProjectService {
   getMetricByProject(id_project: number);
   getbyIdProject(id_project: number): Promise<Project>
   getAllProject();
+  getActivePublicProjects(): Promise<Project[]>;
   statusProject(id_project: number, projectStatusDto: ProjectStatusDto);
   toggleActive(id: number, toggleDto: ToggleActiveDto): Promise<Project>;
   getActivitiesByProject(id_project: number): Promise<Activity[]>;
