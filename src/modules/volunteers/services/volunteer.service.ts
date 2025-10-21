@@ -1,8 +1,7 @@
-import { Injectable, NotFoundException, BadRequestException, ConflictException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource } from 'typeorm';
-import { Volunteer } from '../entities/volunteer.entitie';
-import { Activity_enrollment } from '../entities/enrollmentActivity.entitie';
+import { Injectable, NotFoundException, BadRequestException, ConflictException, Inject } from '@nestjs/common';
+import { DataSource } from 'typeorm';
+import { Volunteer } from '../entities/volunteer.entity';
+import { Activity_enrollment } from '../entities/enrollmentActivity.entity';
 import {
   CreateVolunteerDto,
   UpdateVolunteerDto,
@@ -11,23 +10,28 @@ import {
   PublicRegisterVolunteerDto,
   PublicEnrollActivityDto,
   UpdateOwnProfileDto,
-  SelfEnrollActivityDto
+  SelfEnrollActivityDto,
+  ConvertUserToVolunteerDto
 } from '../dto/volunteer.dto';
 import { EnrollmentActivityStatus } from '../enums/enrollmentActivity.enum';
 import { Person } from 'src/entities/person.entity';
 import { Phone } from 'src/entities/phone.entity';
 import { User } from '../../users/entities/user.entity';
 import { Role } from '../../users/entities/role.entity';
-import * as bcrypt from 'bcrypt';
+import { IVolunteerRepository } from '../interfaces/volunteer.repository.interface';
+import { IEnrollmentRepository } from '../interfaces/enrollment.repository.interface';
+import { VOLUNTEER_REPOSITORY_TOKEN, ENROLLMENT_REPOSITORY_TOKEN } from '../constants/injection-tokens';
+import { AuthEmailService } from '../../auth/services/auth-email.service';
 
 @Injectable()
 export class VolunteerService {
   constructor(
-    @InjectRepository(Volunteer)
-    private volunteerRepository: Repository<Volunteer>,
-    @InjectRepository(Activity_enrollment)
-    private enrollmentRepository: Repository<Activity_enrollment>,
+    @Inject(VOLUNTEER_REPOSITORY_TOKEN)
+    private volunteerRepository: IVolunteerRepository,
+    @Inject(ENROLLMENT_REPOSITORY_TOKEN)
+    private enrollmentRepository: IEnrollmentRepository,
     private dataSource: DataSource,
+    private authEmailService: AuthEmailService,
   ) { }
 
   // ========== CRUD Volunteers ==========
@@ -77,32 +81,85 @@ export class VolunteerService {
     await queryRunner.startTransaction();
 
     try {
-      // Verificar que la persona existe
-      const person = await queryRunner.manager.findOne(Person, {
-        where: { id_person: createDto.id_person }
+      // 1. Verificar que el email no exista
+      const existingPerson = await queryRunner.manager.findOne(Person, {
+        where: { email: createDto.person.email }
       });
 
-      if (!person) {
-        throw new NotFoundException(`Persona con ID ${createDto.id_person} no encontrada`);
+      if (existingPerson) {
+        throw new ConflictException('Ya existe una persona registrada con este email');
       }
 
-      // Verificar que la persona no sea ya voluntario
-      const existingVolunteer = await this.volunteerRepository.findOne({
-        where: { person: { id_person: createDto.id_person } }
+      // 2. Crear Person
+      const person = queryRunner.manager.create(Person, {
+        first_name: createDto.person.first_name,
+        second_name: createDto.person.second_name,
+        first_lastname: createDto.person.first_lastname,
+        second_lastname: createDto.person.second_lastname,
+        email: createDto.person.email,
       });
 
-      if (existingVolunteer) {
-        throw new BadRequestException('Esta persona ya está registrada como voluntario');
+      const savedPerson = await queryRunner.manager.save(Person, person);
+
+      // 3. Crear teléfonos
+      for (const phoneData of createDto.person.phones) {
+        const phone = queryRunner.manager.create(Phone, {
+          phone_number: phoneData.phone_number,
+          person: savedPerson
+        });
+        await queryRunner.manager.save(Phone, phone);
       }
 
-      const volunteer = this.volunteerRepository.create({
-        person: person,
-        skills: createDto.skills ? JSON.stringify(createDto.skills) : undefined,
+      // 4. Obtener el rol de voluntario
+      const volunteerRole = await queryRunner.manager.findOne(Role, {
+        where: { name: 'volunteer' }
+      });
+
+      if (!volunteerRole) {
+        throw new NotFoundException('El rol de voluntario no existe en el sistema');
+      }
+
+      // 5. Generar token de activación
+      const activationToken = require('crypto').randomBytes(32).toString('hex');
+      const tokenExpires = new Date();
+      tokenExpires.setHours(tokenExpires.getHours() + 24); // 24 horas
+
+      // 6. Crear User con token de activación
+      const user = queryRunner.manager.create(User, {
+        activation_token: activationToken,
+        activation_expires: tokenExpires,
+        status: false, // Pendiente de activación
+        isEmailVerified: false,
+        failedLoginAttempts: 0,
+        person: savedPerson,
+        roles: [volunteerRole]
+      });
+
+      await queryRunner.manager.save(User, user);
+
+      // 7. Crear Volunteer
+      const volunteer = queryRunner.manager.create(Volunteer, {
+        person: savedPerson,
         is_active: createDto.is_active ?? true,
       });
 
       const savedVolunteer = await queryRunner.manager.save(Volunteer, volunteer);
+
       await queryRunner.commitTransaction();
+
+      // 8. Enviar email de activación
+      try {
+        const activationLink = `${process.env.FRONTEND_URL}/activate?token=${activationToken}`;
+        await this.authEmailService.sendAccountActivationEmail(
+          savedPerson.email,
+          `${savedPerson.first_name} ${savedPerson.first_lastname}`,
+          activationLink,
+          ['volunteer']
+        );
+        console.log(`[VolunteerService] Email de activación enviado a: ${savedPerson.email}`);
+      } catch (emailError) {
+        console.error(`[VolunteerService] Error enviando email: ${emailError.message}`);
+      }
 
       return await this.findOne(savedVolunteer.id_volunteer);
     } catch (error) {
@@ -117,10 +174,6 @@ export class VolunteerService {
     const volunteer = await this.findOne(id);
 
     const updateData: Partial<Volunteer> = {};
-
-    if (updateDto.skills !== undefined) {
-      updateData.skills = JSON.stringify(updateDto.skills);
-    }
 
     if (updateDto.is_active !== undefined) {
       updateData.is_active = updateDto.is_active;
@@ -159,7 +212,6 @@ export class VolunteerService {
     const enrollment = this.enrollmentRepository.create({
       id_volunteer: enrollDto.id_volunteer,
       id_activity: enrollDto.id_activity,
-      notes: enrollDto.notes,
       status: EnrollmentActivityStatus.ENROLLED
     });
 
@@ -185,14 +237,10 @@ export class VolunteerService {
       enrollment.attendance_date = new Date(updateDto.attendance_date);
     }
 
-    if (updateDto.notes !== undefined) {
-      enrollment.notes = updateDto.notes;
-    }
-
     return await this.enrollmentRepository.save(enrollment);
   }
 
-  async cancelEnrollment(id_enrollment: number, notes?: string): Promise<Activity_enrollment> {
+  async cancelEnrollment(id_enrollment: number): Promise<Activity_enrollment> {
     const enrollment = await this.enrollmentRepository.findOne({
       where: { id_enrollment_activity: id_enrollment }
     });
@@ -202,9 +250,6 @@ export class VolunteerService {
     }
 
     enrollment.status = EnrollmentActivityStatus.CANCELLED;
-    if (notes) {
-      enrollment.notes = notes;
-    }
 
     return await this.enrollmentRepository.save(enrollment);
   }
@@ -214,10 +259,62 @@ export class VolunteerService {
 
     return await this.enrollmentRepository.find({
       where: { id_volunteer },
-      relations: ['activity', 'activity.project'],
+      relations: ['activity', 'activity.project', 'activity.dateActivities'],
       order: {
         enrollment_date: 'DESC'
       }
+    });
+  }
+
+  async getVolunteerUpcomingEnrollments(id_volunteer: number): Promise<Activity_enrollment[]> {
+    await this.findOne(id_volunteer); // Verificar que existe
+
+    const enrollments = await this.enrollmentRepository.find({
+      where: { id_volunteer },
+      relations: ['activity', 'activity.project', 'activity.dateActivities'],
+      order: {
+        enrollment_date: 'DESC'
+      }
+    });
+
+    // Filtrar solo las actividades futuras
+    const now = new Date();
+    return enrollments.filter(enrollment => {
+      if (!enrollment.activity?.dateActivities || enrollment.activity.dateActivities.length === 0) {
+        return false;
+      }
+
+      // Si tiene múltiples fechas, verificar si alguna es futura
+      return enrollment.activity.dateActivities.some(dateActivity => {
+        const activityDate = new Date(dateActivity.Start_date);
+        return activityDate >= now;
+      });
+    });
+  }
+
+  async getVolunteerPastEnrollments(id_volunteer: number): Promise<Activity_enrollment[]> {
+    await this.findOne(id_volunteer); // Verificar que existe
+
+    const enrollments = await this.enrollmentRepository.find({
+      where: { id_volunteer },
+      relations: ['activity', 'activity.project', 'activity.dateActivities'],
+      order: {
+        enrollment_date: 'DESC'
+      }
+    });
+
+    // Filtrar solo las actividades pasadas
+    const now = new Date();
+    return enrollments.filter(enrollment => {
+      if (!enrollment.activity?.dateActivities || enrollment.activity.dateActivities.length === 0) {
+        return false;
+      }
+
+      // Si tiene múltiples fechas, verificar si TODAS son pasadas
+      return enrollment.activity.dateActivities.every(dateActivity => {
+        const activityDate = new Date(dateActivity.Start_date);
+        return activityDate < now;
+      });
     });
   }
 
@@ -281,14 +378,16 @@ export class VolunteerService {
         throw new NotFoundException('El rol de voluntario no existe en el sistema');
       }
 
-      // 5. Generar contraseña temporal
-      const tempPassword = this.generateTempPassword();
-      const hashedPassword = await bcrypt.hash(tempPassword, 10);
+      // 5. Generar token de activación
+      const activationToken = require('crypto').randomBytes(32).toString('hex');
+      const tokenExpires = new Date();
+      tokenExpires.setHours(tokenExpires.getHours() + 24); // 24 horas
 
-      // 6. Crear User
+      // 6. Crear User con token de activación
       const user = queryRunner.manager.create(User, {
-        password: hashedPassword,
-        status: true,
+        activation_token: activationToken,
+        activation_expires: tokenExpires,
+        status: false, // Pendiente de activación
         isEmailVerified: false,
         failedLoginAttempts: 0,
         person: savedPerson,
@@ -300,7 +399,6 @@ export class VolunteerService {
       // 7. Crear Volunteer
       const volunteer = queryRunner.manager.create(Volunteer, {
         person: savedPerson,
-        skills: dto.skills ? JSON.stringify(dto.skills) : undefined,
         is_active: true,
       });
 
@@ -308,8 +406,19 @@ export class VolunteerService {
 
       await queryRunner.commitTransaction();
 
-      // TODO: Enviar email con credenciales de acceso
-      // await this.emailService.sendWelcomeEmail(savedPerson.email, tempPassword);
+      // 8. Enviar email de activación
+      try {
+        const activationLink = `${process.env.FRONTEND_URL}/activate?token=${activationToken}`;
+        await this.authEmailService.sendAccountActivationEmail(
+          savedPerson.email,
+          `${savedPerson.first_name} ${savedPerson.first_lastname}`,
+          activationLink,
+          ['volunteer']
+        );
+        console.log(`[VolunteerService] Email de activación enviado a: ${savedPerson.email}`);
+      } catch (emailError) {
+        console.error(`[VolunteerService] Error enviando email: ${emailError.message}`);
+      }
 
       return await this.findOne(savedVolunteer.id_volunteer);
     } catch (error) {
@@ -388,25 +497,40 @@ export class VolunteerService {
               await queryRunner.manager.save(User, user);
             }
           } else {
-            // Crear usuario nuevo
-            const tempPassword = this.generateTempPassword();
-            const hashedPassword = await bcrypt.hash(tempPassword, 10);
+            // Crear usuario nuevo con token de activación
+            const activationToken = require('crypto').randomBytes(32).toString('hex');
+            const tokenExpires = new Date();
+            tokenExpires.setHours(tokenExpires.getHours() + 24);
 
             const newUser = queryRunner.manager.create(User, {
-              password: hashedPassword,
-              status: true,
+              activation_token: activationToken,
+              activation_expires: tokenExpires,
+              status: false,
               isEmailVerified: false,
+              failedLoginAttempts: 0,
               person: existingPerson,
               roles: [volunteerRole]
             });
 
             await queryRunner.manager.save(User, newUser);
+
+            // Enviar email de activación
+            try {
+              const activationLink = `${process.env.FRONTEND_URL}/activate?token=${activationToken}`;
+              await this.authEmailService.sendAccountActivationEmail(
+                existingPerson.email,
+                `${existingPerson.first_name} ${existingPerson.first_lastname}`,
+                activationLink,
+                ['volunteer']
+              );
+            } catch (emailError) {
+              console.error(`[VolunteerService] Error enviando email: ${emailError.message}`);
+            }
           }
 
           // Crear perfil de voluntario
           volunteer = queryRunner.manager.create(Volunteer, {
             person: existingPerson,
-            skills: dto.skills ? JSON.stringify(dto.skills) : undefined,
             is_active: true,
           });
 
@@ -442,24 +566,39 @@ export class VolunteerService {
           throw new NotFoundException('El rol de voluntario no existe en el sistema');
         }
 
-        // Crear usuario
-        const tempPassword = this.generateTempPassword();
-        const hashedPassword = await bcrypt.hash(tempPassword, 10);
+        // Crear usuario con token de activación
+        const activationToken = require('crypto').randomBytes(32).toString('hex');
+        const tokenExpires = new Date();
+        tokenExpires.setHours(tokenExpires.getHours() + 24);
 
         const user = queryRunner.manager.create(User, {
-          password: hashedPassword,
-          status: true,
+          activation_token: activationToken,
+          activation_expires: tokenExpires,
+          status: false,
           isEmailVerified: false,
+          failedLoginAttempts: 0,
           person: savedPerson,
           roles: [volunteerRole]
         });
 
         await queryRunner.manager.save(User, user);
 
+        // Enviar email de activación
+        try {
+          const activationLink = `${process.env.FRONTEND_URL}/activate?token=${activationToken}`;
+          await this.authEmailService.sendAccountActivationEmail(
+            savedPerson.email,
+            `${savedPerson.first_name} ${savedPerson.first_lastname}`,
+            activationLink,
+            ['volunteer']
+          );
+        } catch (emailError) {
+          console.error(`[VolunteerService] Error enviando email: ${emailError.message}`);
+        }
+
         // Crear voluntario
         volunteer = queryRunner.manager.create(Volunteer, {
           person: savedPerson,
-          skills: dto.skills ? JSON.stringify(dto.skills) : undefined,
           is_active: true,
         });
 
@@ -470,7 +609,6 @@ export class VolunteerService {
       const enrollment = queryRunner.manager.create(Activity_enrollment, {
         id_volunteer: volunteer.id_volunteer,
         id_activity: dto.id_activity,
-        notes: dto.notes,
         status: EnrollmentActivityStatus.ENROLLED
       });
 
@@ -512,17 +650,13 @@ export class VolunteerService {
   }
 
   /**
-   * Actualizar perfil propio (solo skills)
+   * Actualizar perfil propio
+   * Por ahora no hay campos editables, pero mantenemos el método para futuras extensiones
    */
   async updateOwnProfile(userId: number, dto: UpdateOwnProfileDto): Promise<Volunteer> {
     const volunteer = await this.findByUserId(userId);
 
-    if (dto.skills !== undefined) {
-      await this.volunteerRepository.update(volunteer.id_volunteer, {
-        skills: JSON.stringify(dto.skills)
-      });
-    }
-
+    // Sin campos para actualizar por ahora
     return await this.findOne(volunteer.id_volunteer);
   }
 
@@ -552,7 +686,6 @@ export class VolunteerService {
     const enrollment = this.enrollmentRepository.create({
       id_volunteer: volunteer.id_volunteer,
       id_activity: dto.id_activity,
-      notes: dto.notes,
       status: EnrollmentActivityStatus.ENROLLED
     });
 
@@ -567,7 +700,7 @@ export class VolunteerService {
 
     return await this.enrollmentRepository.find({
       where: { id_volunteer: volunteer.id_volunteer },
-      relations: ['activity', 'activity.project'],
+      relations: ['activity', 'activity.project', 'activity.dateActivities'],
       order: {
         enrollment_date: 'DESC'
       }
@@ -575,9 +708,67 @@ export class VolunteerService {
   }
 
   /**
+   * Obtener mis inscripciones futuras (voluntario autenticado)
+   */
+  async getMyUpcomingEnrollments(userId: number): Promise<Activity_enrollment[]> {
+    const volunteer = await this.findByUserId(userId);
+
+    const enrollments = await this.enrollmentRepository.find({
+      where: { id_volunteer: volunteer.id_volunteer },
+      relations: ['activity', 'activity.project', 'activity.dateActivities'],
+      order: {
+        enrollment_date: 'DESC'
+      }
+    });
+
+    // Filtrar solo las actividades futuras
+    const now = new Date();
+    return enrollments.filter(enrollment => {
+      if (!enrollment.activity?.dateActivities || enrollment.activity.dateActivities.length === 0) {
+        return false;
+      }
+
+      // Si tiene múltiples fechas, verificar si alguna es futura
+      return enrollment.activity.dateActivities.some(dateActivity => {
+        const activityDate = new Date(dateActivity.Start_date);
+        return activityDate >= now;
+      });
+    });
+  }
+
+  /**
+   * Obtener mis inscripciones pasadas (voluntario autenticado)
+   */
+  async getMyPastEnrollments(userId: number): Promise<Activity_enrollment[]> {
+    const volunteer = await this.findByUserId(userId);
+
+    const enrollments = await this.enrollmentRepository.find({
+      where: { id_volunteer: volunteer.id_volunteer },
+      relations: ['activity', 'activity.project', 'activity.dateActivities'],
+      order: {
+        enrollment_date: 'DESC'
+      }
+    });
+
+    // Filtrar solo las actividades pasadas
+    const now = new Date();
+    return enrollments.filter(enrollment => {
+      if (!enrollment.activity?.dateActivities || enrollment.activity.dateActivities.length === 0) {
+        return false;
+      }
+
+      // Si tiene múltiples fechas, verificar si TODAS son pasadas
+      return enrollment.activity.dateActivities.every(dateActivity => {
+        const activityDate = new Date(dateActivity.Start_date);
+        return activityDate < now;
+      });
+    });
+  }
+
+  /**
    * Cancelar mi inscripción (voluntario autenticado)
    */
-  async cancelMyEnrollment(userId: number, id_enrollment: number, notes?: string): Promise<Activity_enrollment> {
+  async cancelMyEnrollment(userId: number, id_enrollment: number): Promise<Activity_enrollment> {
     const volunteer = await this.findByUserId(userId);
 
     const enrollment = await this.enrollmentRepository.findOne({
@@ -596,24 +787,72 @@ export class VolunteerService {
     }
 
     enrollment.status = EnrollmentActivityStatus.CANCELLED;
-    if (notes) {
-      enrollment.notes = notes;
-    }
 
     return await this.enrollmentRepository.save(enrollment);
   }
 
-  // ========== HELPER METHODS ==========
+  // ========== CONVERTIR USUARIO EXISTENTE A VOLUNTARIO ==========
 
   /**
-   * Genera contraseña temporal de 8 caracteres
+   * Convierte un usuario existente en voluntario
+   * Agrega el rol de volunteer si no lo tiene y crea el perfil de voluntario
    */
-  private generateTempPassword(): string {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%';
-    let password = '';
-    for (let i = 0; i < 8; i++) {
-      password += chars.charAt(Math.floor(Math.random() * chars.length));
+  async convertUserToVolunteer(dto: ConvertUserToVolunteerDto): Promise<Volunteer> {
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      // 1. Buscar persona por email
+      const person = await queryRunner.manager.findOne(Person, {
+        where: { email: dto.email },
+        relations: ['user', 'user.roles', 'volunteer']
+      });
+
+      if (!person) {
+        throw new NotFoundException('No existe una persona registrada con este email');
+      }
+
+      if (!person.user) {
+        throw new BadRequestException('Esta persona no tiene un usuario asociado. Use el registro público de voluntarios');
+      }
+
+      // 2. Verificar que no sea ya voluntario
+      if (person.volunteer) {
+        throw new ConflictException('Este usuario ya es voluntario');
+      }
+
+      // 3. Obtener el rol de voluntario
+      const volunteerRole = await queryRunner.manager.findOne(Role, {
+        where: { name: 'volunteer' }
+      });
+
+      if (!volunteerRole) {
+        throw new NotFoundException('El rol de voluntario no existe en el sistema');
+      }
+
+      // 4. Agregar rol de voluntario si no lo tiene
+      if (!person.user.hasRole('volunteer')) {
+        person.user.roles.push(volunteerRole);
+        await queryRunner.manager.save(User, person.user);
+      }
+
+      // 5. Crear perfil de voluntario
+      const volunteer = queryRunner.manager.create(Volunteer, {
+        person: person,
+        is_active: true,
+      });
+
+      const savedVolunteer = await queryRunner.manager.save(Volunteer, volunteer);
+
+      await queryRunner.commitTransaction();
+
+      return await this.findOne(savedVolunteer.id_volunteer);
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
     }
-    return password;
   }
 }

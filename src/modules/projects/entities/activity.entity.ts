@@ -6,7 +6,7 @@ import {
 import { Project } from "./project.entity";
 import { ActivityStatus, MetricType, TypeActivity, TypeApproach, TypeFavorite } from "../enums/activity.enum";
 import { DateActivity } from "src/modules/projects/entities/date.entity";
-import { Activity_enrollment } from "src/modules/volunteers/entities/enrollmentActivity.entitie";
+import { Activity_enrollment } from "src/modules/volunteers/entities/enrollmentActivity.entity";
 import { Metric_value } from "./activityValues.entity";
 @Index(['Name', 'Registration_date'], { unique: true })
 @Entity()

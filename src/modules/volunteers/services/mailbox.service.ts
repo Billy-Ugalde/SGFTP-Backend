@@ -6,7 +6,7 @@ import { IMailboxService, MailboxFiles } from "../interfaces/mailbox.interface";
 import { CreateMailboxDto } from "../dto/createMailbox.dto";
 import { UpdateMailboxDto } from "../dto/updateMailbox.dto";
 import { GoogleDriveService } from "src/modules/google-drive/google-drive.service";
-import { Volunteer } from "../entities/volunteer.entitie";
+import { Volunteer } from "../entities/volunteer.entity"
 
 
 @Injectable()
