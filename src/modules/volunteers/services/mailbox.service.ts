@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ConflictException, InternalServerErrorException } from "@nestjs/common";
+import { Injectable, NotFoundException, ConflictException, InternalServerErrorException, Logger } from "@nestjs/common";
 import { Mailbox } from "../entities/mailbox.entity";
 import { InjectRepository } from "@nestjs/typeorm";
 import { DataSource, Repository, QueryFailedError } from "typeorm";
@@ -11,6 +11,8 @@ import { Volunteer } from "../entities/volunteer.entitie";
 
 @Injectable()
 export class MailboxService implements IMailboxService {
+    private readonly logger = new Logger(MailboxService.name);
+
     constructor(
     @InjectRepository(Mailbox)
     private mailboxRepository: Repository<Mailbox>,
@@ -88,7 +90,7 @@ export class MailboxService implements IMailboxService {
       if (error instanceof QueryFailedError) {
         if (error.message.includes('Duplicate entry')) {
           throw new ConflictException(
-            'Ya existe un mailbox con el mismo asunto y fecha de registro. Por favor, verifica los datos e intenta nuevamente.'
+            'Ya existe un mensaje con el mismo asunto y fecha de registro. Por favor, verifica los datos e intenta nuevamente.'
           );
         }
       }
@@ -97,8 +99,9 @@ export class MailboxService implements IMailboxService {
         throw error;
       }
 
+      this.logger.error(`Error al crear el buzón de correo: ${error.message}`, error.stack);
       throw new InternalServerErrorException(
-        'Error interno del servidor al crear el mailbox'
+        `Error al crear el buzón de correo: ${error.message}`
       );
     } finally {
       await queryRunner.release();
@@ -184,8 +187,9 @@ export class MailboxService implements IMailboxService {
                 const { url } = await this.googleDriveService.uploadFile(replaceFile, folderName);
                 updateData[field] = url;
               } catch (uploadError) {
+                this.logger.error(`Error al subir documento ${field} a Google Drive: ${uploadError.message}`, uploadError.stack);
                 throw new InternalServerErrorException(
-                  `Error subiendo documento ${field}: ${uploadError.message}`
+                  `Error al subir documento ${field}: ${uploadError.message}`
                 );
               }
             } else {
@@ -217,8 +221,9 @@ export class MailboxService implements IMailboxService {
                 const { url } = await this.googleDriveService.uploadFile(addFile, folderName);
                 updateData[field] = url;
               } catch (uploadError) {
+                this.logger.error(`Error al agregar documento ${field} a Google Drive: ${uploadError.message}`, uploadError.stack);
                 throw new InternalServerErrorException(
-                  `Error subiendo documento ${field}: ${uploadError.message}`
+                  `Error al agregar documento ${field}: ${uploadError.message}`
                 );
               }
             }
@@ -247,7 +252,7 @@ export class MailboxService implements IMailboxService {
             try {
               await this.googleDriveService.deleteFile(fileId);
             } catch (deleteError) {
-              console.error(`⚠️ No se pudo eliminar ${fileId}:`, deleteError.message);
+              this.logger.error(`No se pudo eliminar archivo ${fileId} de Google Drive`, deleteError.stack);
             }
           })
         );
@@ -258,12 +263,13 @@ export class MailboxService implements IMailboxService {
     } catch (error) {
       await queryRunner.rollbackTransaction();
 
-      if (error instanceof InternalServerErrorException) {
+      if (error instanceof InternalServerErrorException || error instanceof NotFoundException) {
         throw error;
       }
 
+      this.logger.error(`Error al actualizar el buzón de correo: ${error.message}`, error.stack);
       throw new InternalServerErrorException(
-        `Error actualizando mailbox: ${error.message}`
+        `Error al actualizar el buzón de correo: ${error.message}`
       );
     } finally {
       await queryRunner.release();
@@ -277,7 +283,7 @@ export class MailboxService implements IMailboxService {
     });
 
     if (!mailbox) {
-      throw new NotFoundException(`Solicitud de voluntariado con ID ${id_mailbox} no fue encontrada`);
+      throw new NotFoundException(`El mensaje de intención de voluntariado con ID ${id_mailbox} no fue encontrado`);
     }
 
     return mailbox;
@@ -287,7 +293,7 @@ export class MailboxService implements IMailboxService {
     return await this.mailboxRepository.find({
       relations: ['volunteer'],
       order: {
-        Registration_date: 'DESC'
+        Registration_date: 'ASC'
       }
     });
   }
