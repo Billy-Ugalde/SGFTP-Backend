@@ -12,6 +12,7 @@ import { Role } from '../users/entities/role.entity';
 import { Mailbox } from './entities/mailbox.entity';
 import { MailboxController } from './controllers/mailbox.controller';
 import { MailboxService } from './services/mailbox.service';
+import { GoogleDriveService } from '../google-drive/google-drive.service';
 
 @Module({
   imports: [
@@ -27,7 +28,7 @@ import { MailboxService } from './services/mailbox.service';
     AuthModule
   ],
   controllers: [VolunteerController, MailboxController],
-  providers: [VolunteerService, MailboxService],
+  providers: [VolunteerService, MailboxService, GoogleDriveService],
   exports: [VolunteerService]
 })
 export class VolunteerModule {}
