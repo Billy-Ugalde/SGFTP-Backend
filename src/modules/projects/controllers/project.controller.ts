@@ -23,6 +23,11 @@ export class ProjectController {
         return await this.projectservice.getActivePublicProjects();
     }
 
+    @Get('slug/:slug')
+    async getProjectBySlug(@Param('slug') slug: string): Promise<Project> {
+        return await this.projectservice.getProjectBySlug(slug);
+    }
+
     @Get(':id')
     async getbyIdProject(@Param('id', ParseIntPipe) id_project: number): Promise<Project> {
         return await this.projectservice.getbyIdProject(id_project)

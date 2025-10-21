@@ -13,6 +13,9 @@ export class Project {
     @Column({ type: 'varchar' })
     Name: string
 
+    @Column({ type: 'varchar', unique: true })
+    Slug: string
+
     @Column({ type: 'varchar' })
     Description: string;
 
