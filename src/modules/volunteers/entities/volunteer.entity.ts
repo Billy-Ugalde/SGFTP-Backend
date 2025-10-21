@@ -1,6 +1,7 @@
 import { Person } from "src/entities/person.entity";
 import { Column, PrimaryGeneratedColumn, OneToOne, OneToMany, Entity, JoinColumn, CreateDateColumn, UpdateDateColumn } from "typeorm";
 import { Activity_enrollment } from "./enrollmentActivity.entity";
+import { Mailbox } from "./mailbox.entity";
 
 @Entity('volunteers')
 export class Volunteer {
@@ -26,4 +27,7 @@ export class Volunteer {
 
     @OneToMany(() => Activity_enrollment, enrollment => enrollment.volunteer)
     activity_enrollments: Activity_enrollment[];
+
+    @OneToMany(() => Mailbox, (mailbox) => mailbox.volunteer)
+    mailboxes: Mailbox[];
 }

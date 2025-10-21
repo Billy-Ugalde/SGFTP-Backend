@@ -12,7 +12,7 @@ import {
   HttpCode,
   HttpStatus
 } from '@nestjs/common';
-import { VolunteerService } from './services/volunteer.service';
+import { VolunteerService } from '../services/volunteer.service';
 import {
   CreateVolunteerDto,
   UpdateVolunteerDto,
@@ -23,14 +23,14 @@ import {
   PublicEnrollActivityDto,
   UpdateOwnProfileDto,
   SelfEnrollActivityDto
-} from './dto/volunteer.dto';
-import { AuthGuard } from '../auth/guards/auth.guard';
-import { RoleGuard } from '../auth/guards/role.guard';
-import { Roles } from '../auth/decorators/roles.decorator';
-import { Public } from '../auth/decorators/public.decorator';
-import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import { UserRole } from '../auth/enums/user-role.enum';
-import { User } from '../users/entities/user.entity';
+} from '../dto/volunteer.dto';
+import { AuthGuard } from '../../auth/guards/auth.guard';
+import { RoleGuard } from '../../auth/guards/role.guard';
+import { Roles } from '../../auth/decorators/roles.decorator';
+import { Public } from '../../auth/decorators/public.decorator';
+import { CurrentUser } from '../../auth/decorators/current-user.decorator';
+import { UserRole } from '../../auth/enums/user-role.enum';
+import { User } from '../../users/entities/user.entity';
 
 @Controller('volunteers')
 @UseGuards(AuthGuard, RoleGuard)

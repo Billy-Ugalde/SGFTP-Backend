@@ -337,7 +337,7 @@ export class ReportProjectService implements IReportProjectService {
                 Location: activity.Location,
                 Aim: activity.Aim,
                 Metric_activity: activity.Metric_activity,
-                Metric_value: activity.Metric_value,
+                Metric_value: activity.Total_metric_value,
 
                 Start_date: activity.dateActivities?.[0]?.Start_date
                     ? new Date(activity.dateActivities[0].Start_date).toLocaleDateString('es-ES', {

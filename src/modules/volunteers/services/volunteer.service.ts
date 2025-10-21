@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException, ConflictException, Inject } from '@nestjs/common';
 import { DataSource } from 'typeorm';
-import { Volunteer } from './entities/volunteer.entity';
-import { Activity_enrollment } from './entities/enrollmentActivity.entity';
+import { Volunteer } from '../entities/volunteer.entity';
+import { Activity_enrollment } from '../entities/enrollmentActivity.entity';
 import {
   CreateVolunteerDto,
   UpdateVolunteerDto,
@@ -11,16 +11,16 @@ import {
   PublicEnrollActivityDto,
   UpdateOwnProfileDto,
   SelfEnrollActivityDto
-} from './dto/volunteer.dto';
-import { EnrollmentActivityStatus } from './enums/enrollmentActivity.enum';
+} from '../dto/volunteer.dto';
+import { EnrollmentActivityStatus } from '../enums/enrollmentActivity.enum';
 import { Person } from 'src/entities/person.entity';
 import { Phone } from 'src/entities/phone.entity';
-import { User } from '../users/entities/user.entity';
-import { Role } from '../users/entities/role.entity';
+import { User } from '../../users/entities/user.entity';
+import { Role } from '../../users/entities/role.entity';
 import * as bcrypt from 'bcrypt';
-import { IVolunteerRepository } from './interfaces/volunteer.repository.interface';
-import { IEnrollmentRepository } from './interfaces/enrollment.repository.interface';
-import { VOLUNTEER_REPOSITORY_TOKEN, ENROLLMENT_REPOSITORY_TOKEN } from './constants/injection-tokens';
+import { IVolunteerRepository } from '../interfaces/volunteer.repository.interface';
+import { IEnrollmentRepository } from '../interfaces/enrollment.repository.interface';
+import { VOLUNTEER_REPOSITORY_TOKEN, ENROLLMENT_REPOSITORY_TOKEN } from '../constants/injection-tokens';
 
 @Injectable()
 export class VolunteerService {
