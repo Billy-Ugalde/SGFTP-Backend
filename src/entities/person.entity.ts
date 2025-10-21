@@ -2,7 +2,7 @@ import { Entity, PrimaryGeneratedColumn, Column, OneToMany, OneToOne, CreateDate
 import { Entrepreneur } from '../modules/entrepreneurs/entities/entrepreneur.entity';
 import { Phone } from './phone.entity';
 import { User } from 'src/modules/users/entities/user.entity';
-import { Volunteer } from 'src/modules/volunteers/entities/volunteer.entitie';
+import { Volunteer } from 'src/modules/volunteers/entities/volunteer.entity';
 
 @Entity()
 export class Person {

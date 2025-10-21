@@ -2,7 +2,7 @@ import {
     Column, CreateDateColumn, Entity, Index, JoinColumn, ManyToOne,
     PrimaryGeneratedColumn, UpdateDateColumn
 } from "typeorm";
-import { Volunteer } from "./volunteer.entitie";
+import { Volunteer } from "./volunteer.entity";
 
 
 @Index(['Affair', 'Registration_date'], { unique: true })
