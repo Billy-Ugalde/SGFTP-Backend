@@ -11,12 +11,15 @@ import { ActivityStatusDto } from "../dto/activityStatus.dto";
 import { UpdateActivityDto } from "../dto/updateActivity.dto";
 import { ACTIVITY_TYPE_TO_PROJECT_METRIC } from "../Constants/activity-metrics.constant";
 import { Project } from "../entities/project.entity";
+import { Metric_value } from "../entities/activityValues.entity";
 
 @Injectable()
 export class ActivityService implements IActivityService {
     constructor(
         @InjectRepository(Activity)
         private activityRepository: Repository<Activity>,
+        @InjectRepository(Metric_value)
+        private metricValueRepository: Repository<Metric_value>,
         @InjectRepository(DateActivity)
         private dateActivityRepository: Repository<DateActivity>,
         private dataSource: DataSource,
@@ -60,13 +63,13 @@ export class ActivityService implements IActivityService {
                 Location: createActivityDto.Location,
                 Aim: createActivityDto.Aim,
                 Metric_activity: createActivityDto.Metric_activity,
-                Metric_value: 0,
+                Total_metric_value: 0,
                 Active: createActivityDto.Active,
                 project: project
             });
 
             const savedActivity = await queryRunner.manager.save(Activity, newActivity);
-
+            const savedDates: DateActivity[] = [];
             if (createActivityDto.dates && createActivityDto.dates.length > 0) {
                 for (const dateDto of createActivityDto.dates) {
                     const dateActivity = queryRunner.manager.create(DateActivity, {
@@ -74,7 +77,24 @@ export class ActivityService implements IActivityService {
                         End_date: dateDto.End_date,
                         activity: savedActivity
                     });
-                    await queryRunner.manager.save(DateActivity, dateActivity);
+                    const savedDate = await queryRunner.manager.save(DateActivity, dateActivity);
+                    savedDates.push(savedDate);
+                }
+            }
+
+            if (createActivityDto.values && createActivityDto.values.length > 0) {
+                for (let i = 0; i < createActivityDto.values.length; i++) {
+                    const valueDto = createActivityDto.values[i];
+                    const correspondingDate = savedDates[i]; // 👈 Usar índice del array
+
+                    if (correspondingDate) {
+                        const metricValue = queryRunner.manager.create(Metric_value, {
+                            Value: valueDto.Value,
+                            activity: savedActivity,
+                            dateActivity: correspondingDate
+                        });
+                        await queryRunner.manager.save(Metric_value, metricValue);
+                    }
                 }
             }
 
@@ -94,6 +114,27 @@ export class ActivityService implements IActivityService {
                     url2: urls[1] || undefined,
                     url3: urls[2] || undefined
                 });
+            }
+
+
+            const allMetricValues = await queryRunner.manager.find(Metric_value, {
+                where: { activity: { Id_activity: savedActivity.Id_activity } }
+            });
+
+            const totalMetricValue = allMetricValues.reduce((sum, metric) => sum + (metric.Value || 0), 0);
+
+            await queryRunner.manager.update(Activity, savedActivity.Id_activity, {
+                Total_metric_value: totalMetricValue
+            });
+
+            // Actualizar proyecto si hay valores
+            if (totalMetricValue > 0) {
+                await this.recalculateProjectMetricForType(
+                    project.Id_project,
+                    createActivityDto.Metric_activity,
+                    null,
+                    queryRunner
+                );
             }
 
             await queryRunner.commitTransaction();
@@ -133,13 +174,8 @@ export class ActivityService implements IActivityService {
         try {
             const activity = await this.getbyIdActivity(id_activity);
             const filesToDelete: string[] = [];
-
             const updateData: Partial<Activity> = {};
-
-            const oldMetricActivity = activity.Metric_activity;
-            const metricActivityChanged = updateActivityDto.Metric_activity &&
-                updateActivityDto.Metric_activity !== oldMetricActivity;
-
+            
             if (updateActivityDto.Name) updateData.Name = updateActivityDto.Name;
             if (updateActivityDto.Description) updateData.Description = updateActivityDto.Description;
             if (updateActivityDto.Conditions) updateData.Conditions = updateActivityDto.Conditions;
@@ -154,7 +190,6 @@ export class ActivityService implements IActivityService {
             if (updateActivityDto.Location) updateData.Location = updateActivityDto.Location;
             if (updateActivityDto.Aim) updateData.Aim = updateActivityDto.Aim;
             if (updateActivityDto.Metric_activity) updateData.Metric_activity = updateActivityDto.Metric_activity;
-            if (updateActivityDto.Metric_value !== undefined) updateData.Metric_value = updateActivityDto.Metric_value;
             if (updateActivityDto.Active !== undefined) updateData.Active = updateActivityDto.Active;
 
             // 2. Procesar imágenes con acciones específicas
@@ -289,24 +324,49 @@ export class ActivityService implements IActivityService {
                     }
                 }
             }
+            
+            if (updateActivityDto.metricValues && updateActivityDto.metricValues.length > 0) {
+                for (const valueDto of updateActivityDto.metricValues) {
+                    if (valueDto.Id_activity_value) {
+                        // UPDATE de un value existente
+                        await queryRunner.manager.update(Metric_value, valueDto.Id_activity_value, {
+                            Value: valueDto.Value,
+                            ...(valueDto.Id_dateActivity && {
+                                dateActivity: { Id_dateActivity: valueDto.Id_dateActivity }
+                            })
+                        });
+                    }
+                }
+            }
+
+            const allMetricValues = await queryRunner.manager.find(Metric_value, {
+                where: { activity: { Id_activity: id_activity } }
+            });
+
+            const totalMetricValue = allMetricValues.reduce((sum, metric) => sum + (metric.Value || 0), 0);
+
+            await queryRunner.manager.update(Activity, id_activity, {
+                Total_metric_value: totalMetricValue
+            });
+
+            const metricActivityChanged = updateActivityDto.Metric_activity &&
+                updateActivityDto.Metric_activity !== activity.Metric_activity;
 
             if (metricActivityChanged) {
                 await this.recalculateProjectMetricForType(
                     activity.project.Id_project,
-                    oldMetricActivity,
-                    id_activity,
+                    activity.Metric_activity,  
+                    id_activity,  
                     queryRunner
                 );
-
                 await this.recalculateProjectMetricForType(
                     activity.project.Id_project,
-                    updateActivityDto.Metric_activity,
-                    null,
+                    updateActivityDto.Metric_activity,  
+                    null,  
                     queryRunner
                 );
-            } else if (updateActivityDto.Metric_value !== undefined) {
-
-                await this.updateProjectMetrics(id_activity, queryRunner, updateActivityDto.Metric_value);
+            } else {
+                await this.updateProjectMetrics(id_activity, queryRunner, totalMetricValue);
             }
 
             await queryRunner.commitTransaction();
@@ -362,7 +422,7 @@ export class ActivityService implements IActivityService {
             .andWhere('activity.Metric_activity = :metricActivity', { metricActivity: activity.Metric_activity })
             .andWhere('activity.Id_activity != :activityId', { activityId: activityId })
             .getMany();
-        const otherActivitiesTotal = otherActivities.reduce((sum, act) => sum + (act.Metric_value || 0), 0);
+        const otherActivitiesTotal = otherActivities.reduce((sum, act) => sum + (act.Total_metric_value || 0), 0);
         const totalMetric = otherActivitiesTotal + newMetricValue;
 
         await queryRunner.manager.update(Project, activity.project.Id_project, {
@@ -393,8 +453,7 @@ export class ActivityService implements IActivityService {
 
         const activities = await query.getMany();
 
-        const totalMetric = activities.reduce((sum, act) => sum + (act.Metric_value || 0), 0);
-
+        const totalMetric = activities.reduce((sum, act) => sum + (act.Total_metric_value || 0), 0);
         await queryRunner.manager.update(Project, projectId, {
             [projectMetricField]: totalMetric
         });
@@ -402,14 +461,14 @@ export class ActivityService implements IActivityService {
 
     async getAllActivities() {
         return await this.activityRepository.find({
-            relations: ['project', 'dateActivities']
+            relations: ['project', 'dateActivities', 'metric_value', 'metric_value.dateActivity']
         });
     }
 
     async getbyIdActivity(id_activity: number): Promise<Activity> {
         const activity = await this.activityRepository.findOne({
             where: { Id_activity: id_activity },
-            relations: ['project', 'dateActivities']
+            relations: ['project', 'dateActivities', 'metric_value', 'metric_value.dateActivity']
         });
 
         if (!activity) {

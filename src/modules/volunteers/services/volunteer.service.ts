@@ -1,8 +1,8 @@
 import { Injectable, NotFoundException, BadRequestException, ConflictException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
-import { Volunteer } from './entities/volunteer.entitie';
-import { Activity_enrollment } from './entities/enrollmentActivity.entitie';
+import { Volunteer } from '../entities/volunteer.entitie';
+import { Activity_enrollment } from '../entities/enrollmentActivity.entitie';
 import {
   CreateVolunteerDto,
   UpdateVolunteerDto,
@@ -12,12 +12,12 @@ import {
   PublicEnrollActivityDto,
   UpdateOwnProfileDto,
   SelfEnrollActivityDto
-} from './dto/volunteer.dto';
-import { EnrollmentActivityStatus } from './enums/enrollmentActivity.enum';
+} from '../dto/volunteer.dto';
+import { EnrollmentActivityStatus } from '../enums/enrollmentActivity.enum';
 import { Person } from 'src/entities/person.entity';
 import { Phone } from 'src/entities/phone.entity';
-import { User } from '../users/entities/user.entity';
-import { Role } from '../users/entities/role.entity';
+import { User } from '../../users/entities/user.entity';
+import { Role } from '../../users/entities/role.entity';
 import * as bcrypt from 'bcrypt';
 
 @Injectable()

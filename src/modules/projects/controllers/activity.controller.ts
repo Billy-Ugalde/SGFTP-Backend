@@ -1,6 +1,6 @@
 import {
     Body, Controller, Get, HttpCode, HttpStatus, Param,
-    ParseIntPipe, Patch, Post, Put, UploadedFiles, UseInterceptors
+    ParseIntPipe, Patch, Post, Put, UploadedFiles, UseGuards, UseInterceptors
 } from "@nestjs/common";
 import { FileFieldsInterceptor, FilesInterceptor } from "@nestjs/platform-express";
 import { ActivityService } from "../services/activity.service";
@@ -10,22 +10,33 @@ import { CreateActivityDto } from "../dto/createActivity.dto";
 import { UpdateActivityDto } from "../dto/updateActivity.dto";
 import { ActivityFiles } from "../interfaces/activity.interface";
 import { ParseJsonFieldsInterceptor } from "src/common/interceptors/parse-json-fields.interceptor";
+import { AuthGuard } from "src/modules/auth/guards/auth.guard";
+import { RoleGuard } from "src/modules/auth/guards/role.guard";
+import { Roles } from "src/modules/auth/decorators/roles.decorator";
+import { UserRole } from "src/modules/auth/enums/user-role.enum";
 
 @Controller('activities')
+@UseGuards(AuthGuard)
 export class ActivityController {
     constructor(private activityservice: ActivityService) { }
 
     @Get()
+    @UseGuards(RoleGuard)
+    @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN, UserRole.AUDITOR)
     async getAllActivities(): Promise<Activity[]> {
         return await this.activityservice.getAllActivities();
     }
 
     @Get(':id')
+    @UseGuards(RoleGuard)
+    @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN, UserRole.AUDITOR)
     async getbyIdActivity(@Param('id', ParseIntPipe) id_activity: number): Promise<Activity> {
         return await this.activityservice.getbyIdActivity(id_activity);
     }
 
     @Patch(':id/status')
+    @UseGuards(RoleGuard)
+    @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN)
     async statusActivity(
         @Param('id', ParseIntPipe) id_activity: number,
         @Body() activityStatus: ActivityStatusDto
@@ -34,6 +45,8 @@ export class ActivityController {
     }
 
     @Patch('active/:id')
+    @UseGuards(RoleGuard)
+    @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN)
     async toggleActive(
         @Param('id', ParseIntPipe) id_activity: number,
         @Body() body: { active: boolean }
@@ -43,6 +56,8 @@ export class ActivityController {
 
     @Post()
     @HttpCode(HttpStatus.CREATED)
+    @UseGuards(RoleGuard)
+    @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN)
     @UseInterceptors(FilesInterceptor('images', 3), ParseJsonFieldsInterceptor)
     async createActivity(
         @Body() createActivityDto: CreateActivityDto,
@@ -52,6 +67,8 @@ export class ActivityController {
     }
 
     @Put(':id')
+    @UseGuards(RoleGuard)
+    @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN)
     @UseInterceptors(
         FileFieldsInterceptor([
             { name: 'url_1_file', maxCount: 1 },
