@@ -9,7 +9,8 @@ import {
   UseInterceptors,
   UploadedFiles,
   HttpCode,
-  HttpStatus
+  HttpStatus,
+  UseGuards
 } from "@nestjs/common";
 import { FileFieldsInterceptor } from "@nestjs/platform-express";
 import { MailboxService } from "../services/mailbox.service";
@@ -22,16 +23,15 @@ import { RoleGuard } from "src/modules/auth/guards/role.guard";
 import { Roles } from "src/modules/auth/decorators/roles.decorator";
 import { UserRole } from "src/modules/auth/enums/user-role.enum";
 
-
 @Controller('mailbox')
-// @UseGuards(AuthGuard)
+@UseGuards(AuthGuard)
 export class MailboxController {
   constructor(private readonly mailboxService: MailboxService) { }
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  // @UseGuards(RoleGuard)
-  //@Roles(UserRole.VOLUNTEER, UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN)
+  @UseGuards(RoleGuard)
+  @Roles(UserRole.VOLUNTEER, UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN)
   @UseInterceptors(
     FileFieldsInterceptor([
       { name: 'documents', maxCount: 3 }
@@ -49,8 +49,8 @@ export class MailboxController {
   }
 
   @Put(':id')
-  // @UseGuards(RoleGuard)
-  // @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN)
+  @UseGuards(RoleGuard)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN)
   @UseInterceptors(
     FileFieldsInterceptor([
       { name: 'Document1_file', maxCount: 1 },
@@ -69,15 +69,15 @@ export class MailboxController {
   }
 
   @Get()
-  // @UseGuards(RoleGuard)
-  // @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN, UserRole.AUDITOR)
+  @UseGuards(RoleGuard)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN, UserRole.AUDITOR)
   async getAllMailbox() {
     return await this.mailboxService.getAllMailbox();
   }
 
   @Get(':id')
-  // @UseGuards(RoleGuard)
-  // @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN, UserRole.AUDITOR)
+  @UseGuards(RoleGuard)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN, UserRole.AUDITOR)
   async getMailboxById(@Param('id', ParseIntPipe) id: number) {
     return await this.mailboxService.getMailboxById(id);
   }
