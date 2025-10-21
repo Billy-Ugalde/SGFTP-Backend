@@ -3,26 +3,6 @@ import { Type } from 'class-transformer';
 import { EnrollmentActivityStatus } from '../enums/enrollmentActivity.enum';
 
 // ========== DTOs ADMIN ==========
-
-// DTO para crear un voluntario (admin)
-export class CreateVolunteerDto {
-  @IsNumber()
-  id_person: number;
-
-  @IsOptional()
-  @IsBoolean()
-  is_active?: boolean;
-}
-
-// DTO para actualizar un voluntario (admin)
-export class UpdateVolunteerDto {
-  @IsOptional()
-  @IsBoolean()
-  is_active?: boolean;
-}
-
-// ========== DTOs PÚBLICOS (Sin Auth) ==========
-
 // DTO para crear persona (nested en registro público)
 export class CreatePersonDto {
   @IsString()
@@ -57,6 +37,34 @@ export class PhoneDto {
   @IsNotEmpty()
   phone_number: string;
 }
+// DTO para crear un voluntario (admin) - NUEVO: Incluye datos de persona
+export class CreateVolunteerDto {
+  @ValidateNested()
+  @Type(() => CreatePersonDto)
+  person: CreatePersonDto;
+
+  @IsOptional()
+  @IsBoolean()
+  is_active?: boolean;
+}
+
+// DTO para convertir usuario existente en voluntario
+export class ConvertUserToVolunteerDto {
+  @IsEmail()
+  @IsNotEmpty()
+  email: string;
+}
+
+// DTO para actualizar un voluntario (admin)
+export class UpdateVolunteerDto {
+  @IsOptional()
+  @IsBoolean()
+  is_active?: boolean;
+}
+
+// ========== DTOs PÚBLICOS (Sin Auth) ==========
+
+
 
 // DTO para registro público de voluntario
 export class PublicRegisterVolunteerDto {

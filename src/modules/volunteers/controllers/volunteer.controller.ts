@@ -22,7 +22,8 @@ import {
   PublicRegisterVolunteerDto,
   PublicEnrollActivityDto,
   UpdateOwnProfileDto,
-  SelfEnrollActivityDto
+  SelfEnrollActivityDto,
+  ConvertUserToVolunteerDto
 } from '../dto/volunteer.dto';
 import { AuthGuard } from '../../auth/guards/auth.guard';
 import { RoleGuard } from '../../auth/guards/role.guard';
@@ -139,6 +140,14 @@ export class VolunteerController {
   @Public()
   async publicEnrollActivity(@Body() dto: PublicEnrollActivityDto) {
     return await this.volunteerService.publicEnrollToActivity(dto);
+  }
+
+  // ========== CONVERT USER TO VOLUNTEER ==========
+
+  @Post('convert-user')
+  @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN, UserRole.FAIR_ADMIN)
+  async convertUserToVolunteer(@Body() dto: ConvertUserToVolunteerDto) {
+    return await this.volunteerService.convertUserToVolunteer(dto);
   }
 
   // ========== VOLUNTEER SELF-MANAGEMENT ENDPOINTS ==========

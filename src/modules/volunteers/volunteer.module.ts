@@ -12,6 +12,7 @@ import { User } from '../users/entities/user.entity';
 import { Role } from '../users/entities/role.entity';
 import { VOLUNTEER_REPOSITORY_TOKEN, ENROLLMENT_REPOSITORY_TOKEN } from './constants/injection-tokens';
 import { Mailbox } from './entities/mailbox.entity';
+import { SharedModule } from '../shared/shared.module';
 
 @Module({
   imports: [
@@ -24,7 +25,8 @@ import { Mailbox } from './entities/mailbox.entity';
       Role,
       Mailbox
     ]),
-    AuthModule
+    AuthModule,
+    SharedModule
   ],
   controllers: [VolunteerController],
   providers: [
