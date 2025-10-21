@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Testing de Activación</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 800px;
+            width: 100%;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .section {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .section h2 {
+            color: #52AC83;
+            margin-bottom: 15px;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        input[type="email"] {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            margin-bottom: 12px;
+            transition: border-color 0.3s;
+        }
+
+        input[type="email"]:focus {
+            outline: none;
+            border-color: #52AC83;
+        }
+
+        button {
+            background: #52AC83;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+
+        button:hover {
+            background: #0A4558;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(82, 172, 131, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button.secondary {
+            background: #6c757d;
+        }
+
+        button.secondary:hover {
+            background: #5a6268;
+        }
+
+        .result {
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 16px;
+            margin-top: 16px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        .result.success {
+            border-color: #52AC83;
+            background: #e8f5e8;
+        }
+
+        .result.error {
+            border-color: #dc3545;
+            background: #f8d7da;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .alert {
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            font-size: 14px;
+        }
+
+        .alert.info {
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+
+        .alert.warning {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Testing de Activación de Cuentas</h1>
+        <p class="subtitle">Herramienta para probar el flujo de activación y reenvío de tokens</p>
+
+        <div class="alert info">
+            ℹ️ <strong>Importante:</strong> Asegúrate de que el backend esté corriendo en <code>http://localhost:3001</code>
+        </div>
+
+        <!-- Ver estado del usuario -->
+        <div class="section">
+            <h2>👤 1. Ver Estado de Usuario</h2>
+            <input type="email" id="statusEmail" placeholder="Ingresa el email del usuario">
+            <button onclick="checkUserStatus()">🔍 Ver Estado</button>
+            <div id="statusResult"></div>
+        </div>
+
+        <!-- Resetear activación -->
+        <div class="section">
+            <h2>🔄 2. Resetear Estado de Activación</h2>
+            <div class="alert warning">
+                ⚠️ Esto pondrá el usuario en estado "pendiente de activación" (sin contraseña, token nuevo válido por 72h)
+            </div>
+            <input type="email" id="resetEmail" placeholder="Ingresa el email del usuario">
+            <button onclick="resetActivation()">♻️ Resetear Activación</button>
+            <div id="resetResult"></div>
+        </div>
+
+        <!-- Regenerar token -->
+        <div class="section">
+            <h2>🔑 3. Regenerar Token (sin cambiar nada más)</h2>
+            <input type="email" id="tokenEmail" placeholder="Ingresa el email del usuario">
+            <button onclick="regenerateToken()">🔑 Regenerar Token</button>
+            <div id="tokenResult"></div>
+        </div>
+
+        <!-- Listar usuarios -->
+        <div class="section">
+            <h2>📋 4. Ver Todos los Usuarios</h2>
+            <button onclick="listUsers()">📋 Listar Usuarios</button>
+            <div id="usersResult"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:3001';
+
+        async function apiCall(endpoint, method = 'GET', body = null) {
+            try {
+                const options = {
+                    method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                };
+
+                if (body) {
+                    options.body = JSON.stringify(body);
+                }
+
+                const response = await fetch(`${API_URL}${endpoint}`, options);
+                const data = await response.json();
+                return { success: true, data };
+            } catch (error) {
+                return { success: false, error: error.message };
+            }
+        }
+
+        function showResult(elementId, data, isError = false) {
+            const element = document.getElementById(elementId);
+            element.innerHTML = `<div class="result ${isError ? 'error' : 'success'}">${JSON.stringify(data, null, 2)}</div>`;
+        }
+
+        async function checkUserStatus() {
+            const email = document.getElementById('statusEmail').value.trim();
+            if (!email) {
+                alert('Por favor ingresa un email');
+                return;
+            }
+
+            const resultDiv = document.getElementById('statusResult');
+            resultDiv.innerHTML = '<div class="result">Cargando...</div>';
+
+            const result = await apiCall(`/auth/test/user-status/${encodeURIComponent(email)}`);
+            showResult('statusResult', result.success ? result.data : result.error, !result.success);
+        }
+
+        async function resetActivation() {
+            const email = document.getElementById('resetEmail').value.trim();
+            if (!email) {
+                alert('Por favor ingresa un email');
+                return;
+            }
+
+            const resultDiv = document.getElementById('resetResult');
+            resultDiv.innerHTML = '<div class="result">Procesando...</div>';
+
+            const result = await apiCall('/auth/test/reset-activation', 'POST', { email });
+            showResult('resetResult', result.success ? result.data : result.error, !result.success);
+        }
+
+        async function regenerateToken() {
+            const email = document.getElementById('tokenEmail').value.trim();
+            if (!email) {
+                alert('Por favor ingresa un email');
+                return;
+            }
+
+            const resultDiv = document.getElementById('tokenResult');
+            resultDiv.innerHTML = '<div class="result">Generando token...</div>';
+
+            const result = await apiCall('/auth/test/regenerate-token', 'POST', { email });
+            showResult('tokenResult', result.success ? result.data : result.error, !result.success);
+        }
+
+        async function listUsers() {
+            const resultDiv = document.getElementById('usersResult');
+            resultDiv.innerHTML = '<div class="result">Cargando usuarios...</div>';
+
+            const result = await apiCall('/auth/test/users');
+            showResult('usersResult', result.success ? result.data : result.error, !result.success);
+        }
+    </script>
+</body>
+</html>

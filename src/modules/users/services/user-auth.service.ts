@@ -237,17 +237,31 @@ export class UserAuthService implements IUserAuthService {
 
     /**
      * Busca usuario pendiente de activación por email
-     * (no activado, sin contraseña, puede tener token expirado)
+     * (email no verificado O sin contraseña, puede tener token expirado)
      */
     async findPendingActivationByEmail(email: string): Promise<User | null> {
-        return await this.userRepository.findOne({
-            where: {
-                person: { email },
-                status: false,           // No activado
-                isEmailVerified: false   // Email no verificado
-            },
-            relations: ['person', 'roles']
-        });
+        console.log('🔍 [USER-AUTH-SERVICE] Buscando usuario con email:', email);
+
+        const user = await this.userRepository
+            .createQueryBuilder('user')
+            .innerJoinAndSelect('user.person', 'person')
+            .leftJoinAndSelect('user.roles', 'roles')
+            .addSelect('user.password')
+            .where('person.email = :email', { email })
+            .andWhere('user.isEmailVerified = :verified', { verified: false })
+            .getOne();
+
+        console.log('📊 [USER-AUTH-SERVICE] Usuario encontrado:', user ? {
+            id: user.id_user,
+            email: user.person.email,
+            status: user.status,
+            isEmailVerified: user.isEmailVerified,
+            hasPassword: !!user.password,
+            hasActivationToken: !!user.activation_token,
+            roles: user.roles?.map(r => r.name) || []
+        } : null);
+
+        return user;
     }
 
     /**
