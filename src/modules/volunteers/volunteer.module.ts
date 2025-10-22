@@ -12,7 +12,10 @@ import { User } from '../users/entities/user.entity';
 import { Role } from '../users/entities/role.entity';
 import { VOLUNTEER_REPOSITORY_TOKEN, ENROLLMENT_REPOSITORY_TOKEN } from './constants/injection-tokens';
 import { Mailbox } from './entities/mailbox.entity';
+import { MailboxController } from './controllers/mailbox.controller';
+import { MailboxService } from './services/mailbox.service';
 import { SharedModule } from '../shared/shared.module';
+import { GoogleDriveService } from '../google-drive/google-drive.service';
 
 @Module({
   imports: [
@@ -28,7 +31,7 @@ import { SharedModule } from '../shared/shared.module';
     AuthModule,
     SharedModule
   ],
-  controllers: [VolunteerController],
+  controllers: [VolunteerController, MailboxController],
   providers: [
     // Provider para IVolunteerRepository
     {
@@ -47,8 +50,8 @@ import { SharedModule } from '../shared/shared.module';
       inject: [DataSource]
     },
     // Service
-    VolunteerService
+    VolunteerService, MailboxService, GoogleDriveService
   ],
   exports: [VolunteerService]
 })
-export class VolunteerModule {}
+export class VolunteerModule { }

@@ -4,7 +4,6 @@ import {
 } from "typeorm";
 import { Volunteer } from "./volunteer.entity";
 
-
 @Index(['Affair', 'Registration_date'], { unique: true })
 @Entity()
 
@@ -13,22 +12,25 @@ export class Mailbox {
     Id_mailbox: number;
 
     @Column({ type: 'varchar' })
-    Organization: string   // de donde viene la persona independiente Universidad entre otros
+    Organization: string
 
     @Column({ type: 'varchar' })
     Description: string;
 
     @Column({ type: 'varchar' })
-    Affair: string;  //asunto
+    Affair: string;  
 
     @CreateDateColumn()
     Registration_date: Date;
+
+    @UpdateDateColumn()
+    Update_date: Date;
 
     @Column({ type: 'int', default: 0 })
     Hour_volunteer: number;
 
     @Column({ length: 500, nullable: true })
-    Document1: string;  //  curriculum obligatorio pdf
+    Document1: string;
 
     @Column({ length: 500, nullable: true })
     Document2?: string;
