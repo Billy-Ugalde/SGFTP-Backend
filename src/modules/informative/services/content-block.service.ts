@@ -71,14 +71,31 @@ export class ContentBlockService {
     block_key: string,
     updateDto: UpdateContentBlockDto,
   ): Promise<ContentBlock> {
-    const createLikeDto: CreateContentBlockDto = {
-      page,
-      section,
-      block_key,
-      ...(updateDto.text_content !== undefined ? { text_content: updateDto.text_content } : {}),
-      ...(updateDto.image_url !== undefined ? { image_url: updateDto.image_url } : {}),
-    };
-    return this.upsertByNaturalKey(createLikeDto);
+    // Buscar bloque existente
+    const existing = await this.contentBlockRepository.findOne({
+      where: { page, section, block_key }
+    });
+
+    if (existing) {
+      // Si existe, ACTUALIZAR los campos proporcionados
+      if (updateDto.text_content !== undefined) {
+        existing.text_content = updateDto.text_content;
+      }
+      if (updateDto.image_url !== undefined) {
+        existing.image_url = updateDto.image_url;
+      }
+      return await this.contentBlockRepository.save(existing);
+    } else {
+      // Si no existe, CREAR nuevo
+      const newBlock = this.contentBlockRepository.create({
+        page,
+        section,
+        block_key,
+        text_content: updateDto.text_content || '',
+        image_url: updateDto.image_url || '',
+      });
+      return await this.contentBlockRepository.save(newBlock);
+    }
   }
 
   // Método para obtener por identificador natural

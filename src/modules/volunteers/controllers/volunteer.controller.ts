@@ -12,7 +12,7 @@ import {
   HttpCode,
   HttpStatus
 } from '@nestjs/common';
-import { VolunteerService } from './services/volunteer.service';
+import { VolunteerService } from '../services/volunteer.service';
 import {
   CreateVolunteerDto,
   UpdateVolunteerDto,
@@ -22,15 +22,16 @@ import {
   PublicRegisterVolunteerDto,
   PublicEnrollActivityDto,
   UpdateOwnProfileDto,
-  SelfEnrollActivityDto
-} from './dto/volunteer.dto';
-import { AuthGuard } from '../auth/guards/auth.guard';
-import { RoleGuard } from '../auth/guards/role.guard';
-import { Roles } from '../auth/decorators/roles.decorator';
-import { Public } from '../auth/decorators/public.decorator';
-import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import { UserRole } from '../auth/enums/user-role.enum';
-import { User } from '../users/entities/user.entity';
+  SelfEnrollActivityDto,
+  ConvertUserToVolunteerDto
+} from '../dto/volunteer.dto';
+import { AuthGuard } from '../../auth/guards/auth.guard';
+import { RoleGuard } from '../../auth/guards/role.guard';
+import { Roles } from '../../auth/decorators/roles.decorator';
+import { Public } from '../../auth/decorators/public.decorator';
+import { CurrentUser } from '../../auth/decorators/current-user.decorator';
+import { UserRole } from '../../auth/enums/user-role.enum';
+import { User } from '../../users/entities/user.entity';
 
 @Controller('volunteers')
 @UseGuards(AuthGuard, RoleGuard)
@@ -139,6 +140,14 @@ export class VolunteerController {
   @Public()
   async publicEnrollActivity(@Body() dto: PublicEnrollActivityDto) {
     return await this.volunteerService.publicEnrollToActivity(dto);
+  }
+
+  // ========== CONVERT USER TO VOLUNTEER ==========
+
+  @Post('convert-user')
+  @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN, UserRole.FAIR_ADMIN)
+  async convertUserToVolunteer(@Body() dto: ConvertUserToVolunteerDto) {
+    return await this.volunteerService.convertUserToVolunteer(dto);
   }
 
   // ========== VOLUNTEER SELF-MANAGEMENT ENDPOINTS ==========

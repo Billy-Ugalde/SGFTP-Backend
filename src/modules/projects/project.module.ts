@@ -10,13 +10,11 @@ import { ActivityController } from "./controllers/activity.controller";
 import { ActivityService } from "./services/activity.service";
 import { ReportProjectController } from "./controllers/reportProject.controller";
 import { ReportProjectService } from "./services/reportProject.service";
+import { Metric_value } from "./entities/activityValues.entity";
 import { AuthModule } from "../auth/auth.module";
 
 @Module({
-    imports: [
-        TypeOrmModule.forFeature([Project, Activity, DateActivity]),
-        AuthModule,
-    ],
+    imports: [TypeOrmModule.forFeature([Project, Activity, DateActivity, Metric_value]), AuthModule],
     controllers: [ProjectController, ActivityController, ReportProjectController],
     providers: [ProjectService, ActivityService, GoogleDriveService, ReportProjectService]
 })

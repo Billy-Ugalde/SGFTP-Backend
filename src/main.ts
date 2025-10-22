@@ -9,13 +9,8 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.use(cookieParser());
 
-  app.enableCors({
-    origin: 'http://localhost:5173',
-    exposedHeaders: ['Content-Disposition'],
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
-  });
+  // CORS configurado via CorsMiddleware en app.module.ts
+  // usando FRONTEND_URL del .env para mayor seguridad
 
   // Servir archivos estáticos desde la carpeta public
   app.use('/images', express.static(join(__dirname, '..', 'public', 'images')));
