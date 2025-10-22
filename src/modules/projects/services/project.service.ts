@@ -10,6 +10,7 @@ import { ProjectStatus } from "../enums/project.enum";
 import { UpdateProjectDto } from "../dto/updateProject.dto";
 import { GoogleDriveService } from "src/modules/google-drive/google-drive.service";
 import { ToggleActiveDto } from "../dto/UdpateActive.dto";
+import { generateSlug, generateUniqueSlug } from "../utils/slug.helper";
 
 @Injectable()
 export class ProjectService implements IProjectService {
@@ -21,6 +22,29 @@ export class ProjectService implements IProjectService {
     private dataSource: DataSource,
     private googleDriveService: GoogleDriveService,
   ) { }
+
+  /**
+   * Genera un slug único para un proyecto
+   * @param name - Nombre del proyecto
+   * @param excludeId - ID del proyecto a excluir de la búsqueda (para updates)
+   * @returns Slug único
+   */
+  private async generateProjectSlug(name: string, excludeId?: number): Promise<string> {
+    const baseSlug = generateSlug(name);
+
+    // Obtener todos los slugs existentes
+    const queryBuilder = this.projectRepository.createQueryBuilder('project')
+      .select('project.Slug');
+
+    if (excludeId) {
+      queryBuilder.where('project.Id_project != :excludeId', { excludeId });
+    }
+
+    const existingProjects = await queryBuilder.getMany();
+    const existingSlugs = existingProjects.map(p => p.Slug);
+
+    return generateUniqueSlug(baseSlug, existingSlugs);
+  }
 
   async createProject(
     createprojectDto: CreateProjectDto,
@@ -41,8 +65,12 @@ export class ProjectService implements IProjectService {
         );
       }
 
+      // Generar slug único
+      const slug = await this.generateProjectSlug(createprojectDto.Name);
+
       const newproject = queryRunner.manager.create(Project, {
         Name: createprojectDto.Name,
+        Slug: slug,
         Description: createprojectDto.Description,
         Observations: createprojectDto.Observations,
         Aim: createprojectDto.Aim,
@@ -120,7 +148,12 @@ async updateProject(
     const updateData: Partial<Project> = {};
 
     // 1. Actualizar campos básicos
-    if (updateProjectDto.Name) updateData.Name = updateProjectDto.Name;
+    if (updateProjectDto.Name) {
+      updateData.Name = updateProjectDto.Name;
+      // Regenerar slug si cambia el nombre
+      const newSlug = await this.generateProjectSlug(updateProjectDto.Name, id_project);
+      updateData.Slug = newSlug;
+    }
     if (updateProjectDto.Description) updateData.Description = updateProjectDto.Description;
     if (updateProjectDto.Observations) updateData.Observations = updateProjectDto.Observations;
     if (updateProjectDto.Aim) updateData.Aim = updateProjectDto.Aim;
@@ -293,6 +326,18 @@ async updateProject(
     return project;
   }
 
+  async getProjectBySlug(slug: string): Promise<Project> {
+    const project = await this.projectRepository.findOne({
+      where: { Slug: slug },
+      relations: ['activity']
+    });
+
+    if (!project) {
+      throw new NotFoundException(`El proyecto con slug "${slug}" no fue encontrado`);
+    }
+    return project;
+  }
+
   async getActivitiesByProject(id_project: number): Promise<Activity[]> {
 
     await this.getbyIdProject(id_project);
@@ -325,6 +370,24 @@ async updateProject(
   async getAllProject() {
     return await this.projectRepository.find({
       relations: ['activity']
+    });
+  }
+
+  async getActivePublicProjects(): Promise<Project[]> {
+    return await this.projectRepository.find({
+      where: [
+        {
+          Active: true,
+          Status: ProjectStatus.EXECUTION
+        },
+        {
+          Active: true,
+          Status: ProjectStatus.FINISHED
+        }
+      ],
+      order: {
+        Registration_date: 'DESC'
+      }
     });
   }
 
