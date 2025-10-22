@@ -1,5 +1,7 @@
 import { Injectable, NestInterceptor, ExecutionContext, CallHandler, BadRequestException } from '@nestjs/common';
 import { Observable } from 'rxjs';
+import { plainToClass } from 'class-transformer';
+import { ValueDto } from '../../modules/projects/dto/createActivity.dto';
 
 @Injectable()
 export class ParseJsonFieldsInterceptor implements NestInterceptor {
@@ -7,12 +9,22 @@ export class ParseJsonFieldsInterceptor implements NestInterceptor {
     const request = context.switchToHttp().getRequest();
     
     if (request.body) {
-      const jsonFields = ['dates', 'dateActivities'];
-      
+      const jsonFields = ['dates', 'dateActivities', 'values'];
+
       jsonFields.forEach(field => {
         if (request.body[field] && typeof request.body[field] === 'string') {
           try {
             request.body[field] = JSON.parse(request.body[field]);
+
+            if (field === 'values' && Array.isArray(request.body[field])) {
+              request.body[field] = request.body[field].map((item: any) => {
+                const transformedItem = {
+                  ...item,
+                  Value: item.Value !== undefined ? Number(item.Value) : 0
+                };
+                return plainToClass(ValueDto, transformedItem);
+              });
+            }
           } catch (error) {
             throw new BadRequestException(`Invalid JSON in field: ${field}`);
           }
