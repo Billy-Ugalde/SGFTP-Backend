@@ -7,12 +7,19 @@ export class ParseJsonFieldsInterceptor implements NestInterceptor {
     const request = context.switchToHttp().getRequest();
     
     if (request.body) {
-      const jsonFields = ['dates', 'dateActivities'];
-      
+      const jsonFields = ['dates', 'dateActivities', 'values'];
+
       jsonFields.forEach(field => {
         if (request.body[field] && typeof request.body[field] === 'string') {
           try {
             request.body[field] = JSON.parse(request.body[field]);
+
+            if (field === 'values' && Array.isArray(request.body[field])) {
+              request.body[field] = request.body[field].map((item: any) => ({
+                ...item,
+                Value: item.Value !== undefined ? Number(item.Value) : 0
+              }));
+            }
           } catch (error) {
             throw new BadRequestException(`Invalid JSON in field: ${field}`);
           }
