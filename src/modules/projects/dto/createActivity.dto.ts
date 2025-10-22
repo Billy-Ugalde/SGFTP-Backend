@@ -18,7 +18,7 @@ import {
     TypeFavorite,
     MetricType
 } from '../enums/activity.enum';
-import { Type, Transform, plainToClass } from 'class-transformer';
+import { Type } from 'class-transformer';
 
 
 export class DateDto {
@@ -120,6 +120,9 @@ export class CreateActivityDto {
     @Type(() => DateDto)
     dates: DateDto[];
 
+    @IsArray()
+    @ValidateNested({ each: true })
+    @Type(() => ValueDto)
     @IsOptional()
-    values?: any[];
+    values?: ValueDto[];
 }
