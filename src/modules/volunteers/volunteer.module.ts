@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
-import { VolunteerController } from './volunteer.controller';
+import { VolunteerController } from './controllers/volunteer.controller';
 import { VolunteerService } from './services/volunteer.service';
 import { Volunteer } from './entities/volunteer.entity';
 import { Activity_enrollment } from './entities/enrollmentActivity.entity';
