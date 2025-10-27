@@ -1,14 +1,29 @@
-import { Controller, Get, Param, ParseIntPipe, Res, HttpStatus } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Param,
+  ParseIntPipe,
+  Res,
+  HttpStatus,
+  UseGuards
+} from '@nestjs/common';
 import { Response } from 'express';
 import { ReportProjectService } from '../services/reportProject.service';
+import { AuthGuard } from '../../auth/guards/auth.guard';
+import { RoleGuard } from '../../auth/guards/role.guard';
+import { Roles } from '../../auth/decorators/roles.decorator';
+import { UserRole } from '../../auth/enums/user-role.enum';
 
 @Controller('reports/projects')
+@UseGuards(AuthGuard)
 export class ReportProjectController {
     constructor(
         private readonly reportService: ReportProjectService
     ) { }
 
     @Get(':id/pdf')
+    @UseGuards(RoleGuard)
+    @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN, UserRole.AUDITOR)
     async getProjectReportPDF(
         @Param('id', ParseIntPipe) id: number,
         @Res() res: Response
@@ -25,6 +40,8 @@ export class ReportProjectController {
     }
 
     @Get(':id/excel')
+    @UseGuards(RoleGuard)
+    @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN, UserRole.AUDITOR)
     async getProjectReportExcel(
         @Param('id', ParseIntPipe) id: number,
         @Res() res: Response
@@ -46,6 +63,8 @@ export class ReportProjectController {
      * Útil para preview o uso en frontend
      */
     @Get(':id/data')
+    @UseGuards(RoleGuard)
+    @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN, UserRole.AUDITOR)
     async getProjectReportData(
         @Param('id', ParseIntPipe) id: number
     ) {
