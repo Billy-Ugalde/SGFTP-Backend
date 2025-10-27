@@ -1,43 +1,10 @@
-import { IsOptional, IsBoolean, IsArray, IsString, IsNumber, IsEnum, IsDateString, IsEmail, ValidateNested, IsNotEmpty } from 'class-validator';
+import { IsOptional, IsBoolean, IsString, IsNumber, IsEnum, IsDateString, IsEmail, ValidateNested, IsNotEmpty } from 'class-validator';
 import { Type } from 'class-transformer';
 import { EnrollmentActivityStatus } from '../enums/enrollmentActivity.enum';
+import { CreatePersonDto } from '../../person/dto/person.dto';
 
 // ========== DTOs ADMIN ==========
-// DTO para crear persona (nested en registro público)
-export class CreatePersonDto {
-  @IsString()
-  @IsNotEmpty()
-  first_name: string;
-
-  @IsOptional()
-  @IsString()
-  second_name?: string;
-
-  @IsString()
-  @IsNotEmpty()
-  first_lastname: string;
-
-  @IsString()
-  @IsNotEmpty()
-  second_lastname: string;
-
-  @IsEmail()
-  @IsNotEmpty()
-  email: string;
-
-  @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => PhoneDto)
-  phones: PhoneDto[];
-}
-
-// DTO para teléfonos
-export class PhoneDto {
-  @IsString()
-  @IsNotEmpty()
-  phone_number: string;
-}
-// DTO para crear un voluntario (admin) - NUEVO: Incluye datos de persona
+// DTO para crear un voluntario (admin) - Incluye datos de persona
 export class CreateVolunteerDto {
   @ValidateNested()
   @Type(() => CreatePersonDto)

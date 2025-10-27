@@ -104,7 +104,9 @@ export class VolunteerService {
       // 3. Crear teléfonos
       for (const phoneData of createDto.person.phones) {
         const phone = queryRunner.manager.create(Phone, {
-          phone_number: phoneData.phone_number,
+          number: phoneData.number,
+          type: phoneData.type,
+          is_primary: phoneData.is_primary,
           person: savedPerson
         });
         await queryRunner.manager.save(Phone, phone);
@@ -363,7 +365,9 @@ export class VolunteerService {
       // 3. Crear teléfonos
       for (const phoneData of dto.person.phones) {
         const phone = queryRunner.manager.create(Phone, {
-          phone_number: phoneData.phone_number,
+          number: phoneData.number,
+          type: phoneData.type,
+          is_primary: phoneData.is_primary,
           person: savedPerson
         });
         await queryRunner.manager.save(Phone, phone);
@@ -551,7 +555,9 @@ export class VolunteerService {
         // Crear teléfonos
         for (const phoneData of dto.person.phones) {
           const phone = queryRunner.manager.create(Phone, {
-            phone_number: phoneData.phone_number,
+            number: phoneData.number,
+            type: phoneData.type,
+            is_primary: phoneData.is_primary,
             person: savedPerson
           });
           await queryRunner.manager.save(Phone, phone);
