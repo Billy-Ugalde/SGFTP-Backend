@@ -16,6 +16,7 @@ import { MailboxController } from './controllers/mailbox.controller';
 import { MailboxService } from './services/mailbox.service';
 import { SharedModule } from '../shared/shared.module';
 import { GoogleDriveService } from '../google-drive/google-drive.service';
+import { AccountInvitationService } from '../auth/services/account-invitation.service';
 
 @Module({
   imports: [
@@ -49,8 +50,11 @@ import { GoogleDriveService } from '../google-drive/google-drive.service';
       },
       inject: [DataSource]
     },
-    // Service
-    VolunteerService, MailboxService, GoogleDriveService
+    // Services
+    VolunteerService,
+    MailboxService,
+    GoogleDriveService,
+    AccountInvitationService
   ],
   exports: [VolunteerService]
 })

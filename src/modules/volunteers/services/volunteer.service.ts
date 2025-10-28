@@ -21,7 +21,7 @@ import { Role } from '../../users/entities/role.entity';
 import { IVolunteerRepository } from '../interfaces/volunteer.repository.interface';
 import { IEnrollmentRepository } from '../interfaces/enrollment.repository.interface';
 import { VOLUNTEER_REPOSITORY_TOKEN, ENROLLMENT_REPOSITORY_TOKEN } from '../constants/injection-tokens';
-import { AuthEmailService } from '../../auth/services/auth-email.service';
+import { AccountInvitationService } from '../../auth/services/account-invitation.service';
 
 @Injectable()
 export class VolunteerService {
@@ -31,7 +31,7 @@ export class VolunteerService {
     @Inject(ENROLLMENT_REPOSITORY_TOKEN)
     private enrollmentRepository: IEnrollmentRepository,
     private dataSource: DataSource,
-    private authEmailService: AuthEmailService,
+    private accountInvitationService: AccountInvitationService,
   ) { }
 
   // ========== CRUD Volunteers ==========
@@ -121,25 +121,7 @@ export class VolunteerService {
         throw new NotFoundException('El rol de voluntario no existe en el sistema');
       }
 
-      // 5. Generar token de activación
-      const activationToken = require('crypto').randomBytes(32).toString('hex');
-      const tokenExpires = new Date();
-      tokenExpires.setHours(tokenExpires.getHours() + 24); // 24 horas
-
-      // 6. Crear User con token de activación
-      const user = queryRunner.manager.create(User, {
-        activation_token: activationToken,
-        activation_expires: tokenExpires,
-        status: false, // Pendiente de activación
-        isEmailVerified: false,
-        failedLoginAttempts: 0,
-        person: savedPerson,
-        roles: [volunteerRole]
-      });
-
-      await queryRunner.manager.save(User, user);
-
-      // 7. Crear Volunteer
+      // 5. Crear Volunteer
       const volunteer = queryRunner.manager.create(Volunteer, {
         person: savedPerson,
         is_active: createDto.is_active ?? true,
@@ -147,21 +129,15 @@ export class VolunteerService {
 
       const savedVolunteer = await queryRunner.manager.save(Volunteer, volunteer);
 
-      await queryRunner.commitTransaction();
+      // 6. Crear cuenta de usuario usando AccountInvitationService
+      await this.accountInvitationService.createUserAccount(
+        savedPerson.id_person,
+        [volunteerRole.id_role],
+        0, // Sistema (sin admin específico)
+        queryRunner
+      );
 
-      // 8. Enviar email de activación
-      try {
-        const activationLink = `${process.env.FRONTEND_URL}/activate?token=${activationToken}`;
-        await this.authEmailService.sendAccountActivationEmail(
-          savedPerson.email,
-          `${savedPerson.first_name} ${savedPerson.first_lastname}`,
-          activationLink,
-          ['volunteer']
-        );
-        console.log(`[VolunteerService] Email de activación enviado a: ${savedPerson.email}`);
-      } catch (emailError) {
-        console.error(`[VolunteerService] Error enviando email: ${emailError.message}`);
-      }
+      await queryRunner.commitTransaction();
 
       return await this.findOne(savedVolunteer.id_volunteer);
     } catch (error) {
@@ -382,25 +358,7 @@ export class VolunteerService {
         throw new NotFoundException('El rol de voluntario no existe en el sistema');
       }
 
-      // 5. Generar token de activación
-      const activationToken = require('crypto').randomBytes(32).toString('hex');
-      const tokenExpires = new Date();
-      tokenExpires.setHours(tokenExpires.getHours() + 24); // 24 horas
-
-      // 6. Crear User con token de activación
-      const user = queryRunner.manager.create(User, {
-        activation_token: activationToken,
-        activation_expires: tokenExpires,
-        status: false, // Pendiente de activación
-        isEmailVerified: false,
-        failedLoginAttempts: 0,
-        person: savedPerson,
-        roles: [volunteerRole]
-      });
-
-      await queryRunner.manager.save(User, user);
-
-      // 7. Crear Volunteer
+      // 5. Crear Volunteer
       const volunteer = queryRunner.manager.create(Volunteer, {
         person: savedPerson,
         is_active: true,
@@ -408,21 +366,15 @@ export class VolunteerService {
 
       const savedVolunteer = await queryRunner.manager.save(Volunteer, volunteer);
 
-      await queryRunner.commitTransaction();
+      // 6. Crear cuenta de usuario usando AccountInvitationService
+      await this.accountInvitationService.createUserAccount(
+        savedPerson.id_person,
+        [volunteerRole.id_role],
+        0, // Sistema (sin admin específico)
+        queryRunner
+      );
 
-      // 8. Enviar email de activación
-      try {
-        const activationLink = `${process.env.FRONTEND_URL}/activate?token=${activationToken}`;
-        await this.authEmailService.sendAccountActivationEmail(
-          savedPerson.email,
-          `${savedPerson.first_name} ${savedPerson.first_lastname}`,
-          activationLink,
-          ['volunteer']
-        );
-        console.log(`[VolunteerService] Email de activación enviado a: ${savedPerson.email}`);
-      } catch (emailError) {
-        console.error(`[VolunteerService] Error enviando email: ${emailError.message}`);
-      }
+      await queryRunner.commitTransaction();
 
       return await this.findOne(savedVolunteer.id_volunteer);
     } catch (error) {
@@ -501,35 +453,13 @@ export class VolunteerService {
               await queryRunner.manager.save(User, user);
             }
           } else {
-            // Crear usuario nuevo con token de activación
-            const activationToken = require('crypto').randomBytes(32).toString('hex');
-            const tokenExpires = new Date();
-            tokenExpires.setHours(tokenExpires.getHours() + 24);
-
-            const newUser = queryRunner.manager.create(User, {
-              activation_token: activationToken,
-              activation_expires: tokenExpires,
-              status: false,
-              isEmailVerified: false,
-              failedLoginAttempts: 0,
-              person: existingPerson,
-              roles: [volunteerRole]
-            });
-
-            await queryRunner.manager.save(User, newUser);
-
-            // Enviar email de activación
-            try {
-              const activationLink = `${process.env.FRONTEND_URL}/activate?token=${activationToken}`;
-              await this.authEmailService.sendAccountActivationEmail(
-                existingPerson.email,
-                `${existingPerson.first_name} ${existingPerson.first_lastname}`,
-                activationLink,
-                ['volunteer']
-              );
-            } catch (emailError) {
-              console.error(`[VolunteerService] Error enviando email: ${emailError.message}`);
-            }
+            // Crear usuario nuevo usando AccountInvitationService
+            await this.accountInvitationService.createUserAccount(
+              existingPerson.id_person,
+              [volunteerRole.id_role],
+              0, // Sistema (sin admin específico)
+              queryRunner
+            );
           }
 
           // Crear perfil de voluntario
@@ -572,36 +502,6 @@ export class VolunteerService {
           throw new NotFoundException('El rol de voluntario no existe en el sistema');
         }
 
-        // Crear usuario con token de activación
-        const activationToken = require('crypto').randomBytes(32).toString('hex');
-        const tokenExpires = new Date();
-        tokenExpires.setHours(tokenExpires.getHours() + 24);
-
-        const user = queryRunner.manager.create(User, {
-          activation_token: activationToken,
-          activation_expires: tokenExpires,
-          status: false,
-          isEmailVerified: false,
-          failedLoginAttempts: 0,
-          person: savedPerson,
-          roles: [volunteerRole]
-        });
-
-        await queryRunner.manager.save(User, user);
-
-        // Enviar email de activación
-        try {
-          const activationLink = `${process.env.FRONTEND_URL}/activate?token=${activationToken}`;
-          await this.authEmailService.sendAccountActivationEmail(
-            savedPerson.email,
-            `${savedPerson.first_name} ${savedPerson.first_lastname}`,
-            activationLink,
-            ['volunteer']
-          );
-        } catch (emailError) {
-          console.error(`[VolunteerService] Error enviando email: ${emailError.message}`);
-        }
-
         // Crear voluntario
         volunteer = queryRunner.manager.create(Volunteer, {
           person: savedPerson,
@@ -609,6 +509,14 @@ export class VolunteerService {
         });
 
         volunteer = await queryRunner.manager.save(Volunteer, volunteer);
+
+        // Crear usuario usando AccountInvitationService
+        await this.accountInvitationService.createUserAccount(
+          savedPerson.id_person,
+          [volunteerRole.id_role],
+          0, // Sistema (sin admin específico)
+          queryRunner
+        );
       }
 
       // 3. Crear la inscripción
