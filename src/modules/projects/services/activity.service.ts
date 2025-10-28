@@ -314,17 +314,28 @@ export class ActivityService implements IActivityService {
                 await queryRunner.manager.update(Activity, id_activity, updateData);
             }
 
+            // 3. Actualizar o crear dateActivities
             if (updateActivityDto.dateActivities && updateActivityDto.dateActivities.length > 0) {
                 for (const dateDto of updateActivityDto.dateActivities) {
                     if (dateDto.Id_dateActivity) {
+                        // UPDATE de fecha existente
                         await queryRunner.manager.update(DateActivity, dateDto.Id_dateActivity, {
                             Start_date: dateDto.Start_date,
                             End_date: dateDto.End_date
                         });
+                    } else {
+                        // CREATE de nueva fecha
+                        const newDateActivity = queryRunner.manager.create(DateActivity, {
+                            Start_date: dateDto.Start_date,
+                            End_date: dateDto.End_date,
+                            activity: { Id_activity: id_activity }
+                        });
+                        await queryRunner.manager.save(DateActivity, newDateActivity);
                     }
                 }
             }
-            
+
+            // 4. Actualizar o crear metricValues
             if (updateActivityDto.metricValues && updateActivityDto.metricValues.length > 0) {
                 for (const valueDto of updateActivityDto.metricValues) {
                     if (valueDto.Id_activity_value) {
@@ -335,6 +346,14 @@ export class ActivityService implements IActivityService {
                                 dateActivity: { Id_dateActivity: valueDto.Id_dateActivity }
                             })
                         });
+                    } else if (valueDto.Id_dateActivity) {
+                        // CREATE de nuevo value (solo si tiene Id_dateActivity asociado)
+                        const newMetricValue = queryRunner.manager.create(Metric_value, {
+                            Value: valueDto.Value,
+                            activity: { Id_activity: id_activity },
+                            dateActivity: { Id_dateActivity: valueDto.Id_dateActivity }
+                        });
+                        await queryRunner.manager.save(Metric_value, newMetricValue);
                     }
                 }
             }

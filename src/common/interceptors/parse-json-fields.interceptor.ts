@@ -7,16 +7,16 @@ import { ValueDto } from '../../modules/projects/dto/createActivity.dto';
 export class ParseJsonFieldsInterceptor implements NestInterceptor {
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const request = context.switchToHttp().getRequest();
-    
+
     if (request.body) {
-      const jsonFields = ['dates', 'dateActivities', 'values'];
+      const jsonFields = ['dates', 'dateActivities', 'values', 'metricValues'];
 
       jsonFields.forEach(field => {
         if (request.body[field] && typeof request.body[field] === 'string') {
           try {
             request.body[field] = JSON.parse(request.body[field]);
 
-            if (field === 'values' && Array.isArray(request.body[field])) {
+            if ((field === 'values' || field === 'metricValues') && Array.isArray(request.body[field])) {
               request.body[field] = request.body[field].map((item: any) => {
                 const transformedItem = {
                   ...item,
@@ -56,7 +56,7 @@ export class ParseJsonFieldsInterceptor implements NestInterceptor {
         delete request.body.IsFavorite;
       }
     }
-    
+
     return next.handle();
   }
 }
