@@ -16,7 +16,6 @@ import * as XLSX from 'xlsx';
 import { Activity_enrollment } from 'src/modules/volunteers/entities/enrollmentActivity.entity';
 
 type PDFDoc = PDFDocument;
-
 @Injectable()
 export class ReportActivityService implements IReportActivityService {
     private readonly logger = new Logger(ReportActivityService.name);
@@ -28,11 +27,6 @@ export class ReportActivityService implements IReportActivityService {
         private readonly enrollmentRepository: Repository<Activity_enrollment>,
     ) { }
 
-    /**
-     * Genera reporte PDF de una actividad con inscripciones de voluntarios
-     * @param id_activity ID de la actividad
-     * @returns Buffer con el PDF generado
-     */
     async createReportActivityPDF(id_activity: number): Promise<Buffer> {
         this.logger.log(`Generando reporte PDF para actividad ID: ${id_activity}`);
 
@@ -62,11 +56,6 @@ export class ReportActivityService implements IReportActivityService {
         });
     }
 
-    /**
-     * Genera reporte Excel de una actividad con inscripciones de voluntarios
-     * @param id_activity ID de la actividad
-     * @returns Buffer con el Excel generado
-     */
     async createReportActivityXLSX(id_activity: number): Promise<Buffer> {
         this.logger.log(`Generando reporte Excel para actividad ID: ${id_activity}`);
 
@@ -100,16 +89,8 @@ export class ReportActivityService implements IReportActivityService {
         }
     }
 
-    /**
-     * Obtiene los datos completos de la actividad para el reporte
-     * @param id_activity ID de la actividad
-     * @returns Datos estructurados para el reporte
-     */
     async getByActivityReport(id_activity: number): Promise<ActivityReportData> {
         this.logger.log(`Obteniendo datos de reporte para actividad ID: ${id_activity}`);
-
-        // TODO: Implementar lógica de obtención de datos
-        // Esta es la estructura base que deberá llenarse con datos reales
 
         const activity = await this.activityRepository.findOne({
             where: { Id_activity: id_activity },
