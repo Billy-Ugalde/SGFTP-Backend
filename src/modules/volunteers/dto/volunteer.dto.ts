@@ -1,7 +1,7 @@
 import { IsOptional, IsBoolean, IsString, IsNumber, IsEnum, IsDateString, IsEmail, ValidateNested, IsNotEmpty } from 'class-validator';
 import { Type } from 'class-transformer';
 import { EnrollmentActivityStatus } from '../enums/enrollmentActivity.enum';
-import { CreatePersonDto } from '../../person/dto/person.dto';
+import { CreatePersonDto, UpdatePersonDto } from '../../person/dto/person.dto';
 
 // ========== DTOs ADMIN ==========
 // DTO para crear un voluntario (admin) - Incluye datos de persona
@@ -24,6 +24,17 @@ export class ConvertUserToVolunteerDto {
 
 // DTO para actualizar un voluntario (admin)
 export class UpdateVolunteerDto {
+  @ValidateNested()
+  @Type(() => UpdatePersonDto)
+  person: UpdatePersonDto;
+
+  @IsOptional()
+  @IsBoolean()
+  is_active?: boolean;
+}
+
+// DTO para actualizar un voluntario (admin)
+export class UpdateStatusVolunteerDto {
   @IsOptional()
   @IsBoolean()
   is_active?: boolean;

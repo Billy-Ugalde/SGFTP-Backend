@@ -11,7 +11,8 @@ import {
   PublicEnrollActivityDto,
   UpdateOwnProfileDto,
   SelfEnrollActivityDto,
-  ConvertUserToVolunteerDto
+  ConvertUserToVolunteerDto,
+  UpdateStatusVolunteerDto
 } from '../dto/volunteer.dto';
 import { EnrollmentActivityStatus } from '../enums/enrollmentActivity.enum';
 import { Person } from 'src/entities/person.entity';
@@ -173,6 +174,73 @@ export class VolunteerService {
   }
 
   async update(id: number, updateDto: UpdateVolunteerDto): Promise<Volunteer> {
+    const volunteer = await this.findOne(id);
+
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      // 1. Actualizar datos básicos de persona
+      if (updateDto.person) {
+        await queryRunner.manager.update(
+          Person, 
+          volunteer.person.id_person, 
+          {
+            first_name: updateDto.person.first_name,
+            second_name: updateDto.person.second_name,
+            first_lastname: updateDto.person.first_lastname,
+            second_lastname: updateDto.person.second_lastname,
+          }
+        );
+
+        // 2. ACTUALIZAR TELÉFONO - FORMA SIMPLIFICADA
+        if (updateDto.person.phones && updateDto.person.phones.length > 0) {
+          const phoneData = updateDto.person.phones[0]; // Siempre el primero
+          
+          // Buscar el primer teléfono de esta persona
+          const existingPhone = await queryRunner.manager.findOne(Phone, {
+            where: {
+              person: { id_person: volunteer.person.id_person }
+            },
+            order: { id_phone: 'ASC' } // Tomar el más viejo
+          });
+
+          if (existingPhone) {
+            // ACTUALIZAR el teléfono existente
+            await queryRunner.manager.update(
+              Phone, 
+              existingPhone.id_phone, 
+              {
+                number: phoneData.number,
+                type: phoneData.type || existingPhone.type,
+                is_primary: phoneData.is_primary !== undefined ? phoneData.is_primary : existingPhone.is_primary
+              }
+            );
+          } else { 
+            throw new NotFoundException('El voluntario no tiene teléfonos registrados para actualizar'); 
+          }
+        }
+      }
+
+      // 3. Actualizar datos de voluntario
+      if (updateDto.is_active !== undefined) {
+        await this.volunteerRepository.update(id, {
+          is_active: updateDto.is_active
+        });
+      }
+
+      await queryRunner.commitTransaction();
+      return await this.findOne(id);
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
+  }
+
+  async updateStatus(id: number, updateDto: UpdateStatusVolunteerDto): Promise<Volunteer> {
     const volunteer = await this.findOne(id);
 
     const updateData: Partial<Volunteer> = {};

@@ -32,6 +32,11 @@ export interface IVolunteerRepository {
   update(id: number, data: Partial<Volunteer>): Promise<UpdateResult>;
 
   /**
+   * Actualizar estado voluntario por ID
+   */
+  updateStatus(id: number, data: Partial<Volunteer>): Promise<UpdateResult>;
+
+  /**
    * Crear query builder para consultas personalizadas
    */
   createQueryBuilder(alias?: string): any;
