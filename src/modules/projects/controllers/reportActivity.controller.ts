@@ -13,12 +13,6 @@ export class ReportActivityController {
         private readonly reportActivityService: ReportActivityService
     ) { }
 
-    /**
-     * GET /reports/activities/:id/pdf
-     * Genera y descarga el reporte PDF de una actividad con inscripciones
-     * @param id - ID de la actividad
-     * @returns Archivo PDF descargable
-     */
     @Get(':id/pdf')
     @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN, UserRole.FAIR_ADMIN)
     async getActivityReportPDF(
@@ -36,12 +30,6 @@ export class ReportActivityController {
         res.status(HttpStatus.OK).send(pdfBuffer);
     }
 
-    /**
-     * GET /reports/activities/:id/excel
-     * Genera y descarga el reporte Excel de una actividad con inscripciones
-     * @param id - ID de la actividad
-     * @returns Archivo Excel descargable
-     */
     @Get(':id/excel')
     @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN, UserRole.FAIR_ADMIN)
     async getActivityReportExcel(
@@ -59,13 +47,6 @@ export class ReportActivityController {
         res.status(HttpStatus.OK).send(excelBuffer);
     }
 
-    /**
-     * GET /reports/activities/:id/data
-     * Obtiene los datos de la actividad para el reporte (sin generar archivo)
-     * Útil para preview o uso en frontend
-     * @param id - ID de la actividad
-     * @returns Datos estructurados del reporte
-     */
     @Get(':id/data')
     @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN, UserRole.FAIR_ADMIN, UserRole.AUDITOR)
     async getActivityReportData(
