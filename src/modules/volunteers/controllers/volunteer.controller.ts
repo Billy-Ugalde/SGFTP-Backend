@@ -39,6 +39,73 @@ import { User } from '../../users/entities/user.entity';
 export class VolunteerController {
   constructor(private readonly volunteerService: VolunteerService) {}
 
+  // ========== VOLUNTEER SELF-MANAGEMENT ENDPOINTS (MUST BE BEFORE :id ROUTE) ==========
+
+  @Get('me')
+  @Roles(UserRole.VOLUNTEER)
+  async getMyProfile(@CurrentUser() user: User) {
+    return await this.volunteerService.findByUserId(user.id_user);
+  }
+
+  @Put('me')
+  @Roles(UserRole.VOLUNTEER)
+  async updateMyProfile(
+    @CurrentUser() user: User,
+    @Body() dto: UpdateOwnProfileDto
+  ) {
+    return await this.volunteerService.updateOwnProfile(user.id_user, dto);
+  }
+
+  @Get('me/activity-enrollments')
+  @Roles(UserRole.VOLUNTEER)
+  async getMyEnrollments(@CurrentUser() user: User) {
+    return await this.volunteerService.getMyEnrollments(user.id_user);
+  }
+
+  @Get('me/activity-enrollments/upcoming')
+  @Roles(UserRole.VOLUNTEER)
+  async getMyUpcomingEnrollments(@CurrentUser() user: User) {
+    return await this.volunteerService.getMyUpcomingEnrollments(user.id_user);
+  }
+
+  @Get('me/activity-enrollments/past')
+  @Roles(UserRole.VOLUNTEER)
+  async getMyPastEnrollments(@CurrentUser() user: User) {
+    return await this.volunteerService.getMyPastEnrollments(user.id_user);
+  }
+
+  @Post('me/activity-enrollment')
+  @Roles(UserRole.VOLUNTEER)
+  async selfEnrollToActivity(
+    @CurrentUser() user: User,
+    @Body() dto: SelfEnrollActivityDto
+  ) {
+    return await this.volunteerService.selfEnrollToActivity(user.id_user, dto);
+  }
+
+  @Patch('me/activity-enrollment/:id_enrollment/cancel')
+  @Roles(UserRole.VOLUNTEER)
+  async cancelMyEnrollment(
+    @CurrentUser() user: User,
+    @Param('id_enrollment', ParseIntPipe) id_enrollment: number
+  ) {
+    return await this.volunteerService.cancelMyEnrollment(user.id_user, id_enrollment);
+  }
+
+  // ========== PUBLIC ENDPOINTS (Sin Auth) ==========
+
+  @Post('public/register')
+  @Public()
+  async publicRegister(@Body() dto: PublicRegisterVolunteerDto) {
+    return await this.volunteerService.publicRegister(dto);
+  }
+
+  @Post('public/enroll-activity')
+  @Public()
+  async publicEnrollActivity(@Body() dto: PublicEnrollActivityDto) {
+    return await this.volunteerService.publicEnrollToActivity(dto);
+  }
+
   // ========== CRUD Volunteers ==========
 
   @Get()
@@ -138,78 +205,11 @@ export class VolunteerController {
     return await this.volunteerService.getActivityEnrollments(id_activity);
   }
 
-  // ========== PUBLIC ENDPOINTS (Sin Auth) ==========
-
-  @Post('public/register')
-  @Public()
-  async publicRegister(@Body() dto: PublicRegisterVolunteerDto) {
-    return await this.volunteerService.publicRegister(dto);
-  }
-
-  @Post('public/enroll-activity')
-  @Public()
-  async publicEnrollActivity(@Body() dto: PublicEnrollActivityDto) {
-    return await this.volunteerService.publicEnrollToActivity(dto);
-  }
-
   // ========== CONVERT USER TO VOLUNTEER ==========
 
   @Post('convert-user')
   @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN)
   async convertUserToVolunteer(@Body() dto: ConvertUserToVolunteerDto) {
     return await this.volunteerService.convertUserToVolunteer(dto);
-  }
-
-  // ========== VOLUNTEER SELF-MANAGEMENT ENDPOINTS ==========
-
-  @Get('me')
-  @Roles(UserRole.VOLUNTEER)
-  async getMyProfile(@CurrentUser() user: User) {
-    return await this.volunteerService.findByUserId(user.id_user);
-  }
-
-  @Put('me')
-  @Roles(UserRole.VOLUNTEER)
-  async updateMyProfile(
-    @CurrentUser() user: User,
-    @Body() dto: UpdateOwnProfileDto
-  ) {
-    return await this.volunteerService.updateOwnProfile(user.id_user, dto);
-  }
-
-  @Get('me/activity-enrollments')
-  @Roles(UserRole.VOLUNTEER)
-  async getMyEnrollments(@CurrentUser() user: User) {
-    return await this.volunteerService.getMyEnrollments(user.id_user);
-  }
-
-  @Get('me/activity-enrollments/upcoming')
-  @Roles(UserRole.VOLUNTEER)
-  async getMyUpcomingEnrollments(@CurrentUser() user: User) {
-    return await this.volunteerService.getMyUpcomingEnrollments(user.id_user);
-  }
-
-  @Get('me/activity-enrollments/past')
-  @Roles(UserRole.VOLUNTEER)
-  async getMyPastEnrollments(@CurrentUser() user: User) {
-    return await this.volunteerService.getMyPastEnrollments(user.id_user);
-  }
-
-  @Post('me/activity-enrollment')
-  @Roles(UserRole.VOLUNTEER)
-  async selfEnrollToActivity(
-    @CurrentUser() user: User,
-    @Body() dto: SelfEnrollActivityDto
-  ) {
-    return await this.volunteerService.selfEnrollToActivity(user.id_user, dto);
-  }
-
-  @Patch('me/activity-enrollment/:id_enrollment/cancel')
-  @Roles(UserRole.VOLUNTEER)
-  async cancelMyEnrollment(
-    @CurrentUser() user: User,
-    @Param('id_enrollment', ParseIntPipe) id_enrollment: number
-  ) {
-    return await this.volunteerService.cancelMyEnrollment(user.id_user, id_enrollment);
   }
 }
