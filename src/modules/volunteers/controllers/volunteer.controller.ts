@@ -120,16 +120,16 @@ export class VolunteerController {
     return await this.volunteerService.findAllActive();
   }
 
-  @Get(':id')
-  @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN, UserRole.VOLUNTEER)
-  async findOne(@Param('id', ParseIntPipe) id: number) {
-    return await this.volunteerService.findOne(id);
-  }
-
   @Get('person/:id_person')
   @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN,  UserRole.VOLUNTEER)
   async findByPerson(@Param('id_person', ParseIntPipe) id_person: number) {
     return await this.volunteerService.findByPerson(id_person);
+  }
+
+  @Get(':id')
+  @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN, UserRole.VOLUNTEER)
+  async findOne(@Param('id', ParseIntPipe) id: number) {
+    return await this.volunteerService.findOne(id);
   }
 
   @Post()
