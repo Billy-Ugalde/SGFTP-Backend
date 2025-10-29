@@ -2,11 +2,13 @@ import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { google, drive_v3 } from 'googleapis';
 import { OAuth2Client } from 'google-auth-library';
 import { Readable } from 'stream';
+import { FolderCategory, FOLDER_NAME_TO_CATEGORY } from './enums/folder-categories.enum';
 
 @Injectable()
 export class GoogleDriveService {
     private driveClient: drive_v3.Drive;
     private oauth2Client: OAuth2Client;
+    private categoryFolderCache: Map<FolderCategory, string> = new Map();
 
     constructor() {
         this.oauth2Client = new OAuth2Client(
@@ -21,15 +23,35 @@ export class GoogleDriveService {
 
             this.oauth2Client.on('tokens', (tokens) => {
                 if (tokens.refresh_token) {
-                    // Aquí puedes manejar la recepción de un nuevo refresh token si es necesario
+                    // manejar la recepción de un nuevo refresh token si es necesario
                 }
             });
         }
 
-        this.driveClient = google.drive({ 
-            version: 'v3', 
-            auth: this.oauth2Client 
+        this.driveClient = google.drive({
+            version: 'v3',
+            auth: this.oauth2Client
         });
+    }
+
+    private detectFolderCategory(folderName: string): FolderCategory | null {
+        const prefix = folderName.split('_')[0].toLowerCase();
+        return FOLDER_NAME_TO_CATEGORY[prefix] || null;
+    }
+
+
+    private async getOrCreateCategoryFolder(category: FolderCategory): Promise<string> {
+        
+        if (this.categoryFolderCache.has(category)) {
+            return this.categoryFolderCache.get(category)!;
+        }
+
+        const parentFolderId = process.env.GOOGLE_DRIVE_PARENT_FOLDER_ID;
+        const categoryFolderId = await this.getOrCreateFolder(category, parentFolderId);
+
+        this.categoryFolderCache.set(category, categoryFolderId);
+
+        return categoryFolderId;
     }
 
     async uploadFile(file: Express.Multer.File, folderName: string): Promise<{ url: string; folderId: string }> {
@@ -40,8 +62,17 @@ export class GoogleDriveService {
 
             await this.ensureValidToken();
 
-            const parentFolderId = process.env.GOOGLE_DRIVE_PARENT_FOLDER_ID;
-            const folderId = await this.getOrCreateFolder(folderName, parentFolderId);
+            const category = this.detectFolderCategory(folderName);
+
+            let folderId: string;
+
+            if (category) {
+                const categoryFolderId = await this.getOrCreateCategoryFolder(category);
+                folderId = await this.getOrCreateFolder(folderName, categoryFolderId);
+            } else {
+                const parentFolderId = process.env.GOOGLE_DRIVE_PARENT_FOLDER_ID;
+                folderId = await this.getOrCreateFolder(folderName, parentFolderId);
+            }
 
             const bufferStream = new Readable();
             bufferStream.push(file.buffer);
@@ -66,15 +97,15 @@ export class GoogleDriveService {
 
             await this.driveClient.permissions.create({
                 fileId,
-                requestBody: { 
-                    role: 'reader', 
+                requestBody: {
+                    role: 'reader',
                     type: 'anyone',
                     allowFileDiscovery: false
                 },
             });
 
             const url = `https://drive.google.com/thumbnail?id=${fileId}&sz=w1000`;
-            
+
             return {
                 url: url,
                 folderId,
