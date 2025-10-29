@@ -16,6 +16,7 @@ import { VolunteerService } from '../services/volunteer.service';
 import {
   CreateVolunteerDto,
   UpdateVolunteerDto,
+  UpdateStatusVolunteerDto,
   EnrollVolunteerDto,
   UpdateEnrollmentDto,
   CancelEnrollmentDto,
@@ -108,37 +109,37 @@ export class VolunteerController {
   // ========== CRUD Volunteers ==========
 
   @Get()
-  @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN, UserRole.FAIR_ADMIN)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN)
   async findAll() {
     return await this.volunteerService.findAll();
   }
 
   @Get('active')
-  @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN, UserRole.FAIR_ADMIN)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN)
   async findAllActive() {
     return await this.volunteerService.findAllActive();
   }
 
   @Get('person/:id_person')
-  @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN, UserRole.FAIR_ADMIN, UserRole.VOLUNTEER)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN,  UserRole.VOLUNTEER)
   async findByPerson(@Param('id_person', ParseIntPipe) id_person: number) {
     return await this.volunteerService.findByPerson(id_person);
   }
 
   @Get(':id')
-  @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN, UserRole.FAIR_ADMIN, UserRole.VOLUNTEER)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN, UserRole.VOLUNTEER)
   async findOne(@Param('id', ParseIntPipe) id: number) {
     return await this.volunteerService.findOne(id);
   }
 
   @Post()
-  @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN, UserRole.FAIR_ADMIN)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN)
   async create(@Body() createDto: CreateVolunteerDto) {
     return await this.volunteerService.create(createDto);
   }
 
   @Put(':id')
-  @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN, UserRole.FAIR_ADMIN)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN)
   async update(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateDto: UpdateVolunteerDto
@@ -146,16 +147,25 @@ export class VolunteerController {
     return await this.volunteerService.update(id, updateDto);
   }
 
+  @Patch(':id/status')
+  @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN)
+  async updateStatus(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updateStatusDto: UpdateStatusVolunteerDto
+  ) {
+    return await this.volunteerService.updateStatus(id, updateStatusDto);
+  }
+
   // ========== Activity Enrollments ==========
 
   @Post('activity-enrollment')
-  @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN, UserRole.FAIR_ADMIN, UserRole.VOLUNTEER)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN, UserRole.VOLUNTEER)
   async enrollToActivity(@Body() enrollDto: EnrollVolunteerDto) {
     return await this.volunteerService.enrollToActivity(enrollDto);
   }
 
   @Patch('activity-enrollment/:id_enrollment')
-  @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN, UserRole.FAIR_ADMIN)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN)
   async updateEnrollmentStatus(
     @Param('id_enrollment', ParseIntPipe) id_enrollment: number,
     @Body() updateDto: UpdateEnrollmentDto
@@ -164,7 +174,7 @@ export class VolunteerController {
   }
 
   @Patch('activity-enrollment/:id_enrollment/cancel')
-  @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN, UserRole.FAIR_ADMIN, UserRole.VOLUNTEER)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN, UserRole.VOLUNTEER)
   async cancelEnrollment(
     @Param('id_enrollment', ParseIntPipe) id_enrollment: number
   ) {
@@ -172,25 +182,25 @@ export class VolunteerController {
   }
 
   @Get(':id_volunteer/activity-enrollments')
-  @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN, UserRole.FAIR_ADMIN, UserRole.VOLUNTEER)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN, UserRole.VOLUNTEER)
   async getVolunteerEnrollments(@Param('id_volunteer', ParseIntPipe) id_volunteer: number) {
     return await this.volunteerService.getVolunteerEnrollments(id_volunteer);
   }
 
   @Get(':id_volunteer/activity-enrollments/upcoming')
-  @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN, UserRole.FAIR_ADMIN, UserRole.VOLUNTEER)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN, UserRole.VOLUNTEER)
   async getVolunteerUpcomingEnrollments(@Param('id_volunteer', ParseIntPipe) id_volunteer: number) {
     return await this.volunteerService.getVolunteerUpcomingEnrollments(id_volunteer);
   }
 
   @Get(':id_volunteer/activity-enrollments/past')
-  @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN, UserRole.FAIR_ADMIN, UserRole.VOLUNTEER)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN, UserRole.VOLUNTEER)
   async getVolunteerPastEnrollments(@Param('id_volunteer', ParseIntPipe) id_volunteer: number) {
     return await this.volunteerService.getVolunteerPastEnrollments(id_volunteer);
   }
 
   @Get('activity/:id_activity/activity-enrollments')
-  @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN, UserRole.FAIR_ADMIN)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN)
   async getActivityEnrollments(@Param('id_activity', ParseIntPipe) id_activity: number) {
     return await this.volunteerService.getActivityEnrollments(id_activity);
   }
@@ -198,7 +208,7 @@ export class VolunteerController {
   // ========== CONVERT USER TO VOLUNTEER ==========
 
   @Post('convert-user')
-  @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN, UserRole.FAIR_ADMIN)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN)
   async convertUserToVolunteer(@Body() dto: ConvertUserToVolunteerDto) {
     return await this.volunteerService.convertUserToVolunteer(dto);
   }
