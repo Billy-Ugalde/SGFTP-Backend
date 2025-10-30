@@ -1,11 +1,10 @@
 import {
     Column, CreateDateColumn, Entity, Index, JoinColumn, ManyToOne,
-    OneToMany,
     PrimaryGeneratedColumn, UpdateDateColumn
 } from "typeorm";
+import { Volunteer } from "./volunteer.entity";
 
-
-@Index(['Name', 'Registration_date'], { unique: true })
+@Index(['Affair', 'Registration_date'], { unique: true })
 @Entity()
 
 export class Mailbox {
@@ -13,27 +12,33 @@ export class Mailbox {
     Id_mailbox: number;
 
     @Column({ type: 'varchar' })
-    Name: string
+    Organization: string
 
     @Column({ type: 'varchar' })
     Description: string;
 
     @Column({ type: 'varchar' })
-    affair: string;  //asunto
+    Affair: string;  
 
     @CreateDateColumn()
-    registration_date: Date;
+    Registration_date: Date;
+
+    @UpdateDateColumn()
+    Update_date: Date;
 
     @Column({ type: 'int', default: 0 })
-    hour_volunteer: number;
+    Hour_volunteer: number;
 
     @Column({ length: 500, nullable: true })
-    document1?: string;
+    Document1: string;
 
     @Column({ length: 500, nullable: true })
-    document2?: string;
+    Document2?: string;
 
     @Column({ length: 500, nullable: true })
-    document3?: string;
+    Document3?: string;
 
+    @ManyToOne(() => Volunteer, (volunteer) => volunteer.mailboxes)
+    @JoinColumn({ name: 'id_volunteer' })
+    volunteer: Volunteer;
 }

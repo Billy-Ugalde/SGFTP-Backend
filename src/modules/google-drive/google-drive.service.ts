@@ -2,51 +2,77 @@ import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { google, drive_v3 } from 'googleapis';
 import { OAuth2Client } from 'google-auth-library';
 import { Readable } from 'stream';
+import { FolderCategory, FOLDER_NAME_TO_CATEGORY } from './enums/folder-categories.enum';
 
 @Injectable()
 export class GoogleDriveService {
     private driveClient: drive_v3.Drive;
     private oauth2Client: OAuth2Client;
+    private categoryFolderCache: Map<FolderCategory, string> = new Map();
 
     constructor() {
-        // Configurar OAuth2
         this.oauth2Client = new OAuth2Client(
             process.env.GOOGLE_DRIVE_CLIENT_ID,
             process.env.GOOGLE_DRIVE_CLIENT_SECRET
         );
 
-        // Configurar el refresh token
         if (process.env.GOOGLE_DRIVE_REFRESH_TOKEN) {
             this.oauth2Client.setCredentials({
                 refresh_token: process.env.GOOGLE_DRIVE_REFRESH_TOKEN
             });
-        } else {
-            console.warn('⚠️ GOOGLE_DRIVE_REFRESH_TOKEN no configurado. Las subidas a Drive fallarán.');
+
+            this.oauth2Client.on('tokens', (tokens) => {
+                if (tokens.refresh_token) {
+                    // manejar la recepción de un nuevo refresh token si es necesario
+                }
+            });
         }
 
-        this.driveClient = google.drive({ 
-            version: 'v3', 
-            auth: this.oauth2Client 
+        this.driveClient = google.drive({
+            version: 'v3',
+            auth: this.oauth2Client
         });
     }
 
-    /**
-     * Sube un archivo a Google Drive
-     * @param file - Archivo de Express Multer
-     * @param folderName - Nombre de la carpeta donde guardar
-     * @returns URL del archivo y ID de la carpeta
-     */
-     async uploadFile(file: Express.Multer.File, folderName: string): Promise<{ url: string; folderId: string }> {
+    private detectFolderCategory(folderName: string): FolderCategory | null {
+        const prefix = folderName.split('_')[0].toLowerCase();
+        return FOLDER_NAME_TO_CATEGORY[prefix] || null;
+    }
+
+
+    private async getOrCreateCategoryFolder(category: FolderCategory): Promise<string> {
+        
+        if (this.categoryFolderCache.has(category)) {
+            return this.categoryFolderCache.get(category)!;
+        }
+
+        const parentFolderId = process.env.GOOGLE_DRIVE_PARENT_FOLDER_ID;
+        const categoryFolderId = await this.getOrCreateFolder(category, parentFolderId);
+
+        this.categoryFolderCache.set(category, categoryFolderId);
+
+        return categoryFolderId;
+    }
+
+    async uploadFile(file: Express.Multer.File, folderName: string): Promise<{ url: string; folderId: string }> {
         try {
-            // Verificar que tenemos refresh token
             if (!process.env.GOOGLE_DRIVE_REFRESH_TOKEN) {
                 throw new Error('Google Drive no está configurado correctamente');
             }
 
-            const parentFolderId = process.env.GOOGLE_DRIVE_PARENT_FOLDER_ID;
+            await this.ensureValidToken();
 
-            // Crear o reutilizar carpeta
-            const folderId = await this.getOrCreateFolder(folderName, parentFolderId);
+            const category = this.detectFolderCategory(folderName);
+
+            let folderId: string;
+
+            if (category) {
+                const categoryFolderId = await this.getOrCreateCategoryFolder(category);
+                folderId = await this.getOrCreateFolder(folderName, categoryFolderId);
+            } else {
+                const parentFolderId = process.env.GOOGLE_DRIVE_PARENT_FOLDER_ID;
+                folderId = await this.getOrCreateFolder(folderName, parentFolderId);
+            }
 
             const bufferStream = new Readable();
             bufferStream.push(file.buffer);
@@ -69,41 +95,39 @@ export class GoogleDriveService {
                 throw new Error('No se pudo obtener el ID del archivo subido');
             }
 
-            // Hacer el archivo público con permisos amplios
             await this.driveClient.permissions.create({
                 fileId,
-                requestBody: { 
-                    role: 'reader', 
+                requestBody: {
+                    role: 'reader',
                     type: 'anyone',
                     allowFileDiscovery: false
                 },
             });
 
             const url = `https://drive.google.com/thumbnail?id=${fileId}&sz=w1000`;
-            
-            console.log(`✅ Archivo subido exitosamente:`, {
-                fileId: fileId,
-                fileName: file.originalname,
-                url: url,
-                folderId: folderId
-            });
-            
+
             return {
                 url: url,
                 folderId,
             };
         } catch (error) {
-            console.error('❌ Error al subir archivo a Drive:', error.message);
             throw new InternalServerErrorException(`Error al subir archivo a Google Drive: ${error.message}`);
         }
     }
 
-    /**
-     * Crea o busca una carpeta en Google Drive
-     * @param name - Nombre de la carpeta
-     * @param parentFolderId - ID de la carpeta padre (opcional)
-     * @returns ID de la carpeta
-     */
+    private async ensureValidToken(): Promise<void> {
+        try {
+            const { token } = await this.oauth2Client.getAccessToken();
+            if (!token) {
+                throw new Error('No se pudo obtener un access token válido');
+            }
+        } catch (error) {
+            throw new InternalServerErrorException(
+                'Error de autenticación con Google Drive. Verifica tu refresh token.'
+            );
+        }
+    }
+
     private async getOrCreateFolder(name: string, parentFolderId?: string): Promise<string> {
         const query = `'${parentFolderId || 'root'}' in parents and name = '${name}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`;
         const res = await this.driveClient.files.list({
@@ -116,7 +140,6 @@ export class GoogleDriveService {
             return res.data.files[0].id!;
         }
 
-        // Crear nueva carpeta
         const fileMetadata: drive_v3.Schema$File = {
             name,
             mimeType: 'application/vnd.google-apps.folder',
@@ -135,10 +158,6 @@ export class GoogleDriveService {
         return folder.data.id;
     }
 
-    /**
-     * Verifica si Google Drive está configurado correctamente
-     * @returns true si está configurado
-     */
     isConfigured(): boolean {
         return !!(
             process.env.GOOGLE_DRIVE_CLIENT_ID &&
@@ -147,48 +166,34 @@ export class GoogleDriveService {
         );
     }
 
-    /**
- * Elimina un archivo de Google Drive por su ID
- * @param fileId - ID del archivo a eliminar
- */
-async deleteFile(fileId: string): Promise<void> {
-    try {
-        if (!process.env.GOOGLE_DRIVE_REFRESH_TOKEN) {
-            throw new Error('Google Drive no está configurado correctamente');
-        }
-
-        await this.driveClient.files.delete({
-            fileId: fileId
-        });
-        
-        console.log(`✅ Archivo ${fileId} eliminado de Drive`);
-    } catch (error) {
-        console.error('❌ Error al eliminar archivo de Drive:', error.message);
-        // No lanzamos error para no bloquear la operación principal
-        // Solo logueamos el error
-    }
-}
-
-/**
- * Extrae el ID de archivo de una URL de Google Drive
- * @param url - URL del archivo
- * @returns ID del archivo o null si no es válida
- */
- extractFileIdFromUrl(url: string): string | null {
+    async deleteFile(fileId: string): Promise<void> {
         try {
-            // Para URLs de thumbnail
+            if (!process.env.GOOGLE_DRIVE_REFRESH_TOKEN) {
+                throw new Error('Google Drive no está configurado correctamente');
+            }
+
+            await this.ensureValidToken();
+
+            await this.driveClient.files.delete({
+                fileId: fileId
+            });
+        } catch (error) {
+            // Solo capturamos el error sin lanzarlo
+        }
+    }
+
+    extractFileIdFromUrl(url: string): string | null {
+        try {
             const thumbnailMatch = url.match(/thumbnail\?id=([^&]+)/);
             if (thumbnailMatch) {
                 return thumbnailMatch[1];
             }
             
-            // Para URLs con uc?export=view
             const ucMatch = url.match(/[?&]id=([^&]+)/);
             if (ucMatch) {
                 return ucMatch[1];
             }
             
-            // Para URLs de visualización: https://drive.google.com/file/d/FILE_ID/view
             const fileMatch = url.match(/\/d\/([^\/]+)/);
             if (fileMatch) {
                 return fileMatch[1];
@@ -199,11 +204,7 @@ async deleteFile(fileId: string): Promise<void> {
             return null;
         }
     }
-     /**
-     * Convierte una URL antigua de Drive al nuevo formato
-     * @param oldUrl - URL antigua
-     * @returns URL nueva o la misma si no se puede convertir
-     */
+
     convertToThumbnailUrl(oldUrl: string): string {
         const fileId = this.extractFileIdFromUrl(oldUrl);
         if (fileId) {
@@ -211,5 +212,4 @@ async deleteFile(fileId: string): Promise<void> {
         }
         return oldUrl;
     }
-    
 }

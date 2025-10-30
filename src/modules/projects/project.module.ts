@@ -9,11 +9,16 @@ import { GoogleDriveService } from "../google-drive/google-drive.service";
 import { ActivityController } from "./controllers/activity.controller";
 import { ActivityService } from "./services/activity.service";
 import { ReportProjectController } from "./controllers/reportProject.controller";
+import { ReportActivityController } from "./controllers/reportActivity.controller";
 import { ReportProjectService } from "./services/reportProject.service";
+import { ReportActivityService } from "./services/reportActivity.service";
+import { Metric_value } from "./entities/activityValues.entity";
+import { AuthModule } from "../auth/auth.module";
+import { Activity_enrollment } from "../volunteers/entities/enrollmentActivity.entity";
 
 @Module({
-    imports: [TypeOrmModule.forFeature([Project, Activity, DateActivity]),],
-    controllers: [ProjectController, ActivityController, ReportProjectController],
-    providers: [ProjectService, ActivityService, GoogleDriveService, ReportProjectService]
+    imports: [TypeOrmModule.forFeature([Project, Activity, DateActivity, Metric_value, Activity_enrollment]), AuthModule],
+    controllers: [ProjectController, ActivityController, ReportProjectController, ReportActivityController],
+    providers: [ProjectService, ActivityService, GoogleDriveService, ReportProjectService, ReportActivityService]
 })
 export class ProjectModule { }

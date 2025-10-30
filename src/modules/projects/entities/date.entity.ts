@@ -1,6 +1,7 @@
 import { Activity } from "src/modules/projects/entities/activity.entity";
 import {
     Column, Entity, JoinColumn, ManyToOne,
+    OneToMany,
     PrimaryGeneratedColumn
 } from "typeorm";
 
@@ -19,4 +20,5 @@ export class DateActivity {
     @ManyToOne(() => Activity, (activity) => activity.dateActivities, { nullable: false })
     @JoinColumn({ name: 'Id_activity' })
     activity: Activity;
+
 }

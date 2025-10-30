@@ -18,6 +18,7 @@ import { CorsMiddleware } from './middleware/cors.middleware';
 import { NotificationsModule } from './modules/fairs-notifications/notifications.module';
 import { ProjectModule } from './modules/projects/project.module';
 import { NewslettersModule } from './modules/newsletters/newsletters.module';
+import { VolunteerModule } from './modules/volunteers/volunteer.module';
 
 @Module({
   imports: [
@@ -39,7 +40,7 @@ import { NewslettersModule } from './modules/newsletters/newsletters.module';
       }),
       inject: [ConfigService],
     }),FairModule, EntrepreneurModule, InformativeModule, SubscribersModule,
-    NewsModule, UserModule, AuthModule, SharedModule, NotificationsModule, ProjectModule, NewslettersModule],
+    NewsModule, UserModule, AuthModule, SharedModule, NotificationsModule, ProjectModule, NewslettersModule, VolunteerModule],
   controllers: [AppController],
   providers: [AppService, GlobalSeedService],
 })
@@ -47,7 +48,7 @@ import { NewslettersModule } from './modules/newsletters/newsletters.module';
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
     consumer
-      .apply(SecurityHeadersMiddleware)
+      .apply(CorsMiddleware, SecurityHeadersMiddleware)
       .forRoutes('*');
   }
 }

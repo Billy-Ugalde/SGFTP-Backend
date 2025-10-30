@@ -35,6 +35,20 @@ export class DateDto {
     Id_dateActivity?: number;
 }
 
+export class ValueDto {
+    @IsNumber()
+    @IsOptional()
+    Value: number = 0;
+
+    @IsInt()
+    @IsOptional()
+    Id_activity_value?: number;
+
+    @IsInt()
+    @IsOptional()
+    Id_dateActivity?: number;
+}
+
 export class CreateActivityDto {
     @IsString()
     @IsNotEmpty()
@@ -105,4 +119,10 @@ export class CreateActivityDto {
     @ValidateNested({ each: true })
     @Type(() => DateDto)
     dates: DateDto[];
+
+    @IsArray()
+    @ValidateNested({ each: true })
+    @Type(() => ValueDto)
+    @IsOptional()
+    values?: ValueDto[];
 }
