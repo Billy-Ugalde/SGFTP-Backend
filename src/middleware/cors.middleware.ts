@@ -23,11 +23,6 @@ export class CorsMiddleware implements NestMiddleware {
       return next();
     }
 
-    // Log de debugging (remover en producción)
-    if (!this.isProduction) {
-      console.log(`[CORS] Request Origin: ${origin}, Configured: ${this.frontendUrl}`);
-    }
-
     // Validación de origen para requests cross-origin
     if (origin === this.frontendUrl) {
       // Origen exacto configurado

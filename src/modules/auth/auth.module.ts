@@ -2,7 +2,6 @@ import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AuthController } from './controllers/auth.controller';
-import { AuthTestController } from './controllers/auth-test.controller';
 import { AuthService } from './services/auth.service';
 import { JwtTokenService } from './services/jwt.service';
 import { UserModule} from '../users/user.module';
@@ -42,7 +41,7 @@ import { Person } from '../../entities/person.entity';
     AuthEmailService,
     AccountInvitationService,
   ],
-  controllers: [AuthController, AuthTestController],
+  controllers: [AuthController],
   exports: [
     AuthService, 
     JwtTokenService, 
