@@ -528,4 +528,69 @@ export class ActivityService implements IActivityService {
         activity.Active = active;
         return await this.activityRepository.save(activity);
     }
+
+    /**
+     * Verifica si hay cupo disponible en una actividad
+     */
+    private async checkAvailableSpaces(
+    activityId: number, 
+    queryRunner?: any
+    ): Promise<{ hasSpace: boolean; available: number; total: number | null }> {
+    const manager = queryRunner ? queryRunner.manager : this.activityRepository.manager;
+    
+    const activity = await manager.findOne(Activity, {
+        where: { Id_activity: activityId }
+    });
+
+    if (!activity) {
+        throw new NotFoundException(`Actividad con ID ${activityId} no encontrada`);
+    }
+
+    // Si Spaces es null, no hay límite
+    if (activity.Spaces === null || activity.Spaces === undefined) {
+        return {
+        hasSpace: true,
+        available: -1, // -1 indica "sin límite"
+        total: null
+        };
+    }
+
+    const available = activity.Spaces - activity.Enrolled_count;
+    
+    return {
+        hasSpace: available > 0,
+        available: available,
+        total: activity.Spaces
+    };
+    }
+
+    /**
+     * Incrementa el contador de inscritos
+     */
+    private async incrementEnrolledCount(
+    activityId: number, 
+    queryRunner: any
+    ): Promise<void> {
+    await queryRunner.manager.increment(
+        Activity, 
+        { Id_activity: activityId }, 
+        'Enrolled_count', 
+        1
+    );
+    }
+
+    /**
+     * Decrementa el contador de inscritos
+     */
+    private async decrementEnrolledCount(
+    activityId: number, 
+    queryRunner: any
+    ): Promise<void> {
+    await queryRunner.manager.decrement(
+        Activity, 
+        { Id_activity: activityId }, 
+        'Enrolled_count', 
+        1
+    );
+    }
 }
