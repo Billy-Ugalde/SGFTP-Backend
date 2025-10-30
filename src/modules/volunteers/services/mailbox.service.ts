@@ -279,7 +279,10 @@ export class MailboxService implements IMailboxService {
   async getMailboxById(id_mailbox: number): Promise<Mailbox> {
     const mailbox = await this.mailboxRepository.findOne({
       where: { Id_mailbox: id_mailbox },
-      relations: ['volunteer']
+         relations: [
+      'volunteer',
+      'volunteer.person', // datos personales del voluntario
+    ],
     });
 
     if (!mailbox) {
@@ -291,7 +294,10 @@ export class MailboxService implements IMailboxService {
 
   async getAllMailbox(): Promise<Mailbox[]> {
     return await this.mailboxRepository.find({
-      relations: ['volunteer'],
+      relations:  [
+      'volunteer',
+      'volunteer.person', // traemos los datos personales del voluntario
+    ],
       order: {
         Registration_date: 'ASC'
       }
