@@ -103,14 +103,14 @@ export class UpdateActivityDto {
 
     @IsOptional()
     @IsString()
-    url_1_action?: 'keep' | 'replace' | 'delete' | 'add';
+    url1_action?: 'keep' | 'replace' | 'delete' | 'add';
 
     @IsOptional()
     @IsString()
-    url_2_action?: 'keep' | 'replace' | 'delete' | 'add';
+    url2_action?: 'keep' | 'replace' | 'delete' | 'add';
 
     @IsOptional()
     @IsString()
-    url_3_action?: 'keep' | 'replace' | 'delete' | 'add';
+    url3_action?: 'keep' | 'replace' | 'delete' | 'add';
     [key: string]: any;
 }

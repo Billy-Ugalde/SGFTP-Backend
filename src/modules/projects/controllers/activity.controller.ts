@@ -71,9 +71,9 @@ export class ActivityController {
     @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN)
     @UseInterceptors(
         FileFieldsInterceptor([
-            { name: 'url_1_file', maxCount: 1 },
-            { name: 'url_2_file', maxCount: 1 },
-            { name: 'url_3_file', maxCount: 1 },
+            { name: 'url1_file', maxCount: 1 },
+            { name: 'url2_file', maxCount: 1 },
+            { name: 'url3_file', maxCount: 1 },
             { name: 'images', maxCount: 3 }
         ]),
         ParseJsonFieldsInterceptor

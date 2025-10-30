@@ -200,7 +200,7 @@ export class ActivityService implements IActivityService {
             const getFileForField = (fieldName: string): Express.Multer.File | undefined => {
                 if (!files) return undefined;
 
-                // Buscar en field names específicos (url_1_file, url_2_file, etc.)
+                // Buscar en field names específicos (url1_file, url2_file, url3_file)
                 const specificField = `${fieldName}_file` as keyof typeof files;
                 const fileArray = files[specificField];
 
@@ -220,6 +220,7 @@ export class ActivityService implements IActivityService {
             };
             // Procesar cada campo de imagen
             for (const field of imageFields) {
+                // Buscar la acción (url1_action, url2_action, url3_action)
                 const actionField = `${field}_action` as keyof UpdateActivityDto;
                 const action = updateActivityDto[actionField] as string;
                 const currentUrl = activity[field];
