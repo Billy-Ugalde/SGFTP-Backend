@@ -19,6 +19,7 @@ import { ActivateAccountDto } from '../dto/activate-account.dto';
 import { ChangePasswordDto } from '../dto/change-password.dto';
 import { ForgotPasswordDto } from '../dto/forgot-password.dto';
 import { ResetPasswordDto } from '../dto/reset-password.dto';
+import { ResendActivationDto } from '../dto/resend-activation.dto';
 
 @Controller('auth')
 @UseGuards(AuthGuard)
@@ -169,6 +170,50 @@ export class AuthController {
     @Post('activate')
     async activateAccount(@Body() activateDto: ActivateAccountDto): Promise<{ message: string }> {
         return await this.authService.activateUserAccount(activateDto.token, activateDto.password);
+    }
+
+    @Public()
+    @UseGuards(RateLimitGuard)
+    @RateLimit(3, 60 * 60 * 1000) // 3 intentos por hora
+    @Post('resend-activation')
+    async resendActivationToken(@Body() resendDto: ResendActivationDto): Promise<{ message: string }> {
+        console.log('🔄 [RESEND-ACTIVATION] Solicitud recibida para:', resendDto.email);
+
+        // 1. Solicitar reenvío de token (AuthService)
+        const result = await this.authService.resendActivationToken(resendDto.email);
+
+        console.log('📋 [RESEND-ACTIVATION] Resultado del servicio:', {
+            hasUserEmail: !!result.userEmail,
+            hasUserName: !!result.userName,
+            hasToken: !!result.activationToken,
+            hasRoles: !!result.userRoles
+        });
+
+        // 2. Enviar email si hay datos de usuario (AuthEmailService)
+        if (result.userEmail && result.userName && result.activationToken && result.userRoles) {
+            try {
+                const activationLink = `${process.env.FRONTEND_URL}/activate?token=${result.activationToken}`;
+
+                console.log('📧 [RESEND-ACTIVATION] Enviando email a:', result.userEmail);
+                console.log('🔗 [RESEND-ACTIVATION] Link de activación:', activationLink);
+
+                await this.authEmailService.sendAccountActivationEmail(
+                    result.userEmail,
+                    result.userName,
+                    activationLink,
+                    result.userRoles
+                );
+
+                console.log('✅ [RESEND-ACTIVATION] Email enviado exitosamente');
+            } catch (emailError) {
+                console.error('❌ [RESEND-ACTIVATION] Error enviando email:', emailError);
+                console.warn('Error enviando email de reactivación:', emailError.message);
+            }
+        } else {
+            console.log('⚠️ [RESEND-ACTIVATION] No se enviará email - datos incompletos o cuenta no elegible');
+        }
+
+        return { message: result.message };
     }
 
     @UseGuards(RateLimitGuard)

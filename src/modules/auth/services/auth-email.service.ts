@@ -31,6 +31,12 @@ export class AuthEmailService {
     activationLink: string,
     userRoles: string[]
   ): Promise<void> {
+    console.log('📧 [EMAIL-SERVICE] Preparando email de activación...');
+    console.log('  📮 Para:', recipientEmail);
+    console.log('  👤 Nombre:', recipientName);
+    console.log('  🔗 Link:', activationLink);
+    console.log('  👥 Roles:', userRoles);
+
     const subject = 'Activación de cuenta - Fundación Tamarindo Park';
     const html = this.buildActivationEmailTemplate(
       recipientEmail,
@@ -39,7 +45,9 @@ export class AuthEmailService {
       userRoles
     );
 
+    console.log('📤 [EMAIL-SERVICE] Enviando email...');
     await this.gmailProvider.sendEmail(recipientEmail, subject, html);
+    console.log('✅ [EMAIL-SERVICE] Email enviado correctamente');
   }
 
   async sendEmailVerificationEmail(

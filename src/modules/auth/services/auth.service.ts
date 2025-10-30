@@ -384,4 +384,57 @@ export class AuthService {
             userName: user.person.first_name
         };
     }
+
+    //REENVIAR TOKEN DE ACTIVACIÓN - Para tokens vencidos
+    async resendActivationToken(email: string): Promise<{
+        message: string;
+        userEmail?: string;
+        userName?: string;
+        activationToken?: string;
+        userRoles?: string[];
+    }> {
+        console.log('🔍 [AUTH-SERVICE] Buscando usuario pendiente con email:', email);
+
+        // 1. Buscar usuario pendiente de activación
+        const user = await this.userAuthService.findPendingActivationByEmail(email);
+
+        // Mensaje genérico por seguridad (no revelar si email existe)
+        const successMessage = 'Si existe una cuenta pendiente de activación con este email, recibirás un nuevo enlace de activación.';
+
+        if (!user) {
+            console.log('⚠️ [AUTH-SERVICE] Usuario no encontrado o ya activado');
+            // Email no existe o ya está activado - retornar éxito pero no hacer nada
+            return { message: successMessage };
+        }
+
+        console.log('✓ [AUTH-SERVICE] Usuario encontrado:', {
+            id: user.id_user,
+            email: user.person.email,
+            status: user.status,
+            isEmailVerified: user.isEmailVerified,
+            hasPassword: !!user.password
+        });
+
+        // 2. Validar que realmente esté pendiente (doble verificación)
+        if (user.status === true || user.isEmailVerified === true || user.password) {
+            console.log('⚠️ [AUTH-SERVICE] Cuenta ya activada - no se enviará email');
+            // Cuenta ya activada - no revelar esto al usuario
+            return { message: successMessage };
+        }
+
+        // 3. Regenerar token de activación
+        console.log('🔑 [AUTH-SERVICE] Regenerando token de activación...');
+        const { token, expiresAt } = await this.userAuthService.regenerateActivationToken(user.id_user);
+
+        console.log('✅ [AUTH-SERVICE] Token regenerado exitosamente');
+
+        return {
+            message: successMessage,
+            // Datos para el controlador (manejo de email)
+            userEmail: user.person.email,
+            userName: `${user.person.first_name} ${user.person.first_lastname}`,
+            activationToken: token,
+            userRoles: user.roles.map(r => r.name)
+        };
+    }
 }
