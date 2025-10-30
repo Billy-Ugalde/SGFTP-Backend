@@ -14,11 +14,24 @@ import { AuthGuard } from "src/modules/auth/guards/auth.guard";
 import { RoleGuard } from "src/modules/auth/guards/role.guard";
 import { Roles } from "src/modules/auth/decorators/roles.decorator";
 import { UserRole } from "src/modules/auth/enums/user-role.enum";
+import { Public } from "src/modules/auth/decorators/public.decorator";
 
 @Controller('activities')
 @UseGuards(AuthGuard)
 export class ActivityController {
     constructor(private activityservice: ActivityService) { }
+
+    @Get('public/active')
+    @Public()
+    async getActivePublicActivities(): Promise<Activity[]> {
+        return await this.activityservice.getActivePublicActivities();
+    }
+
+    @Get('public/:id')
+    @Public()
+    async getPublicActivityById(@Param('id', ParseIntPipe) id_activity: number): Promise<Activity> {
+        return await this.activityservice.getPublicActivityById(id_activity);
+    }
 
     @Get()
     @UseGuards(RoleGuard)

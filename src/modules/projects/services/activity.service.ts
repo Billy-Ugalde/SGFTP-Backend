@@ -485,6 +485,35 @@ export class ActivityService implements IActivityService {
         });
     }
 
+    async getActivePublicActivities(): Promise<Activity[]> {
+        return await this.activityRepository.find({
+            where: {
+                Active: true,
+                Status_activity: 'execution' as any
+            },
+            relations: ['project', 'dateActivities'],
+            order: {
+                Registration_date: 'DESC'
+            }
+        });
+    }
+
+    async getPublicActivityById(id_activity: number): Promise<Activity> {
+        const activity = await this.activityRepository.findOne({
+            where: {
+                Id_activity: id_activity,
+                Active: true,
+                Status_activity: 'execution' as any
+            },
+            relations: ['project', 'dateActivities', 'metric_value', 'metric_value.dateActivity']
+        });
+
+        if (!activity) {
+            throw new NotFoundException(`La actividad con ID ${id_activity} no fue encontrada o no está disponible`);
+        }
+        return activity;
+    }
+
     async getbyIdActivity(id_activity: number): Promise<Activity> {
         const activity = await this.activityRepository.findOne({
             where: { Id_activity: id_activity },
