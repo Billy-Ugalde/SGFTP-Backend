@@ -23,6 +23,7 @@ import { IVolunteerRepository } from '../interfaces/volunteer.repository.interfa
 import { IEnrollmentRepository } from '../interfaces/enrollment.repository.interface';
 import { VOLUNTEER_REPOSITORY_TOKEN, ENROLLMENT_REPOSITORY_TOKEN } from '../constants/injection-tokens';
 import { AuthEmailService } from '../../auth/services/auth-email.service';
+import { Activity } from 'src/modules/projects/entities/activity.entity';
 
 @Injectable()
 export class VolunteerService {
@@ -259,33 +260,73 @@ export class VolunteerService {
   // ========== Activity Enrollments ==========
 
   async enrollToActivity(enrollDto: EnrollVolunteerDto): Promise<Activity_enrollment> {
-    // Verificar que el voluntario existe y está activo
-    const volunteer = await this.findOne(enrollDto.id_volunteer);
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
 
-    if (!volunteer.is_active) {
-      throw new BadRequestException('El voluntario no está activo');
-    }
+    try {
+      // Verificar que el voluntario existe y está activo
+      const volunteer = await this.findOne(enrollDto.id_volunteer);
 
-    // Verificar que no esté ya inscrito en esta actividad
-    const existingEnrollment = await this.enrollmentRepository.findOne({
-      where: {
+      if (!volunteer.is_active) {
+        throw new BadRequestException('El voluntario no está activo');
+      }
+
+      // ✅ NUEVO: Verificar que la actividad existe
+      const activity = await queryRunner.manager.findOne(Activity, {
+        where: { Id_activity: enrollDto.id_activity }
+      });
+
+      if (!activity) {
+        throw new NotFoundException(`Actividad con ID ${enrollDto.id_activity} no encontrada`);
+      }
+
+      // ✅ NUEVO: Verificar cupo disponible
+      const { hasSpace, available, total } = await this.checkAvailableSpaces(
+        enrollDto.id_activity, 
+        queryRunner
+      );
+
+      if (!hasSpace) {
+        throw new BadRequestException(
+          `No hay cupo disponible. La actividad está llena (${total}/${total} espacios ocupados)`
+        );
+      }
+
+      // Verificar que no esté ya inscrito
+      const existingEnrollment = await queryRunner.manager.findOne(Activity_enrollment, {
+        where: {
+          id_volunteer: enrollDto.id_volunteer,
+          id_activity: enrollDto.id_activity,
+          status: EnrollmentActivityStatus.ENROLLED
+        }
+      });
+
+      if (existingEnrollment) {
+        throw new BadRequestException('El voluntario ya está inscrito en esta actividad');
+      }
+
+      // Crear la inscripción
+      const enrollment = queryRunner.manager.create(Activity_enrollment, {
         id_volunteer: enrollDto.id_volunteer,
         id_activity: enrollDto.id_activity,
         status: EnrollmentActivityStatus.ENROLLED
-      }
-    });
+      });
 
-    if (existingEnrollment) {
-      throw new BadRequestException('El voluntario ya está inscrito en esta actividad');
+      const savedEnrollment = await queryRunner.manager.save(Activity_enrollment, enrollment);
+
+      // ✅ NUEVO: Incrementar contador de inscritos
+      await this.incrementEnrolledCount(enrollDto.id_activity, queryRunner);
+
+      await queryRunner.commitTransaction();
+
+      return savedEnrollment;
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
     }
-
-    const enrollment = this.enrollmentRepository.create({
-      id_volunteer: enrollDto.id_volunteer,
-      id_activity: enrollDto.id_activity,
-      status: EnrollmentActivityStatus.ENROLLED
-    });
-
-    return await this.enrollmentRepository.save(enrollment);
   }
 
   async updateEnrollmentStatus(
@@ -311,17 +352,92 @@ export class VolunteerService {
   }
 
   async cancelEnrollment(id_enrollment: number): Promise<Activity_enrollment> {
-    const enrollment = await this.enrollmentRepository.findOne({
-      where: { id_enrollment_activity: id_enrollment }
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      const enrollment = await queryRunner.manager.findOne(Activity_enrollment, {
+        where: { id_enrollment_activity: id_enrollment },
+        relations: ['activity']
+      });
+
+      if (!enrollment) {
+        throw new NotFoundException(`Inscripción con ID ${id_enrollment} no encontrada`);
+      }
+
+      if (enrollment.status === EnrollmentActivityStatus.CANCELLED) {
+        throw new BadRequestException('Esta inscripción ya está cancelada');
+      }
+
+      const previousStatus = enrollment.status;
+      enrollment.status = EnrollmentActivityStatus.CANCELLED;
+
+      await queryRunner.manager.save(Activity_enrollment, enrollment);
+
+      // ✅ NUEVO: Liberar cupo solo si estaba inscrito
+      if (previousStatus === EnrollmentActivityStatus.ENROLLED) {
+        await this.decrementEnrolledCount(enrollment.id_activity, queryRunner);
+      }
+
+      await queryRunner.commitTransaction();
+
+      return enrollment;
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
+  }
+
+  // ========== HELPERS FOR ACTIVITY SPACES MANAGEMENT ==========
+  private async checkAvailableSpaces(
+    activityId: number, 
+    queryRunner: any
+  ): Promise<{ hasSpace: boolean; available: number; total: number | null }> {
+    const activity = await queryRunner.manager.findOne(Activity, {
+      where: { Id_activity: activityId }
     });
 
-    if (!enrollment) {
-      throw new NotFoundException(`Inscripción con ID ${id_enrollment} no encontrada`);
+    if (!activity) {
+      throw new NotFoundException(`Actividad con ID ${activityId} no encontrada`);
     }
 
-    enrollment.status = EnrollmentActivityStatus.CANCELLED;
+    // Si Spaces es null, no hay límite
+    if (activity.Spaces === null || activity.Spaces === undefined) {
+      return {
+        hasSpace: true,
+        available: -1,
+        total: null
+      };
+    }
 
-    return await this.enrollmentRepository.save(enrollment);
+    const available = activity.Spaces - activity.Enrolled_count;
+    
+    return {
+      hasSpace: available > 0,
+      available: available,
+      total: activity.Spaces
+    };
+  }
+
+  private async incrementEnrolledCount(activityId: number, queryRunner: any): Promise<void> {
+    await queryRunner.manager.increment(
+      Activity, 
+      { Id_activity: activityId }, 
+      'Enrolled_count', 
+      1
+    );
+  }
+
+  private async decrementEnrolledCount(activityId: number, queryRunner: any): Promise<void> {
+    await queryRunner.manager.decrement(
+      Activity, 
+      { Id_activity: activityId }, 
+      'Enrolled_count', 
+      1
+    );
   }
 
   async getVolunteerEnrollments(id_volunteer: number): Promise<Activity_enrollment[]> {

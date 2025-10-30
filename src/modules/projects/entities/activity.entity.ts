@@ -95,4 +95,11 @@ export class Activity {
 
     @OneToMany(() => Activity_enrollment, (enrollment) => enrollment.activity, { nullable: true })
     volunteer_enrollments?: Activity_enrollment[];
+
+    @Column({ type: 'int', default: 0 })
+    Enrolled_count: number;  // Contador de inscritos actuales
+
+    // Campo calculado (opcional, para facilitar consultas)
+    @Column({ type: 'int', nullable: true })
+    Available_spaces?: number;  // Espacios disponibles = Spaces - Enrolled_count
 }
