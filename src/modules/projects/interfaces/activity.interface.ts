@@ -6,9 +6,9 @@ import { Activity } from "../entities/activity.entity";
 
 
 export type ActivityFiles = {
-  url_1_file?: Express.Multer.File[],
-  url_2_file?: Express.Multer.File[],
-  url_3_file?: Express.Multer.File[],
+  url1_file?: Express.Multer.File[],
+  url2_file?: Express.Multer.File[],
+  url3_file?: Express.Multer.File[],
   images?: Express.Multer.File[]
 };
 
