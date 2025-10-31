@@ -24,6 +24,7 @@ import { IEnrollmentRepository } from '../interfaces/enrollment.repository.inter
 import { VOLUNTEER_REPOSITORY_TOKEN, ENROLLMENT_REPOSITORY_TOKEN } from '../constants/injection-tokens';
 import { AuthEmailService } from '../../auth/services/auth-email.service';
 import { Activity } from 'src/modules/projects/entities/activity.entity';
+import { ActivityStatus } from 'src/modules/projects/enums/activity.enum';
 
 @Injectable()
 export class VolunteerService {
@@ -291,6 +292,20 @@ export class VolunteerService {
         throw new BadRequestException(
           `No hay cupo disponible. La actividad está llena (${total}/${total} espacios ocupados)`
         );
+      }
+
+      if (!activity.OpenForRegistration) {
+        throw new BadRequestException('Esta actividad no está abierta para inscripciones');
+      }
+
+      // ✅ NUEVO: Verificar que la actividad está activa
+      if (!activity.Active) {
+          throw new BadRequestException('Esta actividad no está activa');
+      }
+
+      // ✅ NUEVO: Verificar estado de la actividad
+      if (activity.Status_activity !== ActivityStatus.EXECUTION) {
+          throw new BadRequestException('Esta actividad no está disponible para inscripciones');
       }
 
       // Verificar que no esté ya inscrito
