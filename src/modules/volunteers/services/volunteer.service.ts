@@ -24,6 +24,7 @@ import { IEnrollmentRepository } from '../interfaces/enrollment.repository.inter
 import { VOLUNTEER_REPOSITORY_TOKEN, ENROLLMENT_REPOSITORY_TOKEN } from '../constants/injection-tokens';
 import { AuthEmailService } from '../../auth/services/auth-email.service';
 import { Activity } from 'src/modules/projects/entities/activity.entity';
+import { ActivityStatus } from 'src/modules/projects/enums/activity.enum';
 
 @Injectable()
 export class VolunteerService {
@@ -293,6 +294,20 @@ export class VolunteerService {
         );
       }
 
+      if (!activity.OpenForRegistration) {
+        throw new BadRequestException('Esta actividad no está abierta para inscripciones');
+      }
+
+      // ✅ NUEVO: Verificar que la actividad está activa
+      if (!activity.Active) {
+          throw new BadRequestException('Esta actividad no está activa');
+      }
+
+      // ✅ NUEVO: Verificar estado de la actividad
+      if (activity.Status_activity !== ActivityStatus.EXECUTION) {
+          throw new BadRequestException('Esta actividad no está disponible para inscripciones');
+      }
+
       // Verificar que no esté ya inscrito
       const existingEnrollment = await queryRunner.manager.findOne(Activity_enrollment, {
         where: {
@@ -333,22 +348,49 @@ export class VolunteerService {
     id_enrollment: number,
     updateDto: UpdateEnrollmentDto
   ): Promise<Activity_enrollment> {
-    const enrollment = await this.enrollmentRepository.findOne({
-      where: { id_enrollment_activity: id_enrollment },
-      relations: ['volunteer', 'activity']
-    });
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
 
-    if (!enrollment) {
-      throw new NotFoundException(`Inscripción con ID ${id_enrollment} no encontrada`);
+    try {
+      const enrollment = await queryRunner.manager.findOne(Activity_enrollment, {
+        where: { id_enrollment_activity: id_enrollment },
+        relations: ['activity']
+      });
+
+      if (!enrollment) {
+        throw new NotFoundException(`Inscripción con ID ${id_enrollment} no encontrada`);
+      }
+
+      const previousStatus = enrollment.status;
+      enrollment.status = updateDto.status;
+
+      // Lógica de gestión de cupos
+      if (previousStatus === EnrollmentActivityStatus.ENROLLED && 
+          updateDto.status === EnrollmentActivityStatus.CANCELLED) {
+        await this.decrementEnrolledCount(enrollment.id_activity, queryRunner);
+      } else if (previousStatus === EnrollmentActivityStatus.CANCELLED && 
+                updateDto.status === EnrollmentActivityStatus.ENROLLED) {
+        await this.incrementEnrolledCount(enrollment.id_activity, queryRunner);
+      }
+
+      // Lógica de fecha de asistencia - VERSIÓN SIMPLIFICADA
+      if (updateDto.status === EnrollmentActivityStatus.ATTENDED) {
+        enrollment.attendance_date = new Date();
+      }
+      // Para otros estados, no hacemos nada con attendance_date
+      // o lo manejamos según la lógica de negocio
+
+      await queryRunner.manager.save(Activity_enrollment, enrollment);
+      await queryRunner.commitTransaction();
+
+      return enrollment;
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
     }
-
-    enrollment.status = updateDto.status;
-
-    if (updateDto.status === EnrollmentActivityStatus.ATTENDED && updateDto.attendance_date) {
-      enrollment.attendance_date = new Date(updateDto.attendance_date);
-    }
-
-    return await this.enrollmentRepository.save(enrollment);
   }
 
   async cancelEnrollment(id_enrollment: number): Promise<Activity_enrollment> {
@@ -375,13 +417,12 @@ export class VolunteerService {
 
       await queryRunner.manager.save(Activity_enrollment, enrollment);
 
-      // ✅ NUEVO: Liberar cupo solo si estaba inscrito
-      if (previousStatus === EnrollmentActivityStatus.ENROLLED) {
+      // ✅ CORRECCIÓN: Liberar cupo para cualquier estado que ocupaba espacio
+      if (this.shouldReleaseSpace(previousStatus)) {
         await this.decrementEnrolledCount(enrollment.id_activity, queryRunner);
       }
 
       await queryRunner.commitTransaction();
-
       return enrollment;
     } catch (error) {
       await queryRunner.rollbackTransaction();
@@ -439,6 +480,13 @@ export class VolunteerService {
       1
     );
   }
+
+  private shouldReleaseSpace(previousStatus: EnrollmentActivityStatus): boolean {
+    // Solo ENROLLED ocupa espacio (está inscrito activamente)
+    return previousStatus === EnrollmentActivityStatus.ENROLLED;
+  }
+
+
 
   async getVolunteerEnrollments(id_volunteer: number): Promise<Activity_enrollment[]> {
     await this.findOne(id_volunteer); // Verificar que existe
@@ -964,24 +1012,45 @@ export class VolunteerService {
   async cancelMyEnrollment(userId: number, id_enrollment: number): Promise<Activity_enrollment> {
     const volunteer = await this.findByUserId(userId);
 
-    const enrollment = await this.enrollmentRepository.findOne({
-      where: {
-        id_enrollment_activity: id_enrollment,
-        id_volunteer: volunteer.id_volunteer
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      const enrollment = await queryRunner.manager.findOne(Activity_enrollment, {
+        where: {
+          id_enrollment_activity: id_enrollment,
+          id_volunteer: volunteer.id_volunteer
+        },
+        relations: ['activity']
+      });
+
+      if (!enrollment) {
+        throw new NotFoundException('Inscripción no encontrada o no te pertenece');
       }
-    });
 
-    if (!enrollment) {
-      throw new NotFoundException('Inscripción no encontrada o no te pertenece');
+      if (enrollment.status === EnrollmentActivityStatus.CANCELLED) {
+        throw new BadRequestException('Esta inscripción ya está cancelada');
+      }
+
+      const previousStatus = enrollment.status;
+      enrollment.status = EnrollmentActivityStatus.CANCELLED;
+
+      await queryRunner.manager.save(Activity_enrollment, enrollment);
+
+      // ✅ CORRECCIÓN: Liberar cupo también en cancelación del voluntario
+      if (this.shouldReleaseSpace(previousStatus)) {
+        await this.decrementEnrolledCount(enrollment.id_activity, queryRunner);
+      }
+
+      await queryRunner.commitTransaction();
+      return enrollment;
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
     }
-
-    if (enrollment.status === EnrollmentActivityStatus.CANCELLED) {
-      throw new BadRequestException('Esta inscripción ya está cancelada');
-    }
-
-    enrollment.status = EnrollmentActivityStatus.CANCELLED;
-
-    return await this.enrollmentRepository.save(enrollment);
   }
 
   // ========== CONVERTIR USUARIO EXISTENTE A VOLUNTARIO ==========
