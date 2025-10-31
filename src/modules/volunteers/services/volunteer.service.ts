@@ -659,12 +659,16 @@ export class VolunteerService {
     await queryRunner.connect();
     await queryRunner.startTransaction();
 
+    let shouldSendActivationEmail = false;
+    let activationToken = '';
+    let personEmail = '';
+    let personName = '';
+
     try {
       // 1. Verificar que la actividad existe
-      const activityExists = await queryRunner.manager.findOne(
-        queryRunner.manager.getRepository('Activity').target,
-        { where: { id_activity: dto.id_activity } }
-      );
+      const activityExists = await queryRunner.manager.findOne(Activity, {
+        where: { Id_activity: dto.id_activity }
+      });
 
       if (!activityExists) {
         throw new NotFoundException(`Actividad con ID ${dto.id_activity} no encontrada`);
@@ -719,7 +723,7 @@ export class VolunteerService {
             }
           } else {
             // Crear usuario nuevo con token de activación
-            const activationToken = require('crypto').randomBytes(32).toString('hex');
+            activationToken = require('crypto').randomBytes(32).toString('hex');
             const tokenExpires = new Date();
             tokenExpires.setHours(tokenExpires.getHours() + 24);
 
@@ -735,18 +739,10 @@ export class VolunteerService {
 
             await queryRunner.manager.save(User, newUser);
 
-            // Enviar email de activación
-            try {
-              const activationLink = `${process.env.FRONTEND_URL}/activate?token=${activationToken}`;
-              await this.authEmailService.sendAccountActivationEmail(
-                existingPerson.email,
-                `${existingPerson.first_name} ${existingPerson.first_lastname}`,
-                activationLink,
-                ['volunteer']
-              );
-            } catch (emailError) {
-              console.error(`[VolunteerService] Error enviando email: ${emailError.message}`);
-            }
+            // Marcar que se debe enviar email
+            shouldSendActivationEmail = true;
+            personEmail = existingPerson.email;
+            personName = `${existingPerson.first_name} ${existingPerson.first_lastname}`;
           }
 
           // Crear perfil de voluntario
@@ -790,7 +786,7 @@ export class VolunteerService {
         }
 
         // Crear usuario con token de activación
-        const activationToken = require('crypto').randomBytes(32).toString('hex');
+        activationToken = require('crypto').randomBytes(32).toString('hex');
         const tokenExpires = new Date();
         tokenExpires.setHours(tokenExpires.getHours() + 24);
 
@@ -806,18 +802,10 @@ export class VolunteerService {
 
         await queryRunner.manager.save(User, user);
 
-        // Enviar email de activación
-        try {
-          const activationLink = `${process.env.FRONTEND_URL}/activate?token=${activationToken}`;
-          await this.authEmailService.sendAccountActivationEmail(
-            savedPerson.email,
-            `${savedPerson.first_name} ${savedPerson.first_lastname}`,
-            activationLink,
-            ['volunteer']
-          );
-        } catch (emailError) {
-          console.error(`[VolunteerService] Error enviando email: ${emailError.message}`);
-        }
+        // Marcar que se debe enviar email
+        shouldSendActivationEmail = true;
+        personEmail = savedPerson.email;
+        personName = `${savedPerson.first_name} ${savedPerson.first_lastname}`;
 
         // Crear voluntario
         volunteer = queryRunner.manager.create(Volunteer, {
@@ -839,8 +827,23 @@ export class VolunteerService {
 
       await queryRunner.commitTransaction();
 
-      // TODO: Enviar email de confirmación de inscripción
-      // await this.emailService.sendEnrollmentConfirmation(volunteer.person.email, activityDetails);
+      // Enviar email de activación DESPUÉS del commit (si es necesario)
+      if (shouldSendActivationEmail) {
+        try {
+          const activationLink = `${process.env.FRONTEND_URL}/activate?token=${activationToken}`;
+          await this.authEmailService.sendAccountActivationEmail(
+            personEmail,
+            personName,
+            activationLink,
+            ['volunteer']
+          );
+          console.log(`[VolunteerService - publicEnrollToActivity] Email de activación enviado a: ${personEmail}`);
+        } catch (emailError) {
+          console.error(`[VolunteerService - publicEnrollToActivity] Error enviando email: ${emailError.message}`);
+        }
+      } else {
+        console.log(`[VolunteerService - publicEnrollToActivity] Usuario ya existe, no se envió email de activación`);
+      }
 
       return savedEnrollment;
     } catch (error) {
