@@ -1,6 +1,5 @@
-import { Entity, PrimaryGeneratedColumn, Column, OneToMany, OneToOne, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, OneToOne, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 import { Entrepreneur } from '../modules/entrepreneurs/entities/entrepreneur.entity';
-import { Phone } from './phone.entity';
 import { User } from 'src/modules/users/entities/user.entity';
 import { Volunteer } from 'src/modules/volunteers/entities/volunteer.entity';
 
@@ -24,17 +23,17 @@ export class Person {
   @Column({ type: 'varchar', length: 150, unique: true })
   email: string;
 
+  @Column({ name: 'phone_primary', type: 'varchar', length: 20 })
+  phone_primary: string;
+
+  @Column({ name: 'phone_secondary', type: 'varchar', length: 20, nullable: true })
+  phone_secondary: string;
+
   @CreateDateColumn()
   created_at: Date;
 
   @UpdateDateColumn()
   updated_at: Date;
-
-  @OneToMany(() => Phone, phone => phone.person, {
-    cascade: true,
-    //eager: true
-  })
-  phones: Phone[];
 
   @OneToOne(() => Entrepreneur, (entrepreneur) => entrepreneur.person)
   entrepreneur: Entrepreneur;

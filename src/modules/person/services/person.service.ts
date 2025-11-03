@@ -3,14 +3,12 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, QueryRunner } from 'typeorm';
 import { Person } from '../../../entities/person.entity';
 import { CreatePersonDto, UpdatePersonDto } from '../dto/person.dto';
-import { PhoneService } from './phone.service';
 
 @Injectable()
 export class PersonService {
   constructor(
     @InjectRepository(Person)
     private personRepository: Repository<Person>,
-    private phoneService: PhoneService,
   ) {}
 
   async create(createDto: CreatePersonDto, queryRunner: QueryRunner): Promise<Person> {
@@ -30,23 +28,18 @@ export class PersonService {
       first_lastname: createDto.first_lastname,
       second_lastname: createDto.second_lastname,
       email: createDto.email,
+      phone_primary: createDto.phone_primary,
+      phone_secondary: createDto.phone_secondary,
     });
 
     const savedPerson = await queryRunner.manager.save(Person, person);
-
-    // Crear los teléfonos
-    await this.phoneService.createPhonesForPerson(
-      savedPerson.id_person, 
-      createDto.phones, 
-      queryRunner
-    );
 
     return savedPerson;
   }
 
   async update(
-    personId: number, 
-    updateDto: UpdatePersonDto, 
+    personId: number,
+    updateDto: UpdatePersonDto,
     queryRunner: QueryRunner
   ): Promise<void> {
     // Verificar email único si se está actualizando
@@ -67,27 +60,22 @@ export class PersonService {
     if (updateDto.first_lastname) updateData.first_lastname = updateDto.first_lastname;
     if (updateDto.second_lastname) updateData.second_lastname = updateDto.second_lastname;
     if (updateDto.email) updateData.email = updateDto.email;
+    if (updateDto.phone_primary) updateData.phone_primary = updateDto.phone_primary;
+    if (updateDto.phone_secondary !== undefined) updateData.phone_secondary = updateDto.phone_secondary;
 
     if (Object.keys(updateData).length > 0) {
       await queryRunner.manager.update(Person, personId, updateData);
-    }
-
-    // Actualizar teléfonos si se proporcionan
-    if (updateDto.phones && updateDto.phones.length > 0) {
-      await this.phoneService.updatePhonesForPerson(personId, updateDto.phones, queryRunner);
     }
   }
 
   async findById(id: number): Promise<Person | null> {
     return await this.personRepository.findOne({
-      where: { id_person: id },
-      relations: ['phones']
+      where: { id_person: id }
     });
   }
 
   async findAll(): Promise<Person[]> {
     return await this.personRepository.find({
-      relations: ['phones'],
       order: {
         created_at: 'DESC'
       }

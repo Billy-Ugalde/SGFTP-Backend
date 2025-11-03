@@ -8,9 +8,8 @@ import { Person } from "src/entities/person.entity";
 import { UpdateUserDto } from "../dto/userUpdateDto";
 import { PasswordService } from "src/modules/shared/services/password.service";
 import { CreateCompleteInvitationDto } from "../dto/complete-invitation.dto";
-import { Phone } from "src/entities/phone.entity";
-import { DataSource } from "typeorm";   
-import { AuthEmailService } from "src/modules/auth/services/auth-email.service";    
+import { DataSource } from "typeorm";
+import { AuthEmailService } from "src/modules/auth/services/auth-email.service";
 import { AccountInvitationService } from 'src/modules/auth/services/account-invitation.service';
 
 @Injectable()
@@ -320,27 +319,20 @@ export class UserService {
             throw new ConflictException('Ya existe una persona con este email');
             }
 
-            // 2. Crear Person (MANTENER)
+            // 2. Crear Person
             const person = queryRunner.manager.create(Person, {
             first_name: dto.first_name,
             second_name: dto.second_name,
             first_lastname: dto.first_lastname,
             second_lastname: dto.second_lastname,
             email: dto.email,
+            phone_primary: dto.phone_primary,
+            phone_secondary: dto.phone_secondary,
             });
-            
+
             const savedPerson = await queryRunner.manager.save(Person, person);
 
-            // 3. Crear phones (MANTENER)
-            for (const phoneData of dto.phones) {
-            const phone = queryRunner.manager.create(Phone, {
-                ...phoneData,
-                person: savedPerson
-            });
-            await queryRunner.manager.save(Phone, phone);
-            }
-
-            // 4. REEMPLAZAR TODA LA LÓGICA DE USUARIO por delegación:
+            // 3. CREAR USUARIO delegando a AccountInvitationService:
             const result = await this.accountInvitationService.createUserAccount(
             savedPerson.id_person,
             dto.id_roles,

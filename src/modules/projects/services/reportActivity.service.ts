@@ -104,7 +104,7 @@ export class ReportActivityService implements IReportActivityService {
         // TODO: Obtener inscripciones de voluntarios con sus relaciones
         const enrollments = await this.enrollmentRepository.find({
             where: { id_activity: id_activity },
-            relations: ['volunteer', 'volunteer.person', 'volunteer.person.phones'],
+            relations: ['volunteer', 'volunteer.person'],
             order: { enrollment_date: 'DESC' }
         });
 
@@ -113,7 +113,7 @@ export class ReportActivityService implements IReportActivityService {
             id_enrollment: enrollment.id_enrollment_activity,
             volunteer_name: `${enrollment.volunteer?.person?.first_name || ''} ${enrollment.volunteer?.person?.first_lastname || ''}`.trim(),
             volunteer_email: enrollment.volunteer?.person?.email || 'N/A',
-            volunteer_phone: enrollment.volunteer?.person?.phones?.[0]?.number || 'N/A',
+            volunteer_phone: enrollment.volunteer?.person?.phone_primary || 'N/A',
             enrollment_date: enrollment.enrollment_date ? new Date(enrollment.enrollment_date).toLocaleDateString('es-ES') : 'N/A',
             status: enrollment.status || 'N/A',
             attendance_date: enrollment.attendance_date ? new Date(enrollment.attendance_date).toLocaleDateString('es-ES') : undefined

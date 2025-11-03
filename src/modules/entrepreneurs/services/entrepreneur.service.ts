@@ -35,7 +35,7 @@ export class EntrepreneurService {
         { status: EntrepreneurStatus.APPROVED, is_active: true },
         { status: EntrepreneurStatus.APPROVED, is_active: false }
       ],
-      relations: ['person', 'person.phones', 'entrepreneurship'],
+      relations: ['person', 'entrepreneurship'],
       order: {
         registration_date: 'DESC'
       }
@@ -45,7 +45,7 @@ export class EntrepreneurService {
   async findAllPending(): Promise<Entrepreneur[]> {
     return await this.entrepreneurRepository.find({
       where: { status: EntrepreneurStatus.PENDING },
-      relations: ['person', 'person.phones', 'entrepreneurship'],
+      relations: ['person', 'entrepreneurship'],
       order: {
         registration_date: 'DESC'
       }
@@ -55,7 +55,7 @@ export class EntrepreneurService {
   async findOne(id: number): Promise<Entrepreneur> {
     const entrepreneur = await this.entrepreneurRepository.findOne({
       where: { id_entrepreneur: id },
-      relations: ['person', 'person.phones', 'entrepreneurship']
+      relations: ['person', 'entrepreneurship']
     });
 
     if (!entrepreneur) {

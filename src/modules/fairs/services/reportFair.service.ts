@@ -32,7 +32,6 @@ export class ReportFairService implements IReportFairService {
       .leftJoinAndSelect('enr.fair', 'fair')
       .leftJoinAndSelect('enr.entrepreneur', 'ent')
       .leftJoinAndSelect('ent.person', 'person')
-      .leftJoinAndSelect('person.phones', 'phone')
       .leftJoinAndSelect('ent.entrepreneurship', 'biz')
       .where('enr.registration_date >= :start AND enr.registration_date < :next', { start, next })
       .getMany();
@@ -42,7 +41,6 @@ export class ReportFairService implements IReportFairService {
       const e = r.entrepreneur;
       const b = e.entrepreneurship;
       const f = r.fair;
-      const ph = p?.phones?.find(x => x.is_primary) ?? p?.phones?.[0];
 
       return {
 
@@ -57,7 +55,7 @@ export class ReportFairService implements IReportFairService {
         person_first_name: p.first_name,
         person_first_lastname: p.first_lastname,
         person_email: p.email,
-        person_primary_phone: ph?.number ?? '',
+        person_primary_phone: p?.phone_primary ?? '',
 
         entrepreneur_experience: e.experience,
 
