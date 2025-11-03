@@ -16,7 +16,6 @@ import {
 } from '../dto/volunteer.dto';
 import { EnrollmentActivityStatus } from '../enums/enrollmentActivity.enum';
 import { Person } from 'src/entities/person.entity';
-import { Phone } from 'src/entities/phone.entity';
 import { User } from '../../users/entities/user.entity';
 import { Role } from '../../users/entities/role.entity';
 import { IVolunteerRepository } from '../interfaces/volunteer.repository.interface';
@@ -39,7 +38,7 @@ export class VolunteerService {
 
   async findAll(): Promise<Volunteer[]> {
     return await this.volunteerRepository.find({
-      relations: ['person', 'person.phones', 'activity_enrollments', 'activity_enrollments.activity'],
+      relations: ['person', 'activity_enrollments', 'activity_enrollments.activity'],
       order: {
         registration_date: 'DESC'
       }
@@ -49,7 +48,7 @@ export class VolunteerService {
   async findAllActive(): Promise<Volunteer[]> {
     return await this.volunteerRepository.find({
       where: { is_active: true },
-      relations: ['person', 'person.phones', 'activity_enrollments', 'activity_enrollments.activity'],
+      relations: ['person', 'activity_enrollments', 'activity_enrollments.activity'],
       order: {
         registration_date: 'DESC'
       }
@@ -59,7 +58,7 @@ export class VolunteerService {
   async findOne(id: number): Promise<Volunteer> {
     const volunteer = await this.volunteerRepository.findOne({
       where: { id_volunteer: id },
-      relations: ['person', 'person.phones', 'activity_enrollments', 'activity_enrollments.activity']
+      relations: ['person', 'activity_enrollments', 'activity_enrollments.activity']
     });
 
     if (!volunteer) {
@@ -72,7 +71,7 @@ export class VolunteerService {
   async findByPerson(id_person: number): Promise<Volunteer | null> {
     return await this.volunteerRepository.findOne({
       where: { person: { id_person } },
-      relations: ['person', 'person.phones', 'activity_enrollments', 'activity_enrollments.activity']
+      relations: ['person', 'activity_enrollments', 'activity_enrollments.activity']
     });
   }
 
@@ -98,22 +97,13 @@ export class VolunteerService {
         first_lastname: createDto.person.first_lastname,
         second_lastname: createDto.person.second_lastname,
         email: createDto.person.email,
+        phone_primary: createDto.person.phone_primary,
+        phone_secondary: createDto.person.phone_secondary,
       });
 
       const savedPerson = await queryRunner.manager.save(Person, person);
 
-      // 3. Crear teléfonos
-      for (const phoneData of createDto.person.phones) {
-        const phone = queryRunner.manager.create(Phone, {
-          number: phoneData.number,
-          type: phoneData.type,
-          is_primary: phoneData.is_primary,
-          person: savedPerson
-        });
-        await queryRunner.manager.save(Phone, phone);
-      }
-
-      // 4. Obtener el rol de voluntario
+      // 3. Obtener el rol de voluntario
       const volunteerRole = await queryRunner.manager.findOne(Role, {
         where: { name: 'volunteer' }
       });
@@ -181,49 +171,23 @@ export class VolunteerService {
     await queryRunner.startTransaction();
 
     try {
-      // 1. Actualizar datos básicos de persona
+      // 1. Actualizar datos de persona
       if (updateDto.person) {
-        await queryRunner.manager.update(
-          Person, 
-          volunteer.person.id_person, 
-          {
-            first_name: updateDto.person.first_name,
-            second_name: updateDto.person.second_name,
-            first_lastname: updateDto.person.first_lastname,
-            second_lastname: updateDto.person.second_lastname,
-          }
-        );
+        const updateData: Partial<Person> = {};
 
-        // 2. ACTUALIZAR TELÉFONO - FORMA SIMPLIFICADA
-        if (updateDto.person.phones && updateDto.person.phones.length > 0) {
-          const phoneData = updateDto.person.phones[0]; // Siempre el primero
-          
-          // Buscar el primer teléfono de esta persona
-          const existingPhone = await queryRunner.manager.findOne(Phone, {
-            where: {
-              person: { id_person: volunteer.person.id_person }
-            },
-            order: { id_phone: 'ASC' } // Tomar el más viejo
-          });
+        if (updateDto.person.first_name) updateData.first_name = updateDto.person.first_name;
+        if (updateDto.person.second_name !== undefined) updateData.second_name = updateDto.person.second_name;
+        if (updateDto.person.first_lastname) updateData.first_lastname = updateDto.person.first_lastname;
+        if (updateDto.person.second_lastname) updateData.second_lastname = updateDto.person.second_lastname;
+        if (updateDto.person.phone_primary) updateData.phone_primary = updateDto.person.phone_primary;
+        if (updateDto.person.phone_secondary !== undefined) updateData.phone_secondary = updateDto.person.phone_secondary;
 
-          if (existingPhone) {
-            // ACTUALIZAR el teléfono existente
-            await queryRunner.manager.update(
-              Phone, 
-              existingPhone.id_phone, 
-              {
-                number: phoneData.number,
-                type: phoneData.type || existingPhone.type,
-                is_primary: phoneData.is_primary !== undefined ? phoneData.is_primary : existingPhone.is_primary
-              }
-            );
-          } else { 
-            throw new NotFoundException('El voluntario no tiene teléfonos registrados para actualizar'); 
-          }
+        if (Object.keys(updateData).length > 0) {
+          await queryRunner.manager.update(Person, volunteer.person.id_person, updateData);
         }
       }
 
-      // 3. Actualizar datos de voluntario
+      // 2. Actualizar datos de voluntario
       if (updateDto.is_active !== undefined) {
         await this.volunteerRepository.update(id, {
           is_active: updateDto.is_active
@@ -391,7 +355,7 @@ export class VolunteerService {
   async getActivityEnrollments(id_activity: number): Promise<Activity_enrollment[]> {
     return await this.enrollmentRepository.find({
       where: { id_activity },
-      relations: ['volunteer', 'volunteer.person', 'volunteer.person.phones'],
+      relations: ['volunteer', 'volunteer.person'],
       order: {
         enrollment_date: 'DESC'
       }
@@ -426,22 +390,13 @@ export class VolunteerService {
         first_lastname: dto.person.first_lastname,
         second_lastname: dto.person.second_lastname,
         email: dto.person.email,
+        phone_primary: dto.person.phone_primary,
+        phone_secondary: dto.person.phone_secondary,
       });
 
       const savedPerson = await queryRunner.manager.save(Person, person);
 
-      // 3. Crear teléfonos
-      for (const phoneData of dto.person.phones) {
-        const phone = queryRunner.manager.create(Phone, {
-          number: phoneData.number,
-          type: phoneData.type,
-          is_primary: phoneData.is_primary,
-          person: savedPerson
-        });
-        await queryRunner.manager.save(Phone, phone);
-      }
-
-      // 4. Obtener el rol de voluntario
+      // 3. Obtener el rol de voluntario
       const volunteerRole = await queryRunner.manager.findOne(Role, {
         where: { name: 'volunteer' }
       });
@@ -616,20 +571,11 @@ export class VolunteerService {
           first_lastname: dto.person.first_lastname,
           second_lastname: dto.person.second_lastname,
           email: dto.person.email,
+          phone_primary: dto.person.phone_primary,
+          phone_secondary: dto.person.phone_secondary,
         });
 
         const savedPerson = await queryRunner.manager.save(Person, person);
-
-        // Crear teléfonos
-        for (const phoneData of dto.person.phones) {
-          const phone = queryRunner.manager.create(Phone, {
-            number: phoneData.number,
-            type: phoneData.type,
-            is_primary: phoneData.is_primary,
-            person: savedPerson
-          });
-          await queryRunner.manager.save(Phone, phone);
-        }
 
         // Obtener rol de voluntario
         const volunteerRole = await queryRunner.manager.findOne(Role, {
@@ -711,7 +657,6 @@ export class VolunteerService {
     const volunteer = await this.volunteerRepository
       .createQueryBuilder('volunteer')
       .innerJoinAndSelect('volunteer.person', 'person')
-      .leftJoinAndSelect('person.phones', 'phones')
       .innerJoinAndSelect('person.user', 'user')
       .where('user.id_user = :userId', { userId })
       .getOne();

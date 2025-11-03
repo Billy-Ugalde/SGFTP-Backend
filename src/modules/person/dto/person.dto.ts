@@ -1,6 +1,4 @@
-import { IsString, IsEmail, IsNotEmpty, IsOptional, ValidateNested, ArrayMinSize } from 'class-validator';
-import { Type } from 'class-transformer';
-import { CreatePhoneDto, UpdatePhoneDto } from './phone.dto';
+import { IsString, IsEmail, IsNotEmpty, IsOptional, Matches } from 'class-validator';
 
 export class CreatePersonDto {
   @IsString()
@@ -23,10 +21,15 @@ export class CreatePersonDto {
   @IsNotEmpty()
   email: string;
 
-  @ValidateNested({ each: true })
-  @Type(() => CreatePhoneDto)
-  @ArrayMinSize(1, { message: 'Debe proporcionar al menos un número telefónico' })
-  phones: CreatePhoneDto[];
+  @IsString()
+  @IsNotEmpty()
+  @Matches(/^[\+]?[\d\s\-\(\)]+$/, { message: 'Solo números y el signo + son permitidos en el teléfono principal' })
+  phone_primary: string;
+
+  @IsString()
+  @IsOptional()
+  @Matches(/^[\+]?[\d\s\-\(\)]+$/, { message: 'Solo números y el signo + son permitidos en el teléfono secundario' })
+  phone_secondary?: string;
 }
 
 export class UpdatePersonDto {
@@ -50,8 +53,13 @@ export class UpdatePersonDto {
   @IsOptional()
   email?: string;
 
-  @ValidateNested({ each: true })
-  @Type(() => UpdatePhoneDto)
+  @IsString()
   @IsOptional()
-  phones?: UpdatePhoneDto[];
+  @Matches(/^[\+]?[\d\s\-\(\)]+$/, { message: 'Solo números y el signo + son permitidos en el teléfono principal' })
+  phone_primary?: string;
+
+  @IsString()
+  @IsOptional()
+  @Matches(/^[\+]?[\d\s\-\(\)]+$/, { message: 'Solo números y el signo + son permitidos en el teléfono secundario' })
+  phone_secondary?: string;
 }

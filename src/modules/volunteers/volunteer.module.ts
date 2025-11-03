@@ -7,7 +7,6 @@ import { Volunteer } from './entities/volunteer.entity';
 import { Activity_enrollment } from './entities/enrollmentActivity.entity';
 import { AuthModule } from '../auth/auth.module';
 import { Person } from 'src/entities/person.entity';
-import { Phone } from 'src/entities/phone.entity';
 import { User } from '../users/entities/user.entity';
 import { Role } from '../users/entities/role.entity';
 import { VOLUNTEER_REPOSITORY_TOKEN, ENROLLMENT_REPOSITORY_TOKEN } from './constants/injection-tokens';
@@ -23,7 +22,6 @@ import { GoogleDriveService } from '../google-drive/google-drive.service';
       Volunteer,
       Activity_enrollment,
       Person,
-      Phone,
       User,
       Role,
       Mailbox

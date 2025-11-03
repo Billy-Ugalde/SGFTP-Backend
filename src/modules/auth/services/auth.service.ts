@@ -57,6 +57,8 @@ export class AuthService {
                 first_lastname: registerDto.first_lastname,
                 second_lastname: registerDto.second_lastname || '',
                 email: registerDto.email,
+                phone_primary: registerDto.phone_primary,
+                phone_secondary: registerDto.phone_secondary,
             });
 
             const savedPerson = await queryRunner.manager.save(Person, person);
