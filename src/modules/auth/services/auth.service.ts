@@ -91,22 +91,14 @@ export class AuthService {
 
     // Método privado para configuración de cookies
     private getCookieOptions(isRefreshToken = false) {
-        const isProduction = process.env.NODE_ENV === 'production';
-        const cookieConfig = {
+        return {
             httpOnly: true,                    // Previene acceso desde JavaScript
             secure: process.env.COOKIE_SECURE === 'true',
             sameSite: (process.env.COOKIE_SAME_SITE || 'lax') as 'strict' | 'lax' | 'none',
-            domain: process.env.COOKIE_DOMAIN || 'localhost',
             path: '/',
-        };
-
-        return {
-            ...cookieConfig,
             maxAge: isRefreshToken
-            ? 30 * 24 * 60 * 60 * 1000   // 30 días para refresh token
-            : isProduction
-                ? 60 * 60 * 1000          // 1 hora en producción
-                : 2 * 60 * 60 * 1000,     // 2 horas en desarrollo
+                ? 30 * 24 * 60 * 60 * 1000   // 30 días para refresh token
+                : 2 * 60 * 60 * 1000,         // 2 horas para access token
         };
     }
 
