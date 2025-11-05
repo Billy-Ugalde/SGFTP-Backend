@@ -4,42 +4,47 @@ import { Request, Response, NextFunction } from 'express';
 
 @Injectable()
 export class CorsMiddleware implements NestMiddleware {
-  private readonly frontendUrl: string;
-  private readonly isProduction: boolean;
+  private readonly allowedOrigins: string[];
 
   constructor(private readonly configService: ConfigService) {
-    this.frontendUrl = this.configService.get('FRONTEND_URL') || 'http://localhost:5173';
-    this.isProduction = this.configService.get('NODE_ENV') === 'production';
+    const frontendUrl = this.configService.get('FRONTEND_URL') || 'http://localhost:5173';
+
+    // Lista de orígenes permitidos
+    this.allowedOrigins = [
+      frontendUrl,
+      'http://localhost:5173',
+      'http://127.0.0.1:5173',
+    ];
+
+    // Agregar orígenes adicionales si están configurados
+    const additionalOrigins = this.configService.get('ADDITIONAL_ORIGINS');
+    if (additionalOrigins) {
+      const origins = additionalOrigins.split(',').map(o => o.trim());
+      this.allowedOrigins.push(...origins);
+    }
   }
 
   use(req: Request, res: Response, next: NextFunction) {
     const origin = req.headers.origin;
 
     // Si no hay Origin header, es un request same-origin o de navegación directa
-    // Estos requests son seguros y deben permitirse
     if (!origin) {
-      // Request sin Origin (same-origin, navegación directa, o recursos estáticos)
-      // No necesita headers CORS, pero sí puede continuar
       return next();
     }
 
-    // Validación de origen para requests cross-origin
-    if (origin === this.frontendUrl) {
-      // Origen exacto configurado
-      res.setHeader('Access-Control-Allow-Origin', origin);
-      res.setHeader('Access-Control-Allow-Credentials', 'true');
-    } else if (!this.isProduction && origin.startsWith('http://localhost:')) {
-      // En desarrollo, permitir cualquier localhost
+    // Verificar si el origen está en la lista de permitidos
+    if (this.allowedOrigins.includes(origin)) {
       res.setHeader('Access-Control-Allow-Origin', origin);
       res.setHeader('Access-Control-Allow-Credentials', 'true');
     } else {
-      // Origen cross-origin no permitido
+      // Origen no permitido
       console.error(`[CORS] Origen rechazado: ${origin}`);
+      console.error(`[CORS] Orígenes permitidos:`, this.allowedOrigins);
       return res.status(403).json({
         message: 'Origen no permitido',
         error: 'CORS_ORIGIN_NOT_ALLOWED',
         receivedOrigin: origin,
-        expectedOrigin: this.frontendUrl
+        allowedOrigins: this.allowedOrigins
       });
     }
 
