@@ -68,9 +68,18 @@ export class AuthController {
             message: `Hola ${user.person.first_name}`,
             user: {
                 id: user.id_user,
-                firstName: user.person.first_name,
-                email: user.person.email,
+                person: {
+                    id: user.person.id_person,
+                    firstName: user.person.first_name,
+                    secondName: user.person.second_name,
+                    firstLastname: user.person.first_lastname,
+                    secondLastname: user.person.second_lastname,
+                    email: user.person.email,
+                    phonePrimary: user.person.phone_primary,
+                    phoneSecondary: user.person.phone_secondary,
+                },
                 roles: user.getAllRoleNames(),
+                isEmailVerified: user.isEmailVerified,
             }
         };
     }
