@@ -11,18 +11,8 @@ export class PersonService {
     private personRepository: Repository<Person>,
   ) {}
 
-  async create(createDto: CreatePersonDto, queryRunner: QueryRunner): Promise<Person> {
-    // Verificar si ya existe una persona con ese email
-    const existingPerson = await this.personRepository.findOne({
-      where: { email: createDto.email }
-    });
-
-    if (existingPerson) {
-      throw new ConflictException('Ya existe una persona con este email');
-    }
-
-    // Crear la persona
-    const person = this.personRepository.create({
+  private buildPersonEntity(createDto: CreatePersonDto): Person {
+    return this.personRepository.create({
       first_name: createDto.first_name,
       second_name: createDto.second_name,
       first_lastname: createDto.first_lastname,
@@ -31,10 +21,69 @@ export class PersonService {
       phone_primary: createDto.phone_primary,
       phone_secondary: createDto.phone_secondary,
     });
+  }
 
+  async create(createDto: CreatePersonDto, queryRunner: QueryRunner): Promise<Person> {
+    const existingPerson = await this.personRepository.findOne({
+      where: { email: createDto.email }
+    });
+
+    if (existingPerson) {
+      throw new ConflictException('Ya existe una persona con este email');
+    }
+
+    const person = this.buildPersonEntity(createDto);
     const savedPerson = await queryRunner.manager.save(Person, person);
 
     return savedPerson;
+  }
+
+  async findOrCreate(createDto: CreatePersonDto, queryRunner: QueryRunner): Promise<{
+    person: Person;
+    isNew: boolean;
+  }> {
+    const existingPerson = await this.personRepository.findOne({
+      where: { email: createDto.email }
+    });
+
+    if (existingPerson) {
+      const updateData: Partial<Person> = {};
+
+      if (createDto.first_name && createDto.first_name !== existingPerson.first_name) {
+        updateData.first_name = createDto.first_name;
+      }
+      if (createDto.second_name !== existingPerson.second_name) {
+        updateData.second_name = createDto.second_name;
+      }
+      if (createDto.first_lastname && createDto.first_lastname !== existingPerson.first_lastname) {
+        updateData.first_lastname = createDto.first_lastname;
+      }
+      if (createDto.second_lastname !== existingPerson.second_lastname) {
+        updateData.second_lastname = createDto.second_lastname;
+      }
+      if (createDto.phone_primary && createDto.phone_primary !== existingPerson.phone_primary) {
+        updateData.phone_primary = createDto.phone_primary;
+      }
+      if (createDto.phone_secondary !== existingPerson.phone_secondary) {
+        updateData.phone_secondary = createDto.phone_secondary;
+      }
+
+      if (Object.keys(updateData).length > 0) {
+        await queryRunner.manager.update(Person, existingPerson.id_person, updateData);
+
+        const updatedPerson = await queryRunner.manager.findOne(Person, {
+          where: { id_person: existingPerson.id_person }
+        });
+        return { person: updatedPerson!, isNew: false };
+      }
+
+      return { person: existingPerson, isNew: false };
+    }
+
+    const person = this.buildPersonEntity(createDto);
+    const savedPerson = await queryRunner.manager.save(Person, person);
+
+    return { person: savedPerson, isNew: true };
   }
 
   async update(
@@ -42,7 +91,6 @@ export class PersonService {
     updateDto: UpdatePersonDto,
     queryRunner: QueryRunner
   ): Promise<void> {
-    // Verificar email único si se está actualizando
     if (updateDto.email) {
       const existingPerson = await this.personRepository.findOne({
         where: { email: updateDto.email }
@@ -53,7 +101,6 @@ export class PersonService {
       }
     }
 
-    // Actualizar datos básicos de la persona
     const updateData: Partial<Person> = {};
     if (updateDto.first_name) updateData.first_name = updateDto.first_name;
     if (updateDto.second_name !== undefined) updateData.second_name = updateDto.second_name;

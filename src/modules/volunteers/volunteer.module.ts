@@ -15,6 +15,7 @@ import { MailboxController } from './controllers/mailbox.controller';
 import { MailboxService } from './services/mailbox.service';
 import { SharedModule } from '../shared/shared.module';
 import { GoogleDriveService } from '../google-drive/google-drive.service';
+import { PersonModule } from '../person/person.module';
 
 @Module({
   imports: [
@@ -27,7 +28,8 @@ import { GoogleDriveService } from '../google-drive/google-drive.service';
       Mailbox
     ]),
     AuthModule,
-    SharedModule
+    SharedModule,
+    PersonModule
   ],
   controllers: [VolunteerController, MailboxController],
   providers: [

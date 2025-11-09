@@ -24,6 +24,7 @@ import { VOLUNTEER_REPOSITORY_TOKEN, ENROLLMENT_REPOSITORY_TOKEN } from '../cons
 import { AuthEmailService } from '../../auth/services/auth-email.service';
 import { Activity } from 'src/modules/projects/entities/activity.entity';
 import { ActivityStatus } from 'src/modules/projects/enums/activity.enum';
+import { PersonService } from '../../person/services/person.service';
 
 @Injectable()
 export class VolunteerService {
@@ -34,6 +35,7 @@ export class VolunteerService {
     private enrollmentRepository: IEnrollmentRepository,
     private dataSource: DataSource,
     private authEmailService: AuthEmailService,
+    private personService: PersonService,
   ) { }
 
   // ========== CRUD Volunteers ==========
@@ -531,6 +533,7 @@ export class VolunteerService {
   /**
    * Registro público de voluntario
    * Crea Person + User + Volunteer en una transacción
+   * Soporta multi-rol: si el usuario ya existe, agrega rol de voluntario
    */
   async publicRegister(dto: PublicRegisterVolunteerDto): Promise<Volunteer> {
     const queryRunner = this.dataSource.createQueryRunner();
@@ -538,29 +541,29 @@ export class VolunteerService {
     await queryRunner.startTransaction();
 
     try {
-      // 1. Verificar que el email no exista
-      const existingPerson = await queryRunner.manager.findOne(Person, {
-        where: { email: dto.person.email }
+      // 1. Buscar o crear Person (permite reutilizar Person existente para multi-rol)
+      const { person, isNew: isNewPerson } = await this.personService.findOrCreate(dto.person, queryRunner);
+
+      // 2. Buscar User existente por Person
+      const existingUser = await queryRunner.manager.findOne(User, {
+        where: { person: { id_person: person.id_person } },
+        relations: ['roles', 'person']
       });
 
-      if (existingPerson) {
-        throw new ConflictException('Ya existe una persona registrada con este email');
+      // 3. Verificar si ya existe Volunteer para esta persona
+      const existingVolunteer = await this.volunteerRepository.findOne({
+        where: { person: { id_person: person.id_person } }
+      });
+
+      if (existingVolunteer) {
+        throw new ConflictException(
+          existingUser?.isActive()
+            ? 'Ya eres voluntario. Inicia sesión para acceder a tu cuenta.'
+            : 'Ya tienes una solicitud de voluntario pendiente de activación. Revisa tu correo electrónico.'
+        );
       }
 
-      // 2. Crear Person
-      const person = queryRunner.manager.create(Person, {
-        first_name: dto.person.first_name,
-        second_name: dto.person.second_name,
-        first_lastname: dto.person.first_lastname,
-        second_lastname: dto.person.second_lastname,
-        email: dto.person.email,
-        phone_primary: dto.person.phone_primary,
-        phone_secondary: dto.person.phone_secondary,
-      });
-
-      const savedPerson = await queryRunner.manager.save(Person, person);
-
-      // 3. Obtener el rol de voluntario
+      // 4. Obtener el rol de voluntario
       const volunteerRole = await queryRunner.manager.findOne(Role, {
         where: { name: 'volunteer' }
       });
@@ -569,27 +572,61 @@ export class VolunteerService {
         throw new NotFoundException('El rol de voluntario no existe en el sistema');
       }
 
-      // 5. Generar token de activación
-      const activationToken = require('crypto').randomBytes(32).toString('hex');
-      const tokenExpires = new Date();
-      tokenExpires.setHours(tokenExpires.getHours() + 24); // 24 horas
+      let user: User;
+      let needsActivation = false;
+      let activationToken: string | undefined;
 
-      // 6. Crear User con token de activación
-      const user = queryRunner.manager.create(User, {
-        activation_token: activationToken,
-        activation_expires: tokenExpires,
-        status: false, // Pendiente de activación
-        isEmailVerified: false,
-        failedLoginAttempts: 0,
-        person: savedPerson,
-        roles: [volunteerRole]
-      });
+      if (existingUser) {
+        // Usuario ya existe → agregar rol si no lo tiene
+        console.log('[VolunteerService] Usuario existente detectado, agregando rol de voluntario');
 
-      await queryRunner.manager.save(User, user);
+        if (!existingUser.hasRole('volunteer')) {
+          existingUser.roles.push(volunteerRole);
+          user = await queryRunner.manager.save(User, existingUser);
+        } else {
+          user = existingUser;
+        }
 
-      // 7. Crear Volunteer
+        // Solo necesita activación si el usuario está inactivo
+        needsActivation = !existingUser.isActive();
+
+        if (needsActivation) {
+          // Regenerar token de activación si el usuario existe pero no está activo
+          activationToken = require('crypto').randomBytes(32).toString('hex');
+          const tokenExpires = new Date();
+          tokenExpires.setHours(tokenExpires.getHours() + 72); // 72 horas
+
+          await queryRunner.manager.update(User, user.id_user, {
+            activation_token: activationToken,
+            activation_expires: tokenExpires
+          });
+        }
+
+      } else {
+        // Usuario nuevo → crear con token de activación
+        console.log('[VolunteerService] Creando nuevo usuario con rol de voluntario');
+
+        activationToken = require('crypto').randomBytes(32).toString('hex');
+        const tokenExpires = new Date();
+        tokenExpires.setHours(tokenExpires.getHours() + 72); // 72 horas
+
+        user = queryRunner.manager.create(User, {
+          activation_token: activationToken,
+          activation_expires: tokenExpires,
+          status: false, // Pendiente de activación
+          isEmailVerified: false,
+          failedLoginAttempts: 0,
+          person: person,
+          roles: [volunteerRole]
+        });
+
+        await queryRunner.manager.save(User, user);
+        needsActivation = true;
+      }
+
+      // 5. Crear registro de Volunteer
       const volunteer = queryRunner.manager.create(Volunteer, {
-        person: savedPerson,
+        person: person,
         is_active: true,
       });
 
@@ -597,21 +634,29 @@ export class VolunteerService {
 
       await queryRunner.commitTransaction();
 
-      // 8. Enviar email de activación
-      try {
-        const activationLink = `${process.env.FRONTEND_URL}/activate?token=${activationToken}`;
-        await this.authEmailService.sendAccountActivationEmail(
-          savedPerson.email,
-          `${savedPerson.first_name} ${savedPerson.first_lastname}`,
-          activationLink,
-          ['volunteer']
-        );
-        console.log(`[VolunteerService] Email de activación enviado a: ${savedPerson.email}`);
-      } catch (emailError) {
-        console.error(`[VolunteerService] Error enviando email: ${emailError.message}`);
+      // 6. Enviar email SOLO si necesita activación
+      if (needsActivation && activationToken) {
+        try {
+          const activationLink = `${process.env.FRONTEND_URL}/activate?token=${activationToken}`;
+          const userName = `${person.first_name} ${person.first_lastname}`;
+
+          await this.authEmailService.sendAccountActivationEmail(
+            person.email,
+            userName,
+            activationLink,
+            ['volunteer']
+          );
+
+          console.log(`[VolunteerService] Email de activación enviado a: ${person.email}`);
+        } catch (emailError) {
+          console.error(`[VolunteerService] Error enviando email: ${emailError.message}`);
+        }
+      } else {
+        console.log(`[VolunteerService] No se envía email - usuario ya está activo (multi-rol)`);
       }
 
       return await this.findOne(savedVolunteer.id_volunteer);
+
     } catch (error) {
       await queryRunner.rollbackTransaction();
       throw error;

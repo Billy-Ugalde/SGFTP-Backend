@@ -119,10 +119,17 @@ export class AuthService {
     return {
         user: {
             id: user.id_user,
-            email: user.person.email,
-            firstName: user.person.first_name,
-            firstLastname: user.person.first_lastname,
-            roles: user.getAllRoleNames(), 
+            person: {
+                id: user.person.id_person,
+                firstName: user.person.first_name,
+                secondName: user.person.second_name,
+                firstLastname: user.person.first_lastname,
+                secondLastname: user.person.second_lastname,
+                email: user.person.email,
+                phonePrimary: user.person.phone_primary,
+                phoneSecondary: user.person.phone_secondary,
+            },
+            roles: user.getAllRoleNames(),
             isEmailVerified: user.isEmailVerified,
         }
     };
