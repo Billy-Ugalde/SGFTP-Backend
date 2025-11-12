@@ -440,6 +440,23 @@ export class EntrepreneurService {
         throw new BadRequestException(`Solo se pueden eliminar emprendedores con estado 'pending'`);
       }
 
+      if (entrepreneur.entrepreneurship) {
+      const urls = [
+        entrepreneur.entrepreneurship.url_1,
+        entrepreneur.entrepreneurship.url_2, 
+        entrepreneur.entrepreneurship.url_3
+      ].filter(url => url && url !== null && url !== '');
+
+      for (const url of urls) {
+        if (typeof url === 'string') {
+          const fileId = this.googleDriveService.extractFileIdFromUrl(url);
+          if (fileId) {
+            await this.googleDriveService.deleteFile(fileId);
+          }
+        }
+      }
+    }
+
       if (entrepreneur.person?.email) {
         try {
           await this.entrepreneurNotificationService.sendEntrepreneurRejectionEmail(entrepreneur);
