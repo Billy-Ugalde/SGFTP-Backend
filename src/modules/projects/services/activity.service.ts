@@ -498,12 +498,26 @@ export class ActivityService implements IActivityService {
         });
     }
 
+    async getPublicDisplayActivities(): Promise<Activity[]> {
+        const activities = await this.activityRepository
+            .createQueryBuilder('activity')
+            .leftJoinAndSelect('activity.project', 'project')
+            .leftJoinAndSelect('activity.dateActivities', 'dateActivities')
+            .where('activity.Active = :active AND activity.Status_activity = :status', {
+                active: true,
+                status: 'finished'
+            })
+            .orderBy('activity.Registration_date', 'DESC')
+            .getMany();
+
+        return activities;
+    }
+
     async getPublicActivityById(id_activity: number): Promise<Activity> {
         const activity = await this.activityRepository.findOne({
             where: {
                 Id_activity: id_activity,
-                Active: true,
-                Status_activity: 'execution' as any
+                Active: true
             },
             relations: ['project', 'dateActivities', 'metric_value', 'metric_value.dateActivity']
         });
