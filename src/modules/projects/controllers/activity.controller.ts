@@ -27,6 +27,12 @@ export class ActivityController {
         return await this.activityservice.getActivePublicActivities();
     }
 
+    @Get('public/display')
+    @Public()
+    async getPublicDisplayActivities(): Promise<Activity[]> {
+        return await this.activityservice.getPublicDisplayActivities();
+    }
+
     @Get('public/:id')
     @Public()
     async getPublicActivityById(@Param('id', ParseIntPipe) id_activity: number): Promise<Activity> {
