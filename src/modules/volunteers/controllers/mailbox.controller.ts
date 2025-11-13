@@ -70,7 +70,7 @@ export class MailboxController {
 
   @Get()
   @UseGuards(RoleGuard)
-  @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN, UserRole.AUDITOR)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN, UserRole.AUDITOR, UserRole.VOLUNTEER)
   async getAllMailbox() {
     return await this.mailboxService.getAllMailbox();
   }
