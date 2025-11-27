@@ -57,6 +57,8 @@ export class AuthService {
                 first_lastname: registerDto.first_lastname,
                 second_lastname: registerDto.second_lastname || '',
                 email: registerDto.email,
+                phone_primary: registerDto.phone_primary,
+                phone_secondary: registerDto.phone_secondary,
             });
 
             const savedPerson = await queryRunner.manager.save(Person, person);
@@ -89,20 +91,14 @@ export class AuthService {
 
     // Método privado para configuración de cookies
     private getCookieOptions(isRefreshToken = false) {
-        const isProduction = process.env.NODE_ENV === 'production';
-        const cookieConfig = {
+        return {
             httpOnly: true,                    // Previene acceso desde JavaScript
             secure: process.env.COOKIE_SECURE === 'true',
             sameSite: (process.env.COOKIE_SAME_SITE || 'lax') as 'strict' | 'lax' | 'none',
-            domain: process.env.COOKIE_DOMAIN || 'localhost',
             path: '/',
-        };
-
-        return {
-            ...cookieConfig,
-            maxAge: isRefreshToken 
-            ? 7 * 24 * 60 * 60 * 1000    // 7 días para refresh token
-            : 15 * 60 * 1000,            // 15 minutos para access token
+            maxAge: isRefreshToken
+                ? 30 * 24 * 60 * 60 * 1000   // 30 días para refresh token
+                : 2 * 60 * 60 * 1000,         // 2 horas para access token
         };
     }
 
@@ -123,10 +119,17 @@ export class AuthService {
     return {
         user: {
             id: user.id_user,
-            email: user.person.email,
-            firstName: user.person.first_name,
-            firstLastname: user.person.first_lastname,
-            roles: user.getAllRoleNames(), 
+            person: {
+                id: user.person.id_person,
+                firstName: user.person.first_name,
+                secondName: user.person.second_name,
+                firstLastname: user.person.first_lastname,
+                secondLastname: user.person.second_lastname,
+                email: user.person.email,
+                phonePrimary: user.person.phone_primary,
+                phoneSecondary: user.person.phone_secondary,
+            },
+            roles: user.getAllRoleNames(),
             isEmailVerified: user.isEmailVerified,
         }
     };
@@ -321,6 +324,29 @@ export class AuthService {
         };
     }
 
+    //VALIDAR TOKEN DE RESET - Solo verificar si es válido (sin procesar)
+    async validatePasswordResetToken(token: string): Promise<{ valid: boolean; message?: string }> {
+        try {
+            // Buscar usuario por token (reutilizando lógica existente)
+            const user = await this.userAuthService.findUserByResetToken(token);
+            
+            if (!user) {
+                return { 
+                    valid: false, 
+                    message: 'El enlace de restablecimiento es inválido o ha expirado' 
+                };
+            }
+            
+            return { valid: true };
+            
+        } catch (error) {
+            return { 
+                valid: false, 
+                message: 'Error al validar el enlace de restablecimiento' 
+            };
+        }
+    }
+
     //RESETEAR CONTRASEÑA - Usar token para cambiar contraseña
     async resetPasswordWithToken(resetPasswordDto: ResetPasswordDto): Promise<{ 
         message: string; 
@@ -357,6 +383,59 @@ export class AuthService {
             message: 'Contraseña restablecida exitosamente. Ya puedes iniciar sesión con tu nueva contraseña.',
             userEmail: user.person.email,
             userName: user.person.first_name
+        };
+    }
+
+    //REENVIAR TOKEN DE ACTIVACIÓN - Para tokens vencidos
+    async resendActivationToken(email: string): Promise<{
+        message: string;
+        userEmail?: string;
+        userName?: string;
+        activationToken?: string;
+        userRoles?: string[];
+    }> {
+        console.log('🔍 [AUTH-SERVICE] Buscando usuario pendiente con email:', email);
+
+        // 1. Buscar usuario pendiente de activación
+        const user = await this.userAuthService.findPendingActivationByEmail(email);
+
+        // Mensaje genérico por seguridad (no revelar si email existe)
+        const successMessage = 'Si existe una cuenta pendiente de activación con este email, recibirás un nuevo enlace de activación.';
+
+        if (!user) {
+            console.log('⚠️ [AUTH-SERVICE] Usuario no encontrado o ya activado');
+            // Email no existe o ya está activado - retornar éxito pero no hacer nada
+            return { message: successMessage };
+        }
+
+        console.log('✓ [AUTH-SERVICE] Usuario encontrado:', {
+            id: user.id_user,
+            email: user.person.email,
+            status: user.status,
+            isEmailVerified: user.isEmailVerified,
+            hasPassword: !!user.password
+        });
+
+        // 2. Validar que realmente esté pendiente (doble verificación)
+        if (user.status === true || user.isEmailVerified === true || user.password) {
+            console.log('⚠️ [AUTH-SERVICE] Cuenta ya activada - no se enviará email');
+            // Cuenta ya activada - no revelar esto al usuario
+            return { message: successMessage };
+        }
+
+        // 3. Regenerar token de activación
+        console.log('🔑 [AUTH-SERVICE] Regenerando token de activación...');
+        const { token, expiresAt } = await this.userAuthService.regenerateActivationToken(user.id_user);
+
+        console.log('✅ [AUTH-SERVICE] Token regenerado exitosamente');
+
+        return {
+            message: successMessage,
+            // Datos para el controlador (manejo de email)
+            userEmail: user.person.email,
+            userName: `${user.person.first_name} ${user.person.first_lastname}`,
+            activationToken: token,
+            userRoles: user.roles.map(r => r.name)
         };
     }
 }

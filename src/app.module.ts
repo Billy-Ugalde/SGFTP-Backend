@@ -16,6 +16,9 @@ import { MiddlewareConsumer, NestModule } from '@nestjs/common';
 import { SecurityHeadersMiddleware } from './middleware/security-headers.middleware';
 import { CorsMiddleware } from './middleware/cors.middleware';
 import { NotificationsModule } from './modules/fairs-notifications/notifications.module';
+import { ProjectModule } from './modules/projects/project.module';
+import { NewslettersModule } from './modules/newsletters/newsletters.module';
+import { VolunteerModule } from './modules/volunteers/volunteer.module';
 
 @Module({
   imports: [
@@ -36,7 +39,8 @@ import { NotificationsModule } from './modules/fairs-notifications/notifications
         ssl: false,
       }),
       inject: [ConfigService],
-    }),FairModule, EntrepreneurModule, InformativeModule, SubscribersModule,NewsModule, UserModule, AuthModule, SharedModule, NotificationsModule],
+    }),FairModule, EntrepreneurModule, InformativeModule, SubscribersModule,
+    NewsModule, UserModule, AuthModule, SharedModule, NotificationsModule, ProjectModule, NewslettersModule, VolunteerModule],
   controllers: [AppController],
   providers: [AppService, GlobalSeedService],
 })
@@ -44,7 +48,7 @@ import { NotificationsModule } from './modules/fairs-notifications/notifications
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
     consumer
-      .apply(SecurityHeadersMiddleware)
+      .apply(CorsMiddleware, SecurityHeadersMiddleware)
       .forRoutes('*');
   }
 }

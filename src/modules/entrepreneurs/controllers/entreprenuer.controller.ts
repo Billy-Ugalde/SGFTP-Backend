@@ -11,8 +11,11 @@ import {
   HttpCode,
   HttpStatus,
   UseGuards,
-  Req
+  Req,
+  UseInterceptors,
+  UploadedFiles
 } from '@nestjs/common';
+import { Express } from 'express';
 import { EntrepreneurService } from '../services/entrepreneur.service';
 import { CreateCompleteEntrepreneurDto, UpdateCompleteEntrepreneurDto } from '../dto/complete-entrepreneur.dto';
 import { UpdateStatusDto, ToggleActiveDto } from '../dto/entrepreneur.dto';
@@ -22,11 +25,13 @@ import { RoleGuard } from '../../auth/guards/role.guard';
 import { Roles } from '../../auth/decorators/roles.decorator';
 import { UserRole } from '../../auth/enums/user-role.enum';
 import { Public } from 'src/modules/auth/decorators/public.decorator';
+import { FilesInterceptor } from '@nestjs/platform-express';
+import { ParseJsonPipe } from '../../shared/services/parse-json.pipe';
 
 @Controller('entrepreneurs')
 @UseGuards(AuthGuard)
 export class EntrepreneurController {
-  constructor(private readonly entrepreneurService: EntrepreneurService) { }
+  constructor(private readonly entrepreneurService: EntrepreneurService) {}
 
   @Get()
   @Public()
@@ -36,11 +41,15 @@ export class EntrepreneurController {
 
   @Get('pending')
   @UseGuards(RoleGuard)
-  @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN, UserRole.FAIR_ADMIN, UserRole.AUDITOR)
+  @Roles(
+    UserRole.SUPER_ADMIN,
+    UserRole.GENERAL_ADMIN,
+    UserRole.FAIR_ADMIN,
+    UserRole.AUDITOR,
+  )
   async findAllPending(@Req() request: any): Promise<Entrepreneur[]> {
     return await this.entrepreneurService.findAllPending();
   }
-
 
   @Get(':id')
   @Public()
@@ -52,47 +61,77 @@ export class EntrepreneurController {
   @UseGuards(RoleGuard)
   @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN, UserRole.FAIR_ADMIN)
   @HttpCode(HttpStatus.CREATED)
+  @UseInterceptors(FilesInterceptor('files', 3))
   async create(
-    @Body() createDto: CreateCompleteEntrepreneurDto, @Req() request: any): Promise<Entrepreneur> {
-    return await this.entrepreneurService.create(createDto, request);
+    @Body('person', ParseJsonPipe) person: any,
+    @Body('entrepreneur', ParseJsonPipe) entrepreneur: any,
+    @Body('entrepreneurship', ParseJsonPipe) entrepreneurship: any,  @UploadedFiles() files: Express.Multer.File[], @Req() request: any): Promise<Entrepreneur> {
+      const dto: CreateCompleteEntrepreneurDto = { person, entrepreneur, entrepreneurship };
+      return await this.entrepreneurService.create(dto, request, files);
   }
 
   @Post('public')
   @Public()
   @HttpCode(HttpStatus.CREATED)
-  async createPublic(@Body() dto: CreateCompleteEntrepreneurDto): Promise<Entrepreneur> {
-    return await this.entrepreneurService.create(dto); 
+   @UseInterceptors(FilesInterceptor('files', 3))
+  async createPublic(@Body('person', ParseJsonPipe) person: any,
+    @Body('entrepreneur', ParseJsonPipe) entrepreneur: any,
+    @Body('entrepreneurship', ParseJsonPipe) entrepreneurship: any, @UploadedFiles() files: Express.Multer.File[]): Promise<Entrepreneur> {
+    const dto: CreateCompleteEntrepreneurDto = { person, entrepreneur, entrepreneurship };
+    return await this.entrepreneurService.create(dto, undefined, files); 
   }
 
+  // ================== NUEVO (colocado ANTES del Put(':id')) ==================
+  // Ruta para que el dueño (usuario autenticado con rol entrepreneur) actualice su propio registro
+  @Put('public/:id')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(RoleGuard)
+  @Roles(UserRole.ENTREPRENEUR)
+  @UseInterceptors(FilesInterceptor('files', 3))
+  async updateOwn(
+    @Param('id', ParseIntPipe) id: number,
+    @Body('person', ParseJsonPipe) person: any,
+    @Body('entrepreneur', ParseJsonPipe) entrepreneur: any,
+    @Body('entrepreneurship', ParseJsonPipe) entrepreneurship: any,
+    @UploadedFiles() files: Express.Multer.File[],
+    @Req() req: any,
+  ): Promise<Entrepreneur> {
+    const dto: UpdateCompleteEntrepreneurDto = { person, entrepreneur, entrepreneurship };
+    return this.entrepreneurService.updateIfOwnerAndEntrepreneurRole(id, dto, req.user, files);
+  }
+  // ================== FIN NUEVO =================================================
 
   @Put(':id')
   @UseGuards(RoleGuard)
   @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN, UserRole.FAIR_ADMIN)
+  @UseInterceptors(FilesInterceptor('files', 3))
   async update(
     @Param('id', ParseIntPipe) id: number,
-    @Body() updateDto: UpdateCompleteEntrepreneurDto
-  ): Promise<Entrepreneur> {
-    return await this.entrepreneurService.update(id, updateDto);
+    @Body('person', ParseJsonPipe) person: any,
+    @Body('entrepreneur', ParseJsonPipe) entrepreneur: any,
+    @Body('entrepreneurship', ParseJsonPipe) entrepreneurship: any,
+    @UploadedFiles() files: Express.Multer.File[]
+    ): Promise<Entrepreneur> {
+    const dto: UpdateCompleteEntrepreneurDto = { person, entrepreneur, entrepreneurship };
+    return await this.entrepreneurService.update(id, dto, files);
   }
-
 
   @Patch(':id/status')
   @UseGuards(RoleGuard)
   @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN, UserRole.FAIR_ADMIN)
   async updateStatus(
     @Param('id', ParseIntPipe) id: number,
-    @Body() statusDto: UpdateStatusDto
+    @Body() statusDto: UpdateStatusDto,
   ): Promise<Entrepreneur> {
     return await this.entrepreneurService.updateStatus(id, statusDto);
   }
-
 
   @Patch(':id/toggle-active')
   @UseGuards(RoleGuard)
   @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN, UserRole.FAIR_ADMIN)
   async toggleActive(
     @Param('id', ParseIntPipe) id: number,
-    @Body() toggleDto: ToggleActiveDto
+    @Body() toggleDto: ToggleActiveDto,
   ): Promise<Entrepreneur> {
     return await this.entrepreneurService.toggleActive(id, toggleDto);
   }
@@ -104,5 +143,4 @@ export class EntrepreneurController {
   async remove(@Param('id', ParseIntPipe) id: number): Promise<void> {
     return await this.entrepreneurService.remove(id);
   }
-
 }

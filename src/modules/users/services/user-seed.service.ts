@@ -23,34 +23,39 @@ export class UserSeedService {
         password: 'Test123!@#',
         first_name: 'Super',
         first_lastname: 'Admin',
+        phone_primary: '88888888',
         role: UserRole.SUPER_ADMIN
       },
       {
-        email: 'admin@test.com', 
+        email: 'admin@test.com',
         password: 'Test123!@#',
         first_name: 'General',
         first_lastname: 'Admin',
+        phone_primary: '87777777',
         role: UserRole.GENERAL_ADMIN
       },
       {
         email: 'fair@test.com',
-        password: 'Test123!@#', 
+        password: 'Test123!@#',
         first_name: 'Fair',
         first_lastname: 'Admin',
+        phone_primary: '86666666',
         role: UserRole.FAIR_ADMIN
       },
       {
         email: 'entrepreneur@test.com',
         password: 'Test123!@#',
         first_name: 'Test',
-        first_lastname: 'Entrepreneur', 
+        first_lastname: 'Entrepreneur',
+        phone_primary: '85555555',
         role: UserRole.ENTREPRENEUR
       },
       {
         email: 'content@test.com',
         password: 'Test123!@#',
         first_name: 'Test',
-        first_lastname: 'Content', 
+        first_lastname: 'Content',
+        phone_primary: '84444444',
         role: UserRole.CONTENT_ADMIN
       }
     ];
@@ -80,6 +85,7 @@ export class UserSeedService {
         first_lastname: userData.first_lastname,
         second_lastname: '',
         email: userData.email,
+        phone_primary: userData.phone_primary,
     });
     const savedPerson = await this.personRepository.save(person);
 

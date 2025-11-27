@@ -234,4 +234,49 @@ export class UserAuthService implements IUserAuthService {
             failedLoginAttempts: 0 // Reset intentos fallidos
         });
     }
+
+    /**
+     * Busca usuario pendiente de activación por email
+     * (email no verificado O sin contraseña, puede tener token expirado)
+     */
+    async findPendingActivationByEmail(email: string): Promise<User | null> {
+        console.log('🔍 [USER-AUTH-SERVICE] Buscando usuario con email:', email);
+
+        const user = await this.userRepository
+            .createQueryBuilder('user')
+            .innerJoinAndSelect('user.person', 'person')
+            .leftJoinAndSelect('user.roles', 'roles')
+            .addSelect('user.password')
+            .where('person.email = :email', { email })
+            .andWhere('user.isEmailVerified = :verified', { verified: false })
+            .getOne();
+
+        console.log('📊 [USER-AUTH-SERVICE] Usuario encontrado:', user ? {
+            id: user.id_user,
+            email: user.person.email,
+            status: user.status,
+            isEmailVerified: user.isEmailVerified,
+            hasPassword: !!user.password,
+            hasActivationToken: !!user.activation_token,
+            roles: user.roles?.map(r => r.name) || []
+        } : null);
+
+        return user;
+    }
+
+    /**
+     * Regenera token de activación para usuario pendiente
+     */
+    async regenerateActivationToken(userId: number): Promise<{ token: string; expiresAt: Date }> {
+        const newToken = require('crypto').randomBytes(32).toString('hex');
+        const expiresAt = new Date();
+        expiresAt.setHours(expiresAt.getHours() + 72); // 72 horas
+
+        await this.userRepository.update(userId, {
+            activation_token: newToken,
+            activation_expires: expiresAt
+        });
+
+        return { token: newToken, expiresAt };
+    }
 }

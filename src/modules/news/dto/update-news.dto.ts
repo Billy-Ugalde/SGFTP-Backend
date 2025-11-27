@@ -1,4 +1,5 @@
-import { IsString, IsOptional, IsUrl} from 'class-validator'
+import { IsString, IsOptional, IsUrl, IsEnum} from 'class-validator'
+import { NewsStatus } from '../entities/news.entity';
 
 export class UpdateNewsDto {
     @IsOptional()
@@ -16,4 +17,8 @@ export class UpdateNewsDto {
     @IsOptional()
     @IsString()
     author?: string; 
+
+    @IsOptional()
+    @IsEnum(NewsStatus)
+    status?: NewsStatus;
 }

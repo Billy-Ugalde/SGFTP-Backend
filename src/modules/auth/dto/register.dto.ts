@@ -1,4 +1,4 @@
-import { IsEmail, IsString, MinLength, Matches, IsOptional } from 'class-validator';
+import { IsEmail, IsString, MinLength, Matches, IsOptional, IsNotEmpty } from 'class-validator';
 
 export class RegisterDto {
     @IsEmail({}, { message: 'Formato de email inválido' })
@@ -27,4 +27,14 @@ export class RegisterDto {
     @IsOptional()
     @IsString()
     second_lastname?: string;
+
+    @IsString({ message: 'El teléfono principal es requerido' })
+    @IsNotEmpty({ message: 'El teléfono principal no puede estar vacío' })
+    @Matches(/^[\+]?[\d\s\-\(\)]+$/, { message: 'Solo números y el signo + son permitidos en el teléfono' })
+    phone_primary: string;
+
+    @IsOptional()
+    @IsString()
+    @Matches(/^[\+]?[\d\s\-\(\)]+$/, { message: 'Solo números y el signo + son permitidos en el teléfono' })
+    phone_secondary?: string;
 }
