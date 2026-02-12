@@ -19,6 +19,7 @@ import { NotificationsModule } from './modules/fairs-notifications/notifications
 import { ProjectModule } from './modules/projects/project.module';
 import { NewslettersModule } from './modules/newsletters/newsletters.module';
 import { VolunteerModule } from './modules/volunteers/volunteer.module';
+import { DonorModule } from './modules/donors/donor.module';
 
 @Module({
   imports: [
@@ -40,7 +41,7 @@ import { VolunteerModule } from './modules/volunteers/volunteer.module';
       }),
       inject: [ConfigService],
     }),FairModule, EntrepreneurModule, InformativeModule, SubscribersModule,
-    NewsModule, UserModule, AuthModule, SharedModule, NotificationsModule, ProjectModule, NewslettersModule, VolunteerModule],
+    NewsModule, UserModule, AuthModule, SharedModule, NotificationsModule, ProjectModule, NewslettersModule, VolunteerModule, DonorModule],
   controllers: [AppController],
   providers: [AppService, GlobalSeedService],
 })
