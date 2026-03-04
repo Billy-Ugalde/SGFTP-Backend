@@ -1,5 +1,5 @@
 import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, Index } from 'typeorm';
-import { DonationType, DonorInterest } from '../enums/donor.enum';
+import { DonationType, DonorInterest, ReadStatus } from '../enums/donor.enum';
 
 @Index(['Donation_details', 'first_name', 'first_lastname'], { unique: true })
 @Entity()
@@ -41,6 +41,16 @@ export class Donor {
 
   @Column({ type: 'varchar' })
   Phone: string;
+
+  @Column({
+    type: 'enum',
+    enum: ReadStatus,
+    default: ReadStatus.UNREAD
+  })
+  status: ReadStatus;
+
+  @Column({ type: 'boolean', default: false })
+  archived: boolean;
 
   @CreateDateColumn()
   Created_at: Date;

@@ -11,3 +11,8 @@ export enum DonorInterest {
   ENVIRONMENTAL = 'environmental',
   SOCIAL = 'social',
 }
+
+export enum ReadStatus {
+  READ = 'leído',
+  UNREAD = 'no leído'
+}

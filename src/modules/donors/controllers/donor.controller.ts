@@ -48,4 +48,11 @@ export class DonorController {
   update(@Param('id', ParseIntPipe) id: number, @Body() updateDonorDto: UpdateDonorDto) {
     return this.donorService.update(id, updateDonorDto);
   }
+
+  @Patch(':id/archive')
+  @UseGuards(RoleGuard)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN)
+  archive(@Param('id', ParseIntPipe) id: number) {
+    return this.donorService.archive(id);
+  }
 }

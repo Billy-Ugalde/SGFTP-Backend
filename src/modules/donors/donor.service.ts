@@ -119,4 +119,15 @@ export class DonorService {
       await queryRunner.release();
     }
   }
+
+  async archive(id: number): Promise<Donor> {
+    const donor = await this.donorRepository.findOne({ where: { Id_donor: id } });
+    
+    if (!donor) {
+      throw new NotFoundException(`Donor with ID ${id} not found`);
+    }
+
+    donor.archived = !donor.archived;
+    return await this.donorRepository.save(donor);
+  }
 }
