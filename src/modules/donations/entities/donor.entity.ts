@@ -1,8 +1,9 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, Index } from 'typeorm';
-import { DonationType, DonorInterest, ReadStatus } from '../enums/donor.enum';
+import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, OneToMany, Index } from 'typeorm';
+import { DonorInterest } from '../enums/donor.enum';
+import { Donation } from './donation.entity';
 
-@Index(['Donation_details', 'first_name', 'first_lastname'], { unique: true })
 @Entity()
+@Index(['Email'], { unique: true })
 export class Donor {
   @PrimaryGeneratedColumn()
   Id_donor: number;
@@ -21,20 +22,10 @@ export class Donor {
 
   @Column({
     type: 'enum',
-    enum: DonationType,
-    nullable: false
-  })
-  Donation_type: DonationType;
-
-  @Column({
-    type: 'enum',
     enum: DonorInterest,
     nullable: false
   })
   Interest: DonorInterest;
-
-  @Column({ type: 'varchar', length: 250 })
-  Donation_details: string;
 
   @Column({ type: 'varchar' })
   Email: string;
@@ -42,19 +33,12 @@ export class Donor {
   @Column({ type: 'varchar' })
   Phone: string;
 
-  @Column({
-    type: 'enum',
-    enum: ReadStatus,
-    default: ReadStatus.UNREAD
-  })
-  status: ReadStatus;
-
-  @Column({ type: 'boolean', default: false })
-  archived: boolean;
-
   @CreateDateColumn()
   Created_at: Date;
 
   @UpdateDateColumn()
   Updated_at: Date;
+
+   @OneToMany(() => Donation, (donation) => donation.donor)
+  donations: Donation[];
 }

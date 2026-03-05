@@ -6,13 +6,7 @@ export enum DonationType {
   OTHER = 'other'
 }
 
-export enum DonorInterest {
-  CULTURAL = 'cultural',
-  ENVIRONMENTAL = 'environmental',
-  SOCIAL = 'social',
-}
-
 export enum ReadStatus {
-  READ = 'leído',
-  UNREAD = 'no leído'
+  READ = 'read',
+  UNREAD = 'unread'
 }
