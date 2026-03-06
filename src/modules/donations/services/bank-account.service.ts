@@ -62,13 +62,6 @@ export class BankAccountService {
     });
   }
 
-  async findAllActive(): Promise<BankAccount[]> {
-    return this.bankAccountRepository.find({
-      where: { is_active: true },
-      order: { id_bank_account: 'DESC' },
-    });
-  }
-
   async findOne(id: number): Promise<BankAccount> {
     const account = await this.bankAccountRepository.findOne({
       where: { id_bank_account: id },

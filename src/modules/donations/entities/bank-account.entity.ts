@@ -21,7 +21,4 @@ export class BankAccount {
 
   @Column({ type: 'varchar', length: 500, nullable: true })
   image_url?: string;
-
-  @Column({ type: 'boolean', default: true })
-  is_active: boolean;
 }

@@ -43,17 +43,9 @@ export class BankAccountController {
   }
 
   @Get()
-  @UseGuards(RoleGuard)
-  @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN)
+  @Public()
   findAll() {
     return this.bankAccountService.findAll();
-  }
-
-
-  @Get('active')
-  @Public()
-  findAllActive() {
-    return this.bankAccountService.findAllActive();
   }
 
   @Get(':id')

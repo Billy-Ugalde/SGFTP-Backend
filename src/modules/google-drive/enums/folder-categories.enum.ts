@@ -38,6 +38,6 @@ export const FOLDER_NAME_TO_CATEGORY: Record<string, FolderCategory> = {
   // Hero
   hero: FolderCategory.HERO_IMAGES,
 
-  // Cuentas bancarias 
+  // Cuentas bancarias
   bank: FolderCategory.BANK_ACCOUNTS,
 };

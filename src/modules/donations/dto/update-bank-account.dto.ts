@@ -1,4 +1,4 @@
-import { IsBoolean, IsEnum, IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsEnum, IsOptional, IsString, MaxLength } from 'class-validator';
 import { CurrencyType } from '../enums/bank-account.enum';
 
 export class UpdateBankAccountDto {
@@ -19,8 +19,4 @@ export class UpdateBankAccountDto {
   @IsOptional()
   @IsString()
   image_url?: string;
-
-  @IsOptional()
-  @IsBoolean()
-  is_active?: boolean;
 }
