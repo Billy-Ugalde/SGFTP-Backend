@@ -22,31 +22,29 @@ export class DonationService {
     await queryRunner.startTransaction();
 
     try {
-      // Buscar o crear donante
       let donor = await queryRunner.manager.findOne(Donor, {
-        where: {
-          Email: createDonationDto.Email,
-        }
+        where: { email: createDonationDto.email }
       });
 
       if (!donor) {
         donor = queryRunner.manager.create(Donor, {
-          first_name: createDonationDto.first_name,
-          second_name: createDonationDto.second_name,
-          first_lastname: createDonationDto.first_lastname,
-          second_lastname: createDonationDto.second_lastname,
-          Interest: createDonationDto.Interest,
-          Email: createDonationDto.Email,
-          Phone: createDonationDto.Phone,
+          firstName: createDonationDto.firstName,
+          secondName: createDonationDto.secondName,
+          nameCompany: createDonationDto.nameCompany,
+          firstLastName: createDonationDto.firstLastName,
+          secondLastName: createDonationDto.secondLastName,
+          donorType: createDonationDto.donorType,
+          interest: createDonationDto.interest,
+          email: createDonationDto.email,
+          phone: createDonationDto.phone,
         });
         donor = await queryRunner.manager.save(Donor, donor);
       }
 
-      // Crear donación
       const newDonation = queryRunner.manager.create(Donation, {
         donor: donor,
-        Donation_type: createDonationDto.Donation_type,
-        Donation_details: createDonationDto.Donation_details,
+        donationType: createDonationDto.donationType,
+        donationDetails: createDonationDto.donationDetails,
       });
       const savedDonation = await queryRunner.manager.save(Donation, newDonation);
 
@@ -69,13 +67,13 @@ export class DonationService {
   async findAll(): Promise<Donation[]> {
     return await this.donationRepository.find({
       relations: ['donor'],
-      order: { Created_at: 'ASC' }
+      order: { createdAt: 'ASC' }
     });
   }
 
   async findOne(id: number): Promise<Donation> {
     const donation = await this.donationRepository.findOne({ 
-      where: { Id_donation: id },
+      where: { idDonation: id },
       relations: ['donor']
     });
     
@@ -93,7 +91,7 @@ export class DonationService {
 
     try {
       const donation = await queryRunner.manager.findOne(Donation, { 
-        where: { Id_donation: id },
+        where: { idDonation: id },
         relations: ['donor']
       });
       
@@ -101,9 +99,8 @@ export class DonationService {
         throw new NotFoundException(`Donation with ID ${id} not found`);
       }
 
-      // Actualizar donación
-      if (updateDonationDto.Donation_type) donation.Donation_type = updateDonationDto.Donation_type;
-      if (updateDonationDto.Donation_details) donation.Donation_details = updateDonationDto.Donation_details;
+      if (updateDonationDto.donationType) donation.donationType = updateDonationDto.donationType;
+      if (updateDonationDto.donationDetails) donation.donationDetails = updateDonationDto.donationDetails;
       if (updateDonationDto.status) donation.status = updateDonationDto.status;
 
       const updatedDonation = await queryRunner.manager.save(Donation, donation);
@@ -125,7 +122,7 @@ export class DonationService {
   }
 
   async archive(id: number): Promise<Donation> {
-    const donation = await this.donationRepository.findOne({ where: { Id_donation: id } });
+    const donation = await this.donationRepository.findOne({ where: { idDonation: id } });
     
     if (!donation) {
       throw new NotFoundException(`Donation with ID ${id} not found`);
