@@ -4,13 +4,13 @@ import { DonationType, ReadStatus } from '../enums/donation.enum';
 export class UpdateDonationDto {
   @IsEnum(DonationType)
   @IsOptional()
-  Donation_type?: DonationType;
+  donationType?: DonationType;
 
   @IsString()
   @IsOptional()
   @MinLength(10)
   @MaxLength(1000)
-  Donation_details?: string;
+  donationDetails?: string;
 
   @IsEnum(ReadStatus)
   @IsOptional()

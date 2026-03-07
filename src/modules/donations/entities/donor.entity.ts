@@ -1,44 +1,62 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, OneToMany, Index } from 'typeorm';
-import { DonorInterest } from '../enums/donor.enum';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  CreateDateColumn,
+  UpdateDateColumn,
+  OneToMany,
+  Index,
+} from 'typeorm';
+import { DonorInterest, DonorType } from '../enums/donor.enum';
 import { Donation } from './donation.entity';
 
 @Entity()
-@Index(['Email'], { unique: true })
+@Index(['email'], { unique: true })
 export class Donor {
   @PrimaryGeneratedColumn()
-  Id_donor: number;
+  idDonor: number;
 
-  @Column({ name: 'first_name', type: 'varchar', length: 50 })
-  first_name: string;
+  @Column({ type: 'varchar', length: 50 })
+  firstName: string;
 
-  @Column({ name: 'second_name', type: 'varchar', length: 50, nullable: true })
-  second_name: string;
+  @Column({ type: 'varchar', length: 50, nullable: true })
+  secondName: string;
 
-  @Column({ name: 'first_lastname', type: 'varchar', length: 50 })
-  first_lastname: string;
+  @Column({ type: 'varchar', length: 50, nullable: true })
+  nameCompany: string;
 
-  @Column({ name: 'second_lastname', type: 'varchar', length: 50 })
-  second_lastname: string;
+  @Column({ type: 'varchar', length: 50 })
+  firstLastName: string;
+
+  @Column({ type: 'varchar', length: 50 })
+  secondLastName: string;
+
+  @Column({
+    type: 'enum',
+    enum: DonorType,
+    nullable: false,
+  })
+  donorType: DonorType;
 
   @Column({
     type: 'enum',
     enum: DonorInterest,
-    nullable: false
+    nullable: false,
   })
-  Interest: DonorInterest;
+  interest: DonorInterest;
 
   @Column({ type: 'varchar' })
-  Email: string;
+  email: string;
 
   @Column({ type: 'varchar' })
-  Phone: string;
+  phone: string;
 
   @CreateDateColumn()
-  Created_at: Date;
+  createdAt: Date;
 
   @UpdateDateColumn()
-  Updated_at: Date;
+  updatedAt: Date;
 
-   @OneToMany(() => Donation, (donation) => donation.donor)
+  @OneToMany(() => Donation, (donation) => donation.donor)
   donations: Donation[];
 }

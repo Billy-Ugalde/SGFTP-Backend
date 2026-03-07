@@ -1,53 +1,71 @@
-import { IsEmail, IsNotEmpty, IsString, IsEnum, MaxLength, MinLength, IsOptional } from 'class-validator';
+import {
+  IsEmail,
+  IsNotEmpty,
+  IsString,
+  IsEnum,
+  MaxLength,
+  MinLength,
+  IsOptional,
+} from 'class-validator';
 import { DonationType } from '../enums/donation.enum';
-import { DonorInterest } from '../enums/donor.enum';
+import { DonorInterest, DonorType } from '../enums/donor.enum';
 
 export class CreateDonationDto {
   @IsString()
   @IsNotEmpty()
   @MinLength(2)
   @MaxLength(50)
-  first_name: string;
+  firstName: string;
 
   @IsString()
   @IsOptional()
   @MaxLength(50)
-  second_name?: string;
+  secondName?: string;
+
+  @IsString()
+  @IsOptional()
+  @MinLength(2)
+  @MaxLength(50)
+  nameCompany?: string;
 
   @IsString()
   @IsNotEmpty()
   @MinLength(2)
   @MaxLength(50)
-  first_lastname: string;
+  firstLastName: string;
 
   @IsString()
   @IsNotEmpty()
   @MinLength(2)
   @MaxLength(50)
-  second_lastname: string;
+  secondLastName: string;
+
+  @IsEnum(DonorType)
+  @IsNotEmpty()
+  donorType: DonorType;
 
   @IsEnum(DonorInterest)
   @IsNotEmpty()
-  Interest: DonorInterest;
+  interest: DonorInterest;
 
   @IsEmail()
   @IsNotEmpty()
   @MaxLength(100)
-  Email: string;
+  email: string;
 
   @IsString()
   @IsNotEmpty()
   @MinLength(8)
   @MaxLength(20)
-  Phone: string;
+  phone: string;
 
   @IsEnum(DonationType)
   @IsNotEmpty()
-  Donation_type: DonationType;
+  donationType: DonationType;
 
   @IsString()
   @IsNotEmpty()
   @MinLength(10)
   @MaxLength(1000)
-  Donation_details: string;
+  donationDetails: string;
 }

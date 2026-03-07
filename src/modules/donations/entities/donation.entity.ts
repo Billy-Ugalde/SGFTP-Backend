@@ -5,17 +5,17 @@ import { Donor } from './donor.entity';
 @Entity()
 export class Donation {
   @PrimaryGeneratedColumn()
-  Id_donation: number;
+  idDonation: number;
 
   @Column({
     type: 'enum',
     enum: DonationType,
     nullable: false
   })
-  Donation_type: DonationType;
+  donationType: DonationType;
 
   @Column({ type: 'varchar', length: 250 })
-  Donation_details: string;
+  donationDetails: string;
 
   @Column({
     type: 'enum',
@@ -28,12 +28,12 @@ export class Donation {
   archived: boolean;
 
   @CreateDateColumn()
-  Created_at: Date;
+  createdAt: Date;
 
   @UpdateDateColumn()
-  Updated_at: Date;
+  updatedAt: Date;
 
   @ManyToOne(() => Donor, (donor) => donor.donations, { nullable: false })
-  @JoinColumn({ name: 'Id_donor' })
+  @JoinColumn({ name: 'idDonor' })
   donor: Donor;
 }
