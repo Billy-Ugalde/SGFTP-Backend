@@ -18,7 +18,7 @@ import { UserRole } from '../../auth/enums/user-role.enum';
 import { Public } from '../../auth/decorators/public.decorator';
 
 @Controller('donations')
-//@UseGuards(AuthGuard)
+@UseGuards(AuthGuard)
 export class DonationController {
   constructor(private readonly donationService: DonationService) {}
 
@@ -29,28 +29,31 @@ export class DonationController {
   }
 
   @Get()
-  //@UseGuards(RoleGuard)
+  @UseGuards(RoleGuard)
   @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN, UserRole.AUDITOR)
   findAll() {
     return this.donationService.findAll();
   }
 
   @Get(':id')
-  //@UseGuards(RoleGuard)
+  @UseGuards(RoleGuard)
   @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN, UserRole.AUDITOR)
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.donationService.findOne(id);
   }
 
   @Patch(':id')
-  //@UseGuards(RoleGuard)
+  @UseGuards(RoleGuard)
   @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN, UserRole.AUDITOR)
-  update(@Param('id', ParseIntPipe) id: number, @Body() updateDonationDto: UpdateDonationDto) {
+  update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updateDonationDto: UpdateDonationDto,
+  ) {
     return this.donationService.update(id, updateDonationDto);
   }
 
   @Patch(':id/archive')
-  //@UseGuards(RoleGuard)
+  @UseGuards(RoleGuard)
   @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN)
   archive(@Param('id', ParseIntPipe) id: number) {
     return this.donationService.archive(id);
