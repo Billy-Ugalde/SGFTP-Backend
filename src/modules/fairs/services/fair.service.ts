@@ -9,6 +9,7 @@ import { DataSource, QueryFailedError, Repository } from 'typeorm';
 import { fairDto } from '../dto/createFair.dto';
 import { UpdatefairDto } from '../dto/updateFair.dto';
 import { fairStatusDto } from '../dto/fair-status.dto';
+import { fairArchiveDto } from '../dto/fair-archive.dto';
 import { StandService } from './stand.service';
 import { FairNotificationService } from '../../fairs-notifications/services/fair-notification.service';
 
@@ -89,6 +90,10 @@ export class FairService {
     return await this.fairRepository.find();
   }
 
+  async getArchived() {
+    return await this.fairRepository.find({ where: { archived: true } });
+  }
+
   async getOne(id_fair: number): Promise<Fair> {
     const fair = await this.fairRepository.findOne({ where: { id_fair } });
 
@@ -122,6 +127,12 @@ export class FairService {
     }
 
     return updatedFair;
+  }
+
+  async updateArchived(id_fair: number, fairArchive: fairArchiveDto) {
+    await this.getOne(id_fair);
+    await this.fairRepository.update(id_fair, fairArchive);
+    return await this.getOne(id_fair);
   }
 
   async updateStatus(id_fair: number, fairStatus: fairStatusDto) {
