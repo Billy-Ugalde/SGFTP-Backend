@@ -9,6 +9,7 @@ import {
 } from 'class-validator';
 import { DonationType } from '../enums/donation.enum';
 import { DonorInterest, DonorType } from '../enums/donor.enum';
+import { IsValidPhone } from '../../../common/phone/IsValidPhone.decorator';
 
 export class CreateDonationDto {
   @IsString()
@@ -53,10 +54,8 @@ export class CreateDonationDto {
   @MaxLength(100)
   email: string;
 
-  @IsString()
   @IsNotEmpty()
-  @MinLength(8)
-  @MaxLength(20)
+  @IsValidPhone()
   phone: string;
 
   @IsEnum(DonationType)

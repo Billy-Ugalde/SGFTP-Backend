@@ -1,4 +1,5 @@
-import { IsBoolean, IsNumber, IsOptional, ArrayMinSize, IsArray, IsString, IsEmail, Matches } from 'class-validator';
+import { IsBoolean, IsNumber, IsOptional, ArrayMinSize, IsArray, IsString, IsEmail, IsNotEmpty } from 'class-validator';
+import { IsValidPhone } from '../../../common/phone/IsValidPhone.decorator';
 
 export class CreateCompleteInvitationDto {
     // Datos de Person
@@ -18,13 +19,12 @@ export class CreateCompleteInvitationDto {
     @IsEmail()
     email: string;
 
-    @IsString()
-    @Matches(/^[\+]?[\d\s\-\(\)]+$/, { message: 'Solo números y el signo + son permitidos en el teléfono principal' })
+    @IsNotEmpty()
+    @IsValidPhone()
     phone_primary: string;
 
     @IsOptional()
-    @IsString()
-    @Matches(/^[\+]?[\d\s\-\(\)]+$/, { message: 'Solo números y el signo + son permitidos en el teléfono secundario' })
+    @IsValidPhone()
     phone_secondary?: string;
 
     // Datos de User

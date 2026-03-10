@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, QueryRunner } from 'typeorm';
 import { Person } from '../../../entities/person.entity';
 import { CreatePersonDto, UpdatePersonDto } from '../dto/person.dto';
+import { normalizePhone, normalizePhoneOptional } from '../../../common/phone/phone.util';
 
 @Injectable()
 export class PersonService {
@@ -18,8 +19,8 @@ export class PersonService {
       first_lastname: createDto.first_lastname,
       second_lastname: createDto.second_lastname,
       email: createDto.email,
-      phone_primary: createDto.phone_primary,
-      phone_secondary: createDto.phone_secondary,
+      phone_primary: normalizePhone(createDto.phone_primary),
+      phone_secondary: normalizePhoneOptional(createDto.phone_secondary),
     });
   }
 
@@ -62,10 +63,10 @@ export class PersonService {
         updateData.second_lastname = createDto.second_lastname;
       }
       if (createDto.phone_primary && createDto.phone_primary !== existingPerson.phone_primary) {
-        updateData.phone_primary = createDto.phone_primary;
+        updateData.phone_primary = normalizePhone(createDto.phone_primary);
       }
       if (createDto.phone_secondary !== existingPerson.phone_secondary) {
-        updateData.phone_secondary = createDto.phone_secondary;
+        updateData.phone_secondary = normalizePhoneOptional(createDto.phone_secondary);
       }
 
       if (Object.keys(updateData).length > 0) {
@@ -107,8 +108,8 @@ export class PersonService {
     if (updateDto.first_lastname) updateData.first_lastname = updateDto.first_lastname;
     if (updateDto.second_lastname) updateData.second_lastname = updateDto.second_lastname;
     if (updateDto.email) updateData.email = updateDto.email;
-    if (updateDto.phone_primary) updateData.phone_primary = updateDto.phone_primary;
-    if (updateDto.phone_secondary !== undefined) updateData.phone_secondary = updateDto.phone_secondary;
+    if (updateDto.phone_primary) updateData.phone_primary = normalizePhone(updateDto.phone_primary);
+    if (updateDto.phone_secondary !== undefined) updateData.phone_secondary = normalizePhoneOptional(updateDto.phone_secondary);
 
     if (Object.keys(updateData).length > 0) {
       await queryRunner.manager.update(Person, personId, updateData);

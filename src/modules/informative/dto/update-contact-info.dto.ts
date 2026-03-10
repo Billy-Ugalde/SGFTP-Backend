@@ -1,4 +1,5 @@
-import {IsEmail, IsOptional, IsString, IsUrl} from 'class-validator';
+import { IsEmail, IsOptional, IsString, IsUrl } from 'class-validator';
+import { IsValidPhone } from '../../../common/phone/IsValidPhone.decorator';
 
 export class UpdateContactInfoDto {
     @IsOptional()
@@ -6,8 +7,8 @@ export class UpdateContactInfoDto {
     email?: string;
 
     @IsOptional()
-    @IsString()
-    phone?: string;  
+    @IsValidPhone()
+    phone?: string;
 
     @IsOptional()
     @IsString()
@@ -15,7 +16,7 @@ export class UpdateContactInfoDto {
 
     @IsOptional()
     @IsUrl()
-    facebook_url?: string;   
+    facebook_url?: string;
 
     @IsOptional()
     @IsUrl()
@@ -32,5 +33,4 @@ export class UpdateContactInfoDto {
     @IsOptional()
     @IsUrl()
     google_maps_url?: string;
-    
 }
