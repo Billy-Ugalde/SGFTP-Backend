@@ -5,5 +5,5 @@ export enum DonorInterest {
 }
 export enum DonorType {
   DONOR = 'donor',
-  STRATEGIC_ALLY = 'strategic ally',
+  STRATEGIC_ALLY = 'strategic_ally',
 }
