@@ -194,6 +194,12 @@ export class InformativeSeedService {
       },
       {
         page: 'home',
+        section: 'donate',
+        block_key: 'accounts_info',
+        image_url: 'https://example.com/accounts-info.jpg',
+      },
+      {
+        page: 'home',
         section: 'involve',
         block_key: 'entrepreneurship_card',
         text_content: 'Registra tu emprendimiento con nosotros.',
