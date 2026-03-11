@@ -52,10 +52,4 @@ export class DonationController {
     return this.donationService.update(id, updateDonationDto);
   }
 
-  @Patch(':id/archive')
-  @UseGuards(RoleGuard)
-  @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN)
-  archive(@Param('id', ParseIntPipe) id: number) {
-    return this.donationService.archive(id);
-  }
 }

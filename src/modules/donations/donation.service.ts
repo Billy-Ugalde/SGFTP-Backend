@@ -121,14 +121,4 @@ export class DonationService {
     }
   }
 
-  async archive(id: number): Promise<Donation> {
-    const donation = await this.donationRepository.findOne({ where: { idDonation: id } });
-    
-    if (!donation) {
-      throw new NotFoundException(`Donation with ID ${id} not found`);
-    }
-
-    donation.archived = !donation.archived;
-    return await this.donationRepository.save(donation);
-  }
 }

@@ -1,5 +1,5 @@
 import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
-import { DonationType, ReadStatus } from '../enums/donation.enum';
+import { DonationType, DonationStatus } from '../enums/donation.enum';
 import { Donor } from './donor.entity';
 
 @Entity()
@@ -19,13 +19,10 @@ export class Donation {
 
   @Column({
     type: 'enum',
-    enum: ReadStatus,
-    default: ReadStatus.UNREAD
+    enum: DonationStatus,
+    default: DonationStatus.NUEVO
   })
-  status: ReadStatus;
-
-  @Column({ type: 'boolean', default: false })
-  archived: boolean;
+  status: DonationStatus;
 
   @CreateDateColumn()
   createdAt: Date;
