@@ -1,5 +1,5 @@
 import { IsEnum, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
-import { DonationType, ReadStatus } from '../enums/donation.enum';
+import { DonationType, DonationStatus } from '../enums/donation.enum';
 
 export class UpdateDonationDto {
   @IsEnum(DonationType)
@@ -12,7 +12,7 @@ export class UpdateDonationDto {
   @MaxLength(1000)
   donationDetails?: string;
 
-  @IsEnum(ReadStatus)
+  @IsEnum(DonationStatus)
   @IsOptional()
-  status?: ReadStatus;
+  status?: DonationStatus;
 }

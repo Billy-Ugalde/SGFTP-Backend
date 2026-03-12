@@ -6,7 +6,9 @@ export enum DonationType {
   OTHER = 'other'
 }
 
-export enum ReadStatus {
-  READ = 'read',
-  UNREAD = 'unread'
+export enum DonationStatus {
+  NUEVO = 'nuevo',
+  EJECUCION = 'ejecucion',
+  FINALIZADO = 'finalizado',
+  SUSPENDIDO = 'suspendido',
 }
