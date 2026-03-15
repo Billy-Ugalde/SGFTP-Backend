@@ -2,7 +2,6 @@ import {
   Controller,
   Get,
   Post,
-  Body,
   Param,
   Patch,
   Delete,
@@ -15,14 +14,11 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { BankAccountService } from '../services/bank-account.service';
-import { CreateBankAccountDto } from '../dto/create-bank-account.dto';
-import { UpdateBankAccountDto } from '../dto/update-bank-account.dto';
 import { AuthGuard } from '../../auth/guards/auth.guard';
 import { RoleGuard } from '../../auth/guards/role.guard';
 import { Roles } from '../../auth/decorators/roles.decorator';
 import { Public } from '../../auth/decorators/public.decorator';
 import { UserRole } from '../../auth/enums/user-role.enum';
-import { ParseJsonPipe } from '../../shared/services/parse-json.pipe';
 
 @Controller('bank-accounts')
 @UseGuards(AuthGuard)
@@ -34,12 +30,8 @@ export class BankAccountController {
   @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN)
   @HttpCode(HttpStatus.CREATED)
   @UseInterceptors(FileInterceptor('file'))
-  create(
-    @Body('bankAccount', ParseJsonPipe) bankAccountData: any,
-    @UploadedFile() file: Express.Multer.File,
-  ) {
-    const dto: CreateBankAccountDto = bankAccountData;
-    return this.bankAccountService.create(dto, file);
+  create(@UploadedFile() file: Express.Multer.File) {
+    return this.bankAccountService.create(file);
   }
 
   @Get()
@@ -60,11 +52,9 @@ export class BankAccountController {
   @UseInterceptors(FileInterceptor('file'))
   update(
     @Param('id', ParseIntPipe) id: number,
-    @Body('bankAccount', ParseJsonPipe) bankAccountData: any,
     @UploadedFile() file: Express.Multer.File,
   ) {
-    const dto: UpdateBankAccountDto = bankAccountData;
-    return this.bankAccountService.update(id, dto, file);
+    return this.bankAccountService.update(id, file);
   }
 
   @Delete(':id')

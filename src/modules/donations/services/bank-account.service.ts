@@ -4,10 +4,8 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 import { BankAccount } from '../entities/bank-account.entity';
-import { CreateBankAccountDto } from '../dto/create-bank-account.dto';
-import { UpdateBankAccountDto } from '../dto/update-bank-account.dto';
 import { GoogleDriveService } from '../../google-drive/google-drive.service';
 
 @Injectable()
@@ -16,43 +14,25 @@ export class BankAccountService {
     @InjectRepository(BankAccount)
     private readonly bankAccountRepository: Repository<BankAccount>,
     private readonly googleDriveService: GoogleDriveService,
-    private readonly dataSource: DataSource,
   ) {}
 
-  async create(
-    dto: CreateBankAccountDto,
-    file?: Express.Multer.File,
-  ): Promise<BankAccount> {
-    const queryRunner = this.dataSource.createQueryRunner();
-    await queryRunner.connect();
-    await queryRunner.startTransaction();
-
+  async create(file?: Express.Multer.File): Promise<BankAccount> {
     try {
-      const newAccount = this.bankAccountRepository.create({ ...dto });
-      const savedAccount = await queryRunner.manager.save(
-        BankAccount,
-        newAccount,
-      );
+      const newAccount = this.bankAccountRepository.create();
+      const savedAccount = await this.bankAccountRepository.save(newAccount);
 
       if (file) {
         const folderName = `bank_${savedAccount.id_bank_account}`;
-        const { url } = await this.googleDriveService.uploadFile(
-          file,
-          folderName,
-        );
+        const { url } = await this.googleDriveService.uploadFile(file, folderName);
         savedAccount.image_url = url;
-        await queryRunner.manager.save(BankAccount, savedAccount);
+        await this.bankAccountRepository.save(savedAccount);
       }
 
-      await queryRunner.commitTransaction();
       return savedAccount;
     } catch (error) {
-      await queryRunner.rollbackTransaction();
       throw new InternalServerErrorException(
         `Error creando cuenta bancaria: ${error.message || 'Error desconocido'}`,
       );
-    } finally {
-      await queryRunner.release();
     }
   }
 
@@ -72,58 +52,29 @@ export class BankAccountService {
     return account;
   }
 
-  async update(
-    id: number,
-    dto: UpdateBankAccountDto,
-    file?: Express.Multer.File,
-  ): Promise<BankAccount> {
-    const queryRunner = this.dataSource.createQueryRunner();
-    await queryRunner.connect();
-    await queryRunner.startTransaction();
-
+  async update(id: number, file?: Express.Multer.File): Promise<BankAccount> {
     try {
       const account = await this.findOne(id);
-      let fileToDelete: string | null = null;
 
       if (file) {
-        const folderName = `bank_${account.id_bank_account}`;
-
         if (account.image_url && account.image_url.trim() !== '') {
-          const fileId = this.googleDriveService.extractFileIdFromUrl(
-            account.image_url,
-          );
+          const fileId = this.googleDriveService.extractFileIdFromUrl(account.image_url);
           if (fileId) {
-            fileToDelete = fileId;
+            await this.googleDriveService.deleteFile(fileId);
           }
         }
 
-        const { url } = await this.googleDriveService.uploadFile(
-          file,
-          folderName,
-        );
+        const folderName = `bank_${account.id_bank_account}`;
+        const { url } = await this.googleDriveService.uploadFile(file, folderName);
         account.image_url = url;
+        await this.bankAccountRepository.save(account);
       }
 
-      Object.assign(account, dto);
-      const updatedAccount = await queryRunner.manager.save(
-        BankAccount,
-        account,
-      );
-
-      await queryRunner.commitTransaction();
-
-      if (fileToDelete) {
-        await this.googleDriveService.deleteFile(fileToDelete);
-      }
-
-      return updatedAccount;
+      return account;
     } catch (error) {
-      await queryRunner.rollbackTransaction();
       throw new InternalServerErrorException(
         `Error actualizando cuenta bancaria: ${error.message || 'Error desconocido'}`,
       );
-    } finally {
-      await queryRunner.release();
     }
   }
 
@@ -131,9 +82,7 @@ export class BankAccountService {
     const account = await this.findOne(id);
 
     if (account.image_url) {
-      const fileId = this.googleDriveService.extractFileIdFromUrl(
-        account.image_url,
-      );
+      const fileId = this.googleDriveService.extractFileIdFromUrl(account.image_url);
       if (fileId) {
         await this.googleDriveService.deleteFile(fileId);
       }
