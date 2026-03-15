@@ -4,6 +4,7 @@ import { fairDto } from "../dto/createFair.dto";
 import { UpdatefairDto } from "../dto/updateFair.dto";
 import { Fair } from "../entities/fair.entity";
 import { fairStatusDto } from "../dto/fair-status.dto";
+import { fairArchiveDto } from "../dto/fair-archive.dto";
 import { AuthGuard } from "src/modules/auth/guards/auth.guard";
 import { Roles } from "src/modules/auth/decorators/roles.decorator";
 import { RoleGuard } from "src/modules/auth/guards/role.guard";
@@ -32,6 +33,13 @@ export class FairController {
         return await this.fairService.getAll();
     }
 
+    @Get('archived')
+    @UseGuards(RoleGuard)
+    @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN, UserRole.FAIR_ADMIN, UserRole.AUDITOR)
+    async getArchived(): Promise<Fair[]> {
+        return await this.fairService.getArchived();
+    }
+
     @Get(':id')
     @UseGuards(RoleGuard)
     @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN, UserRole.FAIR_ADMIN, UserRole.AUDITOR)
@@ -54,5 +62,15 @@ export class FairController {
         @Body() fairstatus: fairStatusDto
     ): Promise<Fair> {
         return await this.fairService.updateStatus(id, fairstatus);
+    }
+
+    @Patch(':id/archive')
+    @UseGuards(RoleGuard)
+    @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN, UserRole.FAIR_ADMIN)
+    async updateArchived(
+        @Param('id', ParseIntPipe) id: number,
+        @Body() fairarchive: fairArchiveDto
+    ): Promise<Fair> {
+        return await this.fairService.updateArchived(id, fairarchive);
     }
 }

@@ -31,6 +31,9 @@ export class Fair {
     @Column({ default: true })
     status: boolean;
 
+    @Column({ default: false })
+    archived: boolean;
+
     @Column({ type: 'enum', enum: TypetFair, nullable: false })
     typeFair: TypetFair;
 

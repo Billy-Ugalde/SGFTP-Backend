@@ -3,6 +3,7 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { Not, Repository } from "typeorm";
 import { UpdateContactInfoDto } from "../dto/update-contact-info.dto";
 import { ContactInfo } from "../entities/contact-info.entity";
+import { normalizePhoneOptional } from "../../../common/phone/phone.util";
 
 @Injectable()
 export class ContactInfoService {
@@ -32,7 +33,11 @@ export class ContactInfoService {
             throw new BadRequestException('Sistema corrupto: múltiples registros de contacto detectados');
         }
         
-        const updated = Object.assign(existing, dto);
+        const normalizedDto = {
+            ...dto,
+            ...(dto.phone !== undefined && { phone: normalizePhoneOptional(dto.phone) ?? existing.phone }),
+        };
+        const updated = Object.assign(existing, normalizedDto);
         return this.contactInfoRepository.save(updated);
     }
 

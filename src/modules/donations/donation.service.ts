@@ -5,6 +5,7 @@ import { Donor } from './entities/donor.entity';
 import { Donation } from './entities/donation.entity';
 import { CreateDonationDto } from './dto/create-donation.dto';
 import { UpdateDonationDto } from './dto/update-donation.dto';
+import { normalizePhone } from '../../common/phone/phone.util';
 
 @Injectable()
 export class DonationService {
@@ -36,7 +37,7 @@ export class DonationService {
           donorType: createDonationDto.donorType,
           interest: createDonationDto.interest,
           email: createDonationDto.email,
-          phone: createDonationDto.phone,
+          phone: normalizePhone(createDonationDto.phone),
         });
         donor = await queryRunner.manager.save(Donor, donor);
       }

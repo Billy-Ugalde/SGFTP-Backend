@@ -6,10 +6,11 @@ import { RegisterDto } from '../dto/register.dto';
 import { DataSource, QueryRunner, MoreThan } from 'typeorm';
 import { Person } from '../../../entities/person.entity';
 import { PasswordService } from '../../shared/services/password.service';
-import { UserAuthService } from '../../users/services/user-auth.service'; 
+import { UserAuthService } from '../../users/services/user-auth.service';
 import { UserRole } from '../enums/user-role.enum';
 import { ChangePasswordDto } from '../dto/change-password.dto';
 import { ResetPasswordDto } from '../dto/reset-password.dto';
+import { normalizePhone, normalizePhoneOptional } from '../../../common/phone/phone.util';
 
 @Injectable()
 export class AuthService {
@@ -57,8 +58,8 @@ export class AuthService {
                 first_lastname: registerDto.first_lastname,
                 second_lastname: registerDto.second_lastname || '',
                 email: registerDto.email,
-                phone_primary: registerDto.phone_primary,
-                phone_secondary: registerDto.phone_secondary,
+                phone_primary: normalizePhone(registerDto.phone_primary),
+                phone_secondary: normalizePhoneOptional(registerDto.phone_secondary),
             });
 
             const savedPerson = await queryRunner.manager.save(Person, person);

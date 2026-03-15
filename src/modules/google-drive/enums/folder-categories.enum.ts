@@ -10,6 +10,7 @@ export enum FolderCategory {
   MAILBOX = 'Buzon',
   BOARD_MEMBERS = 'Junta_Directiva',
   HERO_IMAGES = 'Imagenes_Hero',
+  BANK_ACCOUNTS = 'Cuentas_Bancarias',
 }
 
 /**
@@ -36,4 +37,7 @@ export const FOLDER_NAME_TO_CATEGORY: Record<string, FolderCategory> = {
 
   // Hero
   hero: FolderCategory.HERO_IMAGES,
+
+  // Cuentas bancarias
+  bank: FolderCategory.BANK_ACCOUNTS,
 };

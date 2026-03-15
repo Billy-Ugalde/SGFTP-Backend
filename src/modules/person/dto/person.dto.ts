@@ -1,4 +1,5 @@
-import { IsString, IsEmail, IsNotEmpty, IsOptional, Matches } from 'class-validator';
+import { IsString, IsEmail, IsNotEmpty, IsOptional } from 'class-validator';
+import { IsValidPhone } from '../../../common/phone/IsValidPhone.decorator';
 
 export class CreatePersonDto {
   @IsString()
@@ -21,14 +22,12 @@ export class CreatePersonDto {
   @IsNotEmpty()
   email: string;
 
-  @IsString()
   @IsNotEmpty()
-  @Matches(/^[\+]?[\d\s\-\(\)]+$/, { message: 'Solo números y el signo + son permitidos en el teléfono principal' })
+  @IsValidPhone()
   phone_primary: string;
 
-  @IsString()
   @IsOptional()
-  @Matches(/^[\+]?[\d\s\-\(\)]+$/, { message: 'Solo números y el signo + son permitidos en el teléfono secundario' })
+  @IsValidPhone()
   phone_secondary?: string;
 }
 
@@ -53,13 +52,11 @@ export class UpdatePersonDto {
   @IsOptional()
   email?: string;
 
-  @IsString()
   @IsOptional()
-  @Matches(/^[\+]?[\d\s\-\(\)]+$/, { message: 'Solo números y el signo + son permitidos en el teléfono principal' })
+  @IsValidPhone()
   phone_primary?: string;
 
-  @IsString()
   @IsOptional()
-  @Matches(/^[\+]?[\d\s\-\(\)]+$/, { message: 'Solo números y el signo + son permitidos en el teléfono secundario' })
+  @IsValidPhone()
   phone_secondary?: string;
 }
