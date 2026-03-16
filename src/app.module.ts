@@ -20,6 +20,7 @@ import { ProjectModule } from './modules/projects/project.module';
 import { NewslettersModule } from './modules/newsletters/newsletters.module';
 import { VolunteerModule } from './modules/volunteers/volunteer.module';
 import { DonationModule } from './modules/donations/donation.module';
+import { AuditModule } from './modules/audit/audit.module';
 
 @Module({
   imports: [
@@ -41,7 +42,7 @@ import { DonationModule } from './modules/donations/donation.module';
       }),
       inject: [ConfigService],
     }),FairModule, EntrepreneurModule, InformativeModule, SubscribersModule,
-    NewsModule, UserModule, AuthModule, SharedModule, NotificationsModule, ProjectModule, NewslettersModule, VolunteerModule, DonationModule],
+    NewsModule, UserModule, AuthModule, SharedModule, NotificationsModule, ProjectModule, NewslettersModule, VolunteerModule, DonationModule, AuditModule],
   controllers: [AppController],
   providers: [AppService, GlobalSeedService],
 })
