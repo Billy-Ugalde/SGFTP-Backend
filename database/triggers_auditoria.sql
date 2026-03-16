@@ -91,15 +91,13 @@ DROP TRIGGER IF EXISTS trg_user_roles_insert$$
 CREATE TRIGGER trg_user_roles_insert
 AFTER INSERT ON user_roles FOR EACH ROW
 BEGIN
-    DECLARE v_role_name VARCHAR(100);
-    SELECT name INTO v_role_name FROM roles WHERE id_role = NEW.role_id;
     INSERT INTO audit_log
         (user_id, user_email, action, entity, entity_id, old_value, new_value, source)
     VALUES (
         @audit_user_id, @audit_user_email,
         'ROLE_ASSIGNED', 'users', CAST(NEW.user_id AS CHAR),
         NULL,
-        JSON_OBJECT('user_id', NEW.user_id, 'role_id', COALESCE(v_role_name, NEW.role_id)),
+        JSON_OBJECT('user_id', NEW.user_id, 'role_id', NEW.role_id),
         'SYSTEM'
     );
 END$$
@@ -108,14 +106,12 @@ DROP TRIGGER IF EXISTS trg_user_roles_delete$$
 CREATE TRIGGER trg_user_roles_delete
 AFTER DELETE ON user_roles FOR EACH ROW
 BEGIN
-    DECLARE v_role_name VARCHAR(100);
-    SELECT name INTO v_role_name FROM roles WHERE id_role = OLD.role_id;
     INSERT INTO audit_log
         (user_id, user_email, action, entity, entity_id, old_value, new_value, source)
     VALUES (
         @audit_user_id, @audit_user_email,
         'ROLE_REMOVED', 'users', CAST(OLD.user_id AS CHAR),
-        JSON_OBJECT('user_id', OLD.user_id, 'role_id', COALESCE(v_role_name, OLD.role_id)),
+        JSON_OBJECT('user_id', OLD.user_id, 'role_id', OLD.role_id),
         NULL,
         'SYSTEM'
     );
