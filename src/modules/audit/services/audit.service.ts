@@ -22,33 +22,7 @@ export class AuditService implements IAuditService {
         const limit = query.limit ?? 9;
         const skip  = (page - 1) * limit;
 
-        const where: FindOptionsWhere<AuditLog> = {};
-        if (query.entity)  where.entity  = query.entity;
-        if (query.action)  where.action  = query.action;
-        if (query.user_id) where.user_id = query.user_id;
-
-        if (query.date_from || query.date_to) {
-            const from = new Date(`${query.date_from ?? '2000-01-01'}T00:00:00`);
-            const toBase = query.date_to ?? (() => {
-                const n = new Date();
-                return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}-${String(n.getDate()).padStart(2, '0')}`;
-            })();
-            const to = new Date(`${toBase}T23:59:59.999`);
-            where.timestamp = Between(from, to);
-        }
-
-        const qb = this.auditRepo.createQueryBuilder('audit')
-            .leftJoinAndSelect('audit.user', 'user')
-            .leftJoinAndSelect('user.person', 'person')
-            .where(where)
-            .orderBy('audit.timestamp', 'DESC')
-            .skip(skip)
-            .take(limit);
-
-        if (query.search) {
-            qb.andWhere('audit.user_email LIKE :q', { q: `%${query.search}%` });
-        }
-
+        const qb = this.buildQuery(query).skip(skip).take(limit);
         const [data, total] = await qb.getManyAndCount();
         return { data, total, page, limit };
     }
@@ -93,6 +67,10 @@ export class AuditService implements IAuditService {
     }
 
     private async fetchAllForReport(query: QueryAuditDto): Promise<AuditLog[]> {
+        return this.buildQuery(query).getMany();
+    }
+
+    private buildQuery(query: QueryAuditDto) {
         const where: FindOptionsWhere<AuditLog> = {};
         if (query.entity)  where.entity  = query.entity;
         if (query.action)  where.action  = query.action;
@@ -117,7 +95,7 @@ export class AuditService implements IAuditService {
             qb.andWhere('audit.user_email LIKE :q', { q: `%${query.search}%` });
         }
 
-        return qb.getMany();
+        return qb;
     }
 
     private generatePDFContent(doc: PDFDoc, records: AuditLog[], query: QueryAuditDto): void {
