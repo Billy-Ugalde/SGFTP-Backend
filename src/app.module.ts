@@ -1,7 +1,10 @@
 import { Module } from '@nestjs/common';
+import { APP_INTERCEPTOR } from '@nestjs/core';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { AuditContextInterceptor } from './common/interceptors/audit-context.interceptor';
+import { AuditContextSubscriber } from './common/subscribers/audit-context.subscriber';
 import { FairModule } from './modules/fairs/fairs.module';
 import { EntrepreneurModule } from './modules/entrepreneurs/entrepreneur.module';
 import { InformativeModule } from './modules/informative/informative.module';
@@ -37,14 +40,19 @@ import { AuditModule } from './modules/audit/audit.module';
         password: configService.get<string>('DB_PASSWORD'),
         database: configService.get<string>('DB_DATABASE'),
         synchronize: configService.get<string>('NODE_ENV') === 'development',
-        autoLoadEntities: true, 
+        autoLoadEntities: true,
         ssl: false,
+        subscribers: [AuditContextSubscriber],
       }),
       inject: [ConfigService],
     }),FairModule, EntrepreneurModule, InformativeModule, SubscribersModule,
     NewsModule, UserModule, AuthModule, SharedModule, NotificationsModule, ProjectModule, NewslettersModule, VolunteerModule, DonationModule, AuditModule],
   controllers: [AppController],
-  providers: [AppService, GlobalSeedService],
+  providers: [
+    AppService,
+    GlobalSeedService,
+    { provide: APP_INTERCEPTOR, useClass: AuditContextInterceptor },
+  ],
 })
 
 export class AppModule implements NestModule {

@@ -176,7 +176,8 @@ export class AuditService implements IAuditService {
 
             const userName = record.user?.person
                 ? `${record.user.person.first_name} ${record.user.person.first_lastname}`
-                : record.user_email ?? 'Sistema';
+                : record.user_email
+                    ?? (record.user_id ? `Usuario #${record.user_id}` : 'Sistema');
 
             const datetime = new Date(record.timestamp).toLocaleString('es-ES', {
                 day: '2-digit', month: '2-digit', year: 'numeric',
