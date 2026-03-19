@@ -6,6 +6,7 @@ import { CreateContentBlockDto } from '../dto/create-content-block.dto';
 import { UpdateContentBlockDto } from '../dto/update-content-block.dto';
 import { StructuredContentDto } from '../dto/structured-content.dto';
 import { GoogleDriveService } from '../../google-drive/google-drive.service';
+import { validateAndProcessImage } from '../utils/image-processor';
 
 @Injectable()
 export class ContentBlockService {
@@ -256,10 +257,13 @@ export class ContentBlockService {
       }
     }
 
-    // 3. Subir la nueva imagen a Google Drive
-    const uploadResult = await this.googleDriveService.uploadFile(file, 'hero');
+    // 3. Validar y procesar la imagen (magic bytes + Sharp → WebP)
+    const processedFile = await validateAndProcessImage(file, { maxWidthPx: 1920, quality: 88 });
 
-    // 4. Actualizar el content block con la nueva URL
+    // 4. Subir la imagen procesada a Google Drive
+    const uploadResult = await this.googleDriveService.uploadFile(processedFile, 'hero');
+
+    // 5. Actualizar el content block con la nueva URL
     heroBlock.image_url = uploadResult.url;
     heroBlock.text_content = ''; // Limpiar text_content si existía
 
@@ -309,9 +313,11 @@ export class ContentBlockService {
       }
     }
 
-    console.log('📤 Subiendo nueva imagen a Google Drive...');
+    console.log('📤 Procesando y subiendo nueva imagen a Google Drive...');
     try {
-      const uploadResult = await this.googleDriveService.uploadFile(file, 'board_members');
+      // Validar y procesar la imagen (magic bytes + Sharp → WebP)
+      const processedFile = await validateAndProcessImage(file, { maxWidthPx: 1000, quality: 85 });
+      const uploadResult = await this.googleDriveService.uploadFile(processedFile, 'board_members');
       console.log('✅ Imagen subida exitosamente:', uploadResult);
       
       // 4. Actualizar el content block con la nueva URL
@@ -368,9 +374,10 @@ export class ContentBlockService {
       }
     }
 
-    // 4. Subir la nueva imagen a Google Drive
-    console.log('📤 Subiendo nueva imagen...');
-    const uploadResult = await this.googleDriveService.uploadFile(file, section);
+    // 4. Validar, procesar y subir la imagen
+    console.log('📤 Procesando y subiendo nueva imagen...');
+    const processedFile = await validateAndProcessImage(file, { maxWidthPx: 1200, quality: 85 });
+    const uploadResult = await this.googleDriveService.uploadFile(processedFile, section);
     console.log('✅ Imagen subida:', uploadResult.url);
 
     // 5. Actualizar el content block con la nueva URL
