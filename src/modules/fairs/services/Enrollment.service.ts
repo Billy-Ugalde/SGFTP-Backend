@@ -212,6 +212,50 @@ export class EnrrolmentService {
         return enrollment;
     }
 
+    async findByEntrepreneur(entrepreneurId: number): Promise<Fair_enrollment[]> {
+        return this.fairEnrollmentRepository.find({
+            where: { entrepreneur: { id_entrepreneur: entrepreneurId } },
+            relations: {
+                fair: true,
+                stand: true,
+            },
+            order: { registration_date: 'DESC' },
+        });
+    }
+
+    async cancelEnrollment(id: number): Promise<void> {
+        const enrollment = await this.fairEnrollmentRepository.findOne({
+            where: { id_enrrolment_fair: id },
+            relations: ['fair', 'stand', 'entrepreneur'],
+        });
+
+        if (!enrollment) {
+            throw new NotFoundException('La inscripción no existe');
+        }
+
+        const now = new Date();
+        if (enrollment.fair.date && new Date(enrollment.fair.date) < now) {
+            throw new BadRequestException('No se puede cancelar una inscripción de una feria que ya pasó');
+        }
+
+        if (enrollment.status === EnrollmentStatus.APPROVED && enrollment.stand) {
+            await this.dataSource.transaction(async (manager) => {
+                const stand = await manager.findOne(Stand, {
+                    where: { id_stand: enrollment.stand.id_stand },
+                    lock: { mode: 'pessimistic_write' },
+                });
+                if (stand) {
+                    stand.status = false;
+                    stand.entrepreneur = null as any;
+                    await manager.save(stand);
+                }
+                await manager.remove(enrollment);
+            });
+        } else {
+            await this.fairEnrollmentRepository.remove(enrollment);
+        }
+    }
+
     async updateStatus(id: number, statusDto: StatusEnrollmentDto): Promise<Fair_enrollment> {
         const enrollment = await this.fairEnrollmentRepository.findOne({
             where: { id_enrrolment_fair: id },
