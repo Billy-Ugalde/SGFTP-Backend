@@ -80,7 +80,7 @@ export class EnrollmentController {
 
     @Delete(':id')
     @UseGuards(RoleGuard)
-    @Roles(UserRole.ENTREPRENEUR)
+    @Roles(UserRole.ENTREPRENEUR, UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN, UserRole.FAIR_ADMIN)
     @HttpCode(HttpStatus.NO_CONTENT)
     async cancelEnrollment(@Param('id', ParseIntPipe) id: number): Promise<void> {
         return await this.fair_enrollmentservice.cancelEnrollment(id);
