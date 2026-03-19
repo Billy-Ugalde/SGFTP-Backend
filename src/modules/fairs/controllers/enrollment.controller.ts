@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Param, ParseIntPipe, Patch, Post, UseGuards } from "@nestjs/common";
+import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, ParseIntPipe, Patch, Post, UseGuards } from "@nestjs/common";
 import { Fair_enrollment } from "../entities/Fair_enrollment.entity";
 import { EnrollmentFairDto } from "../dto/enrrolmentFair.dto";
 import { EnrrolmentService } from "../services/Enrollment.service";
@@ -69,6 +69,21 @@ export class EnrollmentController {
         UserRole.FAIR_ADMIN, UserRole.AUDITOR)
     async findByFair(@Param('id', ParseIntPipe) fairId: number): Promise<Fair_enrollment[]> {
         return await this.fair_enrollmentservice.findByFair(fairId);
+    }
+
+    @Get('entrepreneur/:id')
+    @UseGuards(RoleGuard)
+    @Roles(UserRole.ENTREPRENEUR)
+    async findByEntrepreneur(@Param('id', ParseIntPipe) entrepreneurId: number) {
+        return await this.fair_enrollmentservice.findByEntrepreneur(entrepreneurId);
+    }
+
+    @Delete(':id')
+    @UseGuards(RoleGuard)
+    @Roles(UserRole.ENTREPRENEUR, UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN, UserRole.FAIR_ADMIN)
+    @HttpCode(HttpStatus.NO_CONTENT)
+    async cancelEnrollment(@Param('id', ParseIntPipe) id: number): Promise<void> {
+        return await this.fair_enrollmentservice.cancelEnrollment(id);
     }
 
     @Patch(':id/status')
