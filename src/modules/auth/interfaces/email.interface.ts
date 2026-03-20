@@ -20,11 +20,6 @@ export interface IAuthEmailService {
   ): Promise<void>;
 }
 
-export interface IEmailProvider {
-  sendEmail(mailOptions: EmailOptions): Promise<void>;
-  verify(): Promise<boolean>;
-}
-
 export interface EmailOptions {
   to: string;
   subject: string;

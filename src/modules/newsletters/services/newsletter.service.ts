@@ -5,6 +5,7 @@ import { ConfigService } from '@nestjs/config';
 import { NewsletterCampaign, CampaignLanguage, CampaignStatus } from '../entities/newsletter-campaign.entity';
 import { Subscriber, PreferredLanguage } from '../../subscribers/entities/subscriber.entity';
 import { User } from '../../users/entities/user.entity';
+import { ContactInfo } from '../../informative/entities/contact-info.entity';
 import { NewsletterTemplateService } from './newsletter-template.service';
 import { SendCampaignDto } from '../dto/send-campaign.dto';
 
@@ -19,6 +20,8 @@ export class NewsletterService {
     private subscriberRepository: Repository<Subscriber>,
     @InjectRepository(User)
     private userRepository: Repository<User>,
+    @InjectRepository(ContactInfo)
+    private contactInfoRepository: Repository<ContactInfo>,
     private templateService: NewsletterTemplateService,
     private configService: ConfigService,
   ) {
@@ -116,6 +119,10 @@ export class NewsletterService {
       errors: []
     });
 
+    // Fetch contact info once for the whole campaign
+    const contacts = await this.contactInfoRepository.find();
+    const contactInfo = contacts[0] ?? new ContactInfo();
+
     // Send emails to all subscribers
     const errors: string[] = [];
     let successCount = 0;
@@ -123,7 +130,7 @@ export class NewsletterService {
 
     for (const subscriber of subscribers) {
       try {
-        await this.sendEmailToSubscriber(subscriber, dto.subject, dto.content, dto.language);
+        await this.sendEmailToSubscriber(subscriber, dto.subject, dto.content, dto.language, contactInfo);
         successCount++;
       } catch (error: any) {
         failCount++;
@@ -159,7 +166,8 @@ export class NewsletterService {
     subscriber: Subscriber,
     subject: string,
     content: string,
-    language: CampaignLanguage
+    language: CampaignLanguage,
+    contactInfo: ContactInfo,
   ): Promise<void> {
     if (!this.transporter) {
       await this.initializeTransporter();
@@ -171,7 +179,8 @@ export class NewsletterService {
       recipientName,
       subject,
       content,
-      language
+      language,
+      contactInfo,
     );
 
     const mailOptions = {

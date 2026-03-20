@@ -1,16 +1,10 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
 import { EntrepreneurNotificationService } from './services/entrepreneur-notification.service';
-import { EntrepreneurTemplateService } from './services/entrepreneur-template.service';
-import { EntrepreneurEmailService } from './services/entrepreneur-email.service';
+import { SharedModule } from '../shared/shared.module';
 
 @Module({
-  imports: [ConfigModule],
-  providers: [
-    EntrepreneurNotificationService, 
-    EntrepreneurTemplateService, 
-    EntrepreneurEmailService
-  ],
+  imports: [SharedModule],
+  providers: [EntrepreneurNotificationService],
   exports: [EntrepreneurNotificationService],
 })
 export class EntrepreneurNotificationsModule {}

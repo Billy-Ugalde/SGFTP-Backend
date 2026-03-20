@@ -4,6 +4,7 @@ import { APP_INTERCEPTOR } from '@nestjs/core';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { ScheduleModule } from '@nestjs/schedule';
 import { AuditContextInterceptor } from './common/interceptors/audit-context.interceptor';
 import { AuditContextSubscriber } from './common/subscribers/audit-context.subscriber';
 import { FairModule } from './modules/fairs/fairs.module';
@@ -28,6 +29,7 @@ import { AuditModule } from './modules/audit/audit.module';
 
 @Module({
   imports: [
+    ScheduleModule.forRoot(),
     ConfigModule.forRoot({
       isGlobal: true,
     }),
