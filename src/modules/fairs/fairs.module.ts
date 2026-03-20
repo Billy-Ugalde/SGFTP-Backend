@@ -14,9 +14,10 @@ import { AuthModule } from "../auth/auth.module";
 import { NotificationsModule } from "../fairs-notifications/notifications.module";
 import { ReportFairService } from "./services/reportFair.service";
 import { FairReportController } from "./controllers/reports.controller";
+import { FairSchedulerService } from "./services/fair-scheduler.service";
 @Module({
     imports: [TypeOrmModule.forFeature([Fair, Stand, Fair_enrollment,Entrepreneur]), AuthModule, NotificationsModule],
     controllers: [FairController, StandController, EnrollmentController, FairReportController],
-    providers: [FairService, StandService,EnrrolmentService, ReportFairService]
+    providers: [FairService, StandService,EnrrolmentService, ReportFairService, FairSchedulerService]
 })
 export class FairModule { }
