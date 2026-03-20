@@ -1,5 +1,4 @@
 import { Module } from '@nestjs/common';
-import { ScheduleModule } from '@nestjs/schedule';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -49,8 +48,22 @@ import { AuditModule } from './modules/audit/audit.module';
         subscribers: [AuditContextSubscriber],
       }),
       inject: [ConfigService],
-    }),FairModule, EntrepreneurModule, InformativeModule, SubscribersModule,
-    NewsModule, UserModule, AuthModule, SharedModule, NotificationsModule, ProjectModule, NewslettersModule, VolunteerModule, DonationModule, AuditModule],
+    }),
+    FairModule,
+    EntrepreneurModule,
+    InformativeModule,
+    SubscribersModule,
+    NewsModule,
+    UserModule,
+    AuthModule,
+    SharedModule,
+    NotificationsModule,
+    ProjectModule,
+    NewslettersModule,
+    VolunteerModule,
+    DonationModule,
+    AuditModule,
+  ],
   controllers: [AppController],
   providers: [
     AppService,
@@ -58,11 +71,8 @@ import { AuditModule } from './modules/audit/audit.module';
     { provide: APP_INTERCEPTOR, useClass: AuditContextInterceptor },
   ],
 })
-
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
-    consumer
-      .apply(CorsMiddleware, SecurityHeadersMiddleware)
-      .forRoutes('*');
+    consumer.apply(CorsMiddleware, SecurityHeadersMiddleware).forRoutes('*');
   }
 }
