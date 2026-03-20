@@ -85,78 +85,43 @@ export class ContentBlockController {
   @UseGuards(RoleGuard)
   @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN, UserRole.CONTENT_ADMIN)
   @Patch('hero/background')
-  @UseInterceptors(FileInterceptor('image'))
+  @UseInterceptors(FileInterceptor('image', { limits: { fileSize: 50 * 1024 * 1024 } }))
   async updateHeroBackground(
     @UploadedFile() file: Express.Multer.File
   ) {
     if (!file) {
       throw new BadRequestException('No se proporcionó ninguna imagen');
     }
-
-    if (!file.mimetype.startsWith('image/')) {
-      throw new BadRequestException('El archivo debe ser una imagen');
-    }
-
-    /* Tamaño máximo de 5MB 
-    const maxSize = 5 * 1024 * 1024;
-    if (file.size > maxSize) {
-      throw new BadRequestException('La imagen no debe superar 5MB');
-    }*/
-
     return this.contentService.updateHeroBackground(file);
   }
 
 @UseGuards(RoleGuard)
 @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN, UserRole.CONTENT_ADMIN)
 @Patch('board-member/:role/photo')
-@UseInterceptors(FileInterceptor('image'))
+@UseInterceptors(FileInterceptor('image', { limits: { fileSize: 50 * 1024 * 1024 } }))
 async updateBoardMemberPhoto(
   @Param('role') role: string,
   @UploadedFile() file: Express.Multer.File
 ) {
-  console.log('🎯 CONTROLLER: Método llamado');
-  console.log('🎯 CONTROLLER: Role:', role);
-  console.log('🎯 CONTROLLER: File:', file);
-  
   if (!file) {
-    console.log('❌ CONTROLLER: No hay archivo');
     throw new BadRequestException('No se proporcionó ninguna imagen');
   }
-
-  if (!file.mimetype.startsWith('image/')) {
-    throw new BadRequestException('El archivo debe ser una imagen');
-  }
-
-  const maxSize = 30 * 1024 * 1024;
-  if (file.size > maxSize) {
-    throw new BadRequestException('La imagen no debe superar 30MB');
-  }
-
-  console.log('✅ CONTROLLER: Llamando al service...');
   return this.contentService.updateBoardMemberPhoto(role, file);
 }
 
   @UseGuards(RoleGuard)
   @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN, UserRole.CONTENT_ADMIN)
   @Post('upload/:page/:section/:block_key')
-  @UseInterceptors(FileInterceptor('image'))
+  @UseInterceptors(FileInterceptor('image', { limits: { fileSize: 50 * 1024 * 1024 } }))
   async uploadImage(
     @Param('page') page: string,
     @Param('section') section: string,
     @Param('block_key') block_key: string,
     @UploadedFile() file: Express.Multer.File
   ) {
-    console.log('📤 UPLOAD: Subiendo imagen');
-    console.log('Page:', page, 'Section:', section, 'Block:', block_key);
-    
     if (!file) {
       throw new BadRequestException('No se proporcionó ninguna imagen');
     }
-
-    if (!file.mimetype.startsWith('image/')) {
-      throw new BadRequestException('El archivo debe ser una imagen');
-    }
-
     return this.contentService.uploadImageToBlock(page, section, block_key, file);
   }
 }
