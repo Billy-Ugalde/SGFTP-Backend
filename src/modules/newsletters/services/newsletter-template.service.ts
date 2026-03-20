@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { CampaignLanguage } from '../entities/newsletter-campaign.entity';
+import { ContactInfo } from '../../informative/entities/contact-info.entity';
 
 @Injectable()
 export class NewsletterTemplateService {
@@ -8,9 +9,22 @@ export class NewsletterTemplateService {
     recipientName: string,
     subject: string,
     content: string,
-    language: CampaignLanguage
+    language: CampaignLanguage,
+    contactInfo: ContactInfo,
   ): string {
     const isSpanish = language === CampaignLanguage.SPANISH;
+
+    const email   = contactInfo?.email   || 'info@tamarindoparkfoundation.com';
+    const phone   = contactInfo?.phone   || '+506 6461 2741';
+    const fbUrl   = contactInfo?.facebook_url;
+    const igUrl   = contactInfo?.instagram_url;
+    const waUrl   = contactInfo?.whatsapp_url;
+
+    const socialParts: string[] = [];
+    if (fbUrl) socialParts.push(`<a href="${fbUrl}">Facebook</a>`);
+    if (igUrl) socialParts.push(`<a href="${igUrl}">Instagram</a>`);
+    if (waUrl) socialParts.push(`<a href="${waUrl}">WhatsApp</a>`);
+    const socialLinksHtml = socialParts.join(' &bull; ');
 
     return `
     <!DOCTYPE html>
@@ -151,7 +165,7 @@ export class NewsletterTemplateService {
             <div class="header">
                 <div class="logo">
                     <h1>Fundación Tamarindo Park</h1>
-                    <p>${isSpanish ? 'Transformando comunidades' : 'Transforming communities'}</p>
+                    <p>${isSpanish ? 'Tu Voz, Nuestro Proyecto' : 'Your Voice, Our Project'}</p>
                 </div>
             </div>
 
@@ -171,29 +185,11 @@ export class NewsletterTemplateService {
 
             <div class="footer">
                 <div class="footer-content">
-                    <p class="footer-title">Fundación Tamarindo Park</p>
-                    <p>${isSpanish ? 'Desarrollo Sostenible Integral' : 'Comprehensive Sustainable Development'}</p>
-
-                    <div class="social-links">
-                        <a href="#">${isSpanish ? 'Sitio Web' : 'Website'}</a> •
-                        <a href="#">Facebook</a> •
-                        <a href="#">Instagram</a>
-                    </div>
-
-                    <div class="unsubscribe">
-                        <p>
-                            ${isSpanish
-                                ? 'Si no deseas recibir más correos, puedes '
-                                : 'If you no longer wish to receive emails, you can '}
-                            <a href="#">${isSpanish ? 'darte de baja aquí' : 'unsubscribe here'}</a>
-                        </p>
-                    </div>
-
-                    <p style="margin-top: 15px; font-size: 12px; color: #95a5a6;">
-                        ${isSpanish
-                            ? 'Este es un correo informativo de la Fundación Tamarindo Park.'
-                            : 'This is an informational email from Fundación Tamarindo Park.'}
-                    </p>
+                    <p class="footer-title">Fundaci&#243;n Tamarindo Park</p>
+                    <a href="mailto:${email}">${email}</a>
+                    &nbsp;&middot;&nbsp;
+                    <span>${phone}</span>
+                    ${socialLinksHtml ? `<div class="social-links">${socialLinksHtml}</div>` : ''}
                 </div>
             </div>
         </div>

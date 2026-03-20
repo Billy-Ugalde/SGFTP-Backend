@@ -3,13 +3,14 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { NotificationService } from './notification.service';
 import { Fair } from '../../fairs/entities/fair.entity';
+import { Fair_enrollment, EnrollmentStatus } from '../../fairs/entities/Fair_enrollment.entity';
 import { User } from '../../users/entities/user.entity';
-import { 
-  ChangeInfo, 
-  BatchEmailResult, 
-  ServiceResponse, 
-  UserEmailData, 
-  BatchConfig 
+import {
+  ChangeInfo,
+  BatchEmailResult,
+  ServiceResponse,
+  UserEmailData,
+  BatchConfig
 } from '../interfaces/notification.interface';
 import { IFairNotificationService } from '../interfaces/fair-notification-service.interface';
 
@@ -19,6 +20,8 @@ export class FairNotificationService implements IFairNotificationService {
     private notificationService: NotificationService,
     @InjectRepository(User)
     private userRepository: Repository<User>,
+    @InjectRepository(Fair_enrollment)
+    private enrollmentRepository: Repository<Fair_enrollment>,
   ) {}
 
   async sendFairChangeEmailsAsync(oldFair: Fair, newFair: Fair): Promise<void> {
@@ -79,17 +82,50 @@ export class FairNotificationService implements IFairNotificationService {
         };
       }
 
+      // Detect cancellation: active → inactive
+      const isCancellation = Boolean(oldFair.status) === true && Boolean(newFair.status) === false;
+      let pendingEmails = new Set<string>();
+
+      if (isCancellation) {
+        const pendingContacts = await this.getPendingEnrollmentContacts(newFair);
+
+        if (pendingContacts.length > 0) {
+          const fairDate = newFair.date
+            ? new Date(newFair.date).toLocaleString('es-ES', {
+                weekday: 'long', year: 'numeric', month: 'long',
+                day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true,
+              })
+            : 'Por definir';
+          const fairTypeDisplay = newFair.typeFair === 'interna' ? 'Interna' : 'Externa';
+
+          console.log(`📧 CANCELACIÓN - Inscripciones pendientes: ${pendingContacts.length}`);
+
+          for (const contact of pendingContacts) {
+            pendingEmails.add(contact.email);
+            await this.notificationService.sendEnrollmentCancelledPendingEmail(
+              contact.email,
+              contact.name,
+              newFair.name,
+              fairDate,
+              fairTypeDisplay,
+            ).catch(err => console.error(`Error enviando cancelación pendiente a ${contact.email}:`, err));
+          }
+        }
+      }
+
       const changeType = hasStatusChange ? 'CAMBIO DE ESTADO' : 'CAMBIOS DE CONTENIDO';
-      console.log(`📧 ${changeType} - Feria: ${newFair.name} | Destinatarios: ${entrepreneurs.length}`);
+      const generalRecipients = entrepreneurs.filter(u => !pendingEmails.has(u.person?.email));
+      console.log(`📧 ${changeType} - Feria: ${newFair.name} | Destinatarios generales: ${generalRecipients.length}`);
 
       const result = await this.sendEmailsInBatches(
-        entrepreneurs,
+        generalRecipients,
         oldFair,
         newFair,
         hasStatusChange,
         contentChanges,
       );
 
+      result.totalSent += pendingEmails.size;
       console.log(`✅ Notificaciones completadas - Enviados: ${result.totalSent} | Fallidos: ${result.totalFailed}`);
 
       return {
@@ -105,6 +141,22 @@ export class FairNotificationService implements IFairNotificationService {
         data: { totalSent: 0, totalFailed: 0, errors: [error.message] }
       };
     }
+  }
+
+  private async getPendingEnrollmentContacts(
+    fair: Fair,
+  ): Promise<{ email: string; name: string }[]> {
+    const enrollments = await this.enrollmentRepository.find({
+      where: { fair: { id_fair: fair.id_fair }, status: EnrollmentStatus.PENDING },
+      relations: ['entrepreneur', 'entrepreneur.person'],
+    });
+
+    return enrollments
+      .filter(e => e.entrepreneur?.person?.email && e.entrepreneur?.person?.first_name)
+      .map(e => ({
+        email: e.entrepreneur.person.email,
+        name: `${e.entrepreneur.person.first_name} ${e.entrepreneur.person.first_lastname || ''}`.trim(),
+      }));
   }
 
   async sendNewFairEmails(newFair: Fair): Promise<ServiceResponse<BatchEmailResult>> {
@@ -393,7 +445,7 @@ export class FairNotificationService implements IFairNotificationService {
 
   private getStatusMessage(statusType: string): string {
     if (statusType === 'Feria Cancelada') {
-      return 'Lamentamos informarte que la feria ha sido cancelada. Te contactaremos con más información pronto.';
+      return 'Lamentamos informarte que la Feria de materiales ha sido cancelada. Agradecemos tu interés y comprensión ante esta situación. Esperamos poder contar con tu participación en futuras actividades.';
     } else if (statusType === 'Feria Reactivada') {
       return 'La feria ha sido reactivada. Te invitamos a participar nuevamente.';
     }

@@ -7,6 +7,7 @@ import { NewsletterCampaign } from './entities/newsletter-campaign.entity';
 import { Subscriber } from '../subscribers/entities/subscriber.entity';
 import { User } from '../users/entities/user.entity';
 import { Person } from '../../entities/person.entity';
+import { ContactInfo } from '../informative/entities/contact-info.entity';
 import { AuthModule } from '../auth/auth.module';
 
 @Module({
@@ -15,7 +16,8 @@ import { AuthModule } from '../auth/auth.module';
       NewsletterCampaign,
       Subscriber,
       User,
-      Person
+      Person,
+      ContactInfo,
     ]),
     AuthModule
   ],
