@@ -7,7 +7,7 @@ import { IReportProjectService, ReportData } from '../interfaces/reportProject.i
 import { Activity } from '../entities/activity.entity';
 import { ActivityStatus } from '../enums/activity.enum';
 import * as PDFDocument from 'pdfkit';
-import * as XLSX from 'xlsx';
+import * as ExcelJS from 'exceljs';
 
 type PDFDoc = PDFDocument;
 @Injectable()
@@ -49,7 +49,7 @@ export class ReportProjectService implements IReportProjectService {
         try {
             const reportData: ReportData = await this.getByProjectReport(id_project);
 
-            const workbook = XLSX.utils.book_new();
+            const workbook = new ExcelJS.Workbook();
 
             // HOJA 1: RESUMEN DEL PROYECTO
             const summaryData: (string | number | boolean)[][] = [];
@@ -86,12 +86,10 @@ export class ReportProjectService implements IReportProjectService {
             summaryData.push(['Suspendidas', reportData.statistics.suspended_activities || 0]);
             summaryData.push(['Finalizadas', reportData.statistics.finished_activities || 0]);
 
-            const summarySheet = XLSX.utils.aoa_to_sheet(summaryData);
-            summarySheet['!cols'] = [
-                { wch: 30 },
-                { wch: 50 }
-            ];
-            XLSX.utils.book_append_sheet(workbook, summarySheet, 'Resumen');
+            const summarySheet = workbook.addWorksheet('Resumen');
+            summarySheet.addRows(summaryData);
+            summarySheet.getColumn(1).width = 30;
+            summarySheet.getColumn(2).width = 50;
 
             // HOJA 2: DETALLE DE ACTIVIDADES
             const activitiesData: (string | number | boolean)[][] = [];
@@ -134,23 +132,21 @@ export class ReportProjectService implements IReportProjectService {
                 ]);
             });
 
-            const activitiesSheet = XLSX.utils.aoa_to_sheet(activitiesData);
-            activitiesSheet['!cols'] = [
-                { wch: 5 },
-                { wch: 30 },
-                { wch: 50 },
-                { wch: 40 },
-                { wch: 30 },
-                { wch: 20 },
-                { wch: 20 },
-                { wch: 20 },
-                { wch: 15 },
-                { wch: 15 },
-                { wch: 20 },
-                { wch: 25 },
-                { wch: 15 }
-            ];
-            XLSX.utils.book_append_sheet(workbook, activitiesSheet, 'Actividades');
+            const activitiesSheet = workbook.addWorksheet('Actividades');
+            activitiesSheet.addRows(activitiesData);
+            activitiesSheet.getColumn(1).width = 5;
+            activitiesSheet.getColumn(2).width = 30;
+            activitiesSheet.getColumn(3).width = 50;
+            activitiesSheet.getColumn(4).width = 40;
+            activitiesSheet.getColumn(5).width = 30;
+            activitiesSheet.getColumn(6).width = 20;
+            activitiesSheet.getColumn(7).width = 20;
+            activitiesSheet.getColumn(8).width = 20;
+            activitiesSheet.getColumn(9).width = 15;
+            activitiesSheet.getColumn(10).width = 15;
+            activitiesSheet.getColumn(11).width = 20;
+            activitiesSheet.getColumn(12).width = 25;
+            activitiesSheet.getColumn(13).width = 15;
 
             // HOJA 3: ESTADÍSTICAS PARA GRÁFICOS
             const statsData: (string | number | boolean)[][] = [];
@@ -199,12 +195,10 @@ export class ReportProjectService implements IReportProjectService {
             statsData.push(['Residuos Recolectados (kg)', reportData.project.METRIC_TOTAL_WASTE_COLLECTED || 0]);
             statsData.push(['Árboles Plantados', reportData.project.METRIC_TOTAL_TREES_PLANTED || 0]);
 
-            const statsSheet = XLSX.utils.aoa_to_sheet(statsData);
-            statsSheet['!cols'] = [
-                { wch: 35 },
-                { wch: 15 }
-            ];
-            XLSX.utils.book_append_sheet(workbook, statsSheet, 'Estadísticas');
+            const statsSheet = workbook.addWorksheet('Estadísticas');
+            statsSheet.addRows(statsData);
+            statsSheet.getColumn(1).width = 35;
+            statsSheet.getColumn(2).width = 15;
 
             // HOJA 4: CRONOGRAMA
             const scheduleData: (string | number | boolean)[][] = [];
@@ -230,21 +224,15 @@ export class ReportProjectService implements IReportProjectService {
                 }
             });
 
-            const scheduleSheet = XLSX.utils.aoa_to_sheet(scheduleData);
-            scheduleSheet['!cols'] = [
-                { wch: 35 },
-                { wch: 20 },
-                { wch: 20 },
-                { wch: 20 }
-            ];
-            XLSX.utils.book_append_sheet(workbook, scheduleSheet, 'Cronograma');
+            const scheduleSheet = workbook.addWorksheet('Cronograma');
+            scheduleSheet.addRows(scheduleData);
+            scheduleSheet.getColumn(1).width = 35;
+            scheduleSheet.getColumn(2).width = 20;
+            scheduleSheet.getColumn(3).width = 20;
+            scheduleSheet.getColumn(4).width = 20;
 
-            const excelBuffer = XLSX.write(workbook, {
-                bookType: 'xlsx',
-                type: 'buffer'
-            });
-
-            return Buffer.from(excelBuffer);
+            const raw = await workbook.xlsx.writeBuffer();
+            return Buffer.isBuffer(raw) ? raw : Buffer.from(raw as ArrayBuffer);
 
         } catch (error) {
             console.error('Error generando reporte Excel:', error);
@@ -282,7 +270,7 @@ export class ReportProjectService implements IReportProjectService {
                 'activity.Location',
                 'activity.Aim',
                 'activity.Metric_activity',
-                'activity.Metric_value',
+                'activity.Total_metric_value',
                 'activity.Registration_date',
 
                 // Fechas de DateActivity

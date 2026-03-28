@@ -12,7 +12,7 @@ import {
 } from '../interfaces/reportActivity.interface';
 
 import * as PDFDocument from 'pdfkit';
-import * as XLSX from 'xlsx';
+import * as ExcelJS from 'exceljs';
 import { Activity_enrollment } from 'src/modules/volunteers/entities/enrollmentActivity.entity';
 
 type PDFDoc = PDFDocument;
@@ -62,7 +62,7 @@ export class ReportActivityService implements IReportActivityService {
         try {
             const reportData: ActivityReportData = await this.getByActivityReport(id_activity);
 
-            const workbook = XLSX.utils.book_new();
+            const workbook = new ExcelJS.Workbook();
 
             // HOJA 1: RESUMEN DE LA ACTIVIDAD
             this.createSummarySheet(workbook, reportData);
@@ -76,12 +76,8 @@ export class ReportActivityService implements IReportActivityService {
             // HOJA 4: ASISTENCIA (Voluntarios que asistieron)
             this.createAttendanceSheet(workbook, reportData);
 
-            const excelBuffer = XLSX.write(workbook, {
-                bookType: 'xlsx',
-                type: 'buffer'
-            });
-
-            return Buffer.from(excelBuffer);
+            const raw = await workbook.xlsx.writeBuffer();
+            return Buffer.isBuffer(raw) ? raw : Buffer.from(raw as ArrayBuffer);
 
         } catch (error) {
             this.logger.error(`Error generando Excel para actividad ${id_activity}: ${error.message}`, error.stack);
@@ -428,8 +424,7 @@ export class ReportActivityService implements IReportActivityService {
 
     // ==================== MÉTODOS PRIVADOS PARA EXCEL ====================
 
-    private createSummarySheet(workbook: XLSX.WorkBook, data: ActivityReportData): void {
-        // TODO: Implementar hoja de resumen
+    private createSummarySheet(workbook: ExcelJS.Workbook, data: ActivityReportData): void {
         const summaryData: (string | number | boolean)[][] = [];
 
         summaryData.push(['REPORTE DE ACTIVIDAD']);
@@ -449,15 +444,14 @@ export class ReportActivityService implements IReportActivityService {
         summaryData.push(['Abierta a Inscripción', data.activity.OpenForRegistration ? 'Sí' : 'No']);
         summaryData.push(['Fecha Inicio', data.activity.Start_date || 'N/A']);
         summaryData.push(['Fecha Fin', data.activity.End_date || 'N/A']);
-        // TODO: Agregar más campos
 
-        const summarySheet = XLSX.utils.aoa_to_sheet(summaryData);
-        summarySheet['!cols'] = [{ wch: 30 }, { wch: 50 }];
-        XLSX.utils.book_append_sheet(workbook, summarySheet, 'Resumen');
+        const summarySheet = workbook.addWorksheet('Resumen');
+        summarySheet.addRows(summaryData);
+        summarySheet.getColumn(1).width = 30;
+        summarySheet.getColumn(2).width = 50;
     }
 
-    private createVolunteersSheet(workbook: XLSX.WorkBook, data: ActivityReportData): void {
-        // TODO: Implementar hoja de voluntarios
+    private createVolunteersSheet(workbook: ExcelJS.Workbook, data: ActivityReportData): void {
         const volunteersData: (string | number | boolean)[][] = [];
 
         volunteersData.push(['LISTA DE VOLUNTARIOS INSCRITOS']);
@@ -486,21 +480,18 @@ export class ReportActivityService implements IReportActivityService {
             ]);
         });
 
-        const volunteersSheet = XLSX.utils.aoa_to_sheet(volunteersData);
-        volunteersSheet['!cols'] = [
-            { wch: 5 },
-            { wch: 30 },
-            { wch: 30 },
-            { wch: 15 },
-            { wch: 20 },
-            { wch: 15 },
-            { wch: 20 }
-        ];
-        XLSX.utils.book_append_sheet(workbook, volunteersSheet, 'Voluntarios');
+        const volunteersSheet = workbook.addWorksheet('Voluntarios');
+        volunteersSheet.addRows(volunteersData);
+        volunteersSheet.getColumn(1).width = 5;
+        volunteersSheet.getColumn(2).width = 30;
+        volunteersSheet.getColumn(3).width = 30;
+        volunteersSheet.getColumn(4).width = 15;
+        volunteersSheet.getColumn(5).width = 20;
+        volunteersSheet.getColumn(6).width = 15;
+        volunteersSheet.getColumn(7).width = 20;
     }
 
-    private createStatisticsSheet(workbook: XLSX.WorkBook, data: ActivityReportData): void {
-        // TODO: Implementar hoja de estadísticas
+    private createStatisticsSheet(workbook: ExcelJS.Workbook, data: ActivityReportData): void {
         const statsData: (string | number | boolean)[][] = [];
 
         statsData.push(['ESTADÍSTICAS DE LA ACTIVIDAD']);
@@ -520,13 +511,13 @@ export class ReportActivityService implements IReportActivityService {
         statsData.push(['No Asistieron', data.enrollments.total_not_attended]);
         statsData.push(['Cancelaron', data.enrollments.total_cancelled]);
 
-        const statsSheet = XLSX.utils.aoa_to_sheet(statsData);
-        statsSheet['!cols'] = [{ wch: 35 }, { wch: 15 }];
-        XLSX.utils.book_append_sheet(workbook, statsSheet, 'Estadísticas');
+        const statsSheet = workbook.addWorksheet('Estadísticas');
+        statsSheet.addRows(statsData);
+        statsSheet.getColumn(1).width = 35;
+        statsSheet.getColumn(2).width = 15;
     }
 
-    private createAttendanceSheet(workbook: XLSX.WorkBook, data: ActivityReportData): void {
-        // TODO: Implementar hoja de asistencia
+    private createAttendanceSheet(workbook: ExcelJS.Workbook, data: ActivityReportData): void {
         const attendanceData: (string | number | boolean)[][] = [];
 
         attendanceData.push(['REGISTRO DE ASISTENCIA']);
@@ -545,14 +536,12 @@ export class ReportActivityService implements IReportActivityService {
             ]);
         });
 
-        const attendanceSheet = XLSX.utils.aoa_to_sheet(attendanceData);
-        attendanceSheet['!cols'] = [
-            { wch: 5 },
-            { wch: 30 },
-            { wch: 30 },
-            { wch: 20 }
-        ];
-        XLSX.utils.book_append_sheet(workbook, attendanceSheet, 'Asistencia');
+        const attendanceSheet = workbook.addWorksheet('Asistencia');
+        attendanceSheet.addRows(attendanceData);
+        attendanceSheet.getColumn(1).width = 5;
+        attendanceSheet.getColumn(2).width = 30;
+        attendanceSheet.getColumn(3).width = 30;
+        attendanceSheet.getColumn(4).width = 20;
     }
 
     // ==================== MÉTODOS DE TRADUCCIÓN ====================
