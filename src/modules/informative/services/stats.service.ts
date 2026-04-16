@@ -8,7 +8,6 @@ import { TypeActivity, TypeFavorite, MetricType } from '../../projects/enums/act
 
 export interface PublicStats {
   waste_kg: number;
-  trees_planted: number;
   beneficiaries: number;
   workshops: number;
   school_population: number;
@@ -27,7 +26,6 @@ export class StatsService {
     const projectMetrics = await this.projectRepository
       .createQueryBuilder('project')
       .select('COALESCE(SUM(project.METRIC_TOTAL_WASTE_COLLECTED), 0)', 'waste_kg')
-      .addSelect('COALESCE(SUM(project.METRIC_TOTAL_TREES_PLANTED), 0)', 'trees_planted')
       .addSelect('COALESCE(SUM(project.METRIC_TOTAL_BENEFICIATED), 0)', 'beneficiaries')
       .where('project.Active = :active', { active: true })
       .andWhere('project.Status IN (:...statuses)', {
@@ -52,7 +50,6 @@ export class StatsService {
 
     return {
       waste_kg: Number(projectMetrics?.waste_kg) || 0,
-      trees_planted: Number(projectMetrics?.trees_planted) || 0,
       beneficiaries: Number(projectMetrics?.beneficiaries) || 0,
       workshops,
       school_population: Number(schoolMetric?.school_population) || 0,
