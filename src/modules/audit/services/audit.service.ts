@@ -88,8 +88,13 @@ export class AuditService implements IAuditService {
         const qb = this.auditRepo.createQueryBuilder('audit')
             .leftJoinAndSelect('audit.user', 'user')
             .leftJoinAndSelect('user.person', 'person')
+            .leftJoin('user.roles', 'role')
             .where(where)
             .orderBy('audit.timestamp', 'DESC');
+
+        if (query.user_role) {
+            qb.andWhere('role.name = :user_role', { user_role: query.user_role });
+        }
 
         if (query.search) {
             qb.andWhere('audit.user_email LIKE :q', { q: `%${query.search}%` });

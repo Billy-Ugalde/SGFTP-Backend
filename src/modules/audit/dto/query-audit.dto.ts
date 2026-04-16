@@ -26,6 +26,10 @@ export class QueryAuditDto {
 
     @IsOptional()
     @IsString()
+    user_role?: string;
+
+    @IsOptional()
+    @IsString()
     search?: string;
 
     @IsOptional()
