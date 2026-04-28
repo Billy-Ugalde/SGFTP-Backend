@@ -111,7 +111,8 @@ export class GoogleDriveService {
                 folderId,
             };
         } catch (error) {
-            throw new InternalServerErrorException(`Error al subir archivo a Google Drive: ${error.message}`);
+            const message = error instanceof Error ? error.message : 'Error desconocido';
+            throw new InternalServerErrorException(`Error al subir archivo a Google Drive: ${message}`);
         }
     }
 
@@ -156,6 +157,16 @@ export class GoogleDriveService {
         }
 
         return folder.data.id;
+    }
+
+    async getFileStream(fileId: string): Promise<{ data: Readable; contentType: string }> {
+        await this.ensureValidToken();
+        const response = await (this.driveClient.files.get as any)(
+            { fileId, alt: 'media' },
+            { responseType: 'stream' }
+        );
+        const contentType: string = response.headers?.['content-type'] ?? 'image/jpeg';
+        return { data: response.data as Readable, contentType };
     }
 
     isConfigured(): boolean {
