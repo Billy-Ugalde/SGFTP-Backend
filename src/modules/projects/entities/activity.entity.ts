@@ -21,10 +21,10 @@ export class Activity {
     @Column({ type: 'varchar' })
     Description: string;
 
-    @Column({ type: 'varchar' })
+    @Column({ type: 'varchar', length: 450 })
     Conditions: string;
 
-    @Column({ type: 'varchar' })
+    @Column({ type: 'varchar', length: 450 })
     Observations: string;
 
     @Column({ default: false })
@@ -62,8 +62,8 @@ export class Activity {
     @Column({ type: 'varchar' })
     Location: string;
 
-    @Column()
-    Aim: string      //objetivo de la actividad a lograr
+    @Column({ type: 'varchar', length: 350 })
+    Aim: string
 
     @Column()
     Metric_activity: MetricType;
