@@ -121,7 +121,8 @@ export class ReportActivityService implements IReportActivityService {
         const total_not_attended = enrollments.filter(e => e.status === 'not_attended').length;
         const total_cancelled = enrollments.filter(e => e.status === 'cancelled').length;
 
-        const attendance_rate = total_enrolled > 0 ? (total_attended / total_enrolled) * 100 : 0;
+        const resolved = total_attended + total_not_attended;
+        const attendance_rate = resolved > 0 ? (total_attended / resolved) * 100 : 0;
         const cancellation_rate = enrollments.length > 0 ? (total_cancelled / enrollments.length) * 100 : 0;
 
         return {
@@ -163,7 +164,7 @@ export class ReportActivityService implements IReportActivityService {
                 total_volunteers: enrollments.length,
                 attendance_rate: parseFloat(attendance_rate.toFixed(2)),
                 cancellation_rate: parseFloat(cancellation_rate.toFixed(2)),
-                pending_confirmations: total_enrolled - total_attended - total_not_attended
+                pending_confirmations: total_enrolled
             }
         };
     }
@@ -204,7 +205,7 @@ export class ReportActivityService implements IReportActivityService {
         this.addField(doc, 'Fecha Inicio:', activity.Start_date || 'N/A');
         this.addField(doc, 'Fecha Fin:', activity.End_date || 'N/A');
         this.addField(doc, 'Fecha de Registro:', activity.Registration_date);
-        this.addField(doc, 'Métrica:', activity.Metric_activity);
+        this.addField(doc, 'Métrica:', this.translateMetricType(activity.Metric_activity));
         this.addField(doc, 'Valor de Métrica:', activity.Metric_value.toString());
 
         doc.moveDown(1.5);
@@ -218,8 +219,8 @@ export class ReportActivityService implements IReportActivityService {
 
         doc.fontSize(10).font('Helvetica').fillColor('#000000');
         this.addField(doc, 'Total Voluntarios:', statistics.total_volunteers.toString());
-        this.addField(doc, 'Asistencia:', statistics.attendance_rate.toString());
-        this.addField(doc, 'Cancelación:', statistics.cancellation_rate.toString());
+        this.addField(doc, 'Asistencia:', `${statistics.attendance_rate}%`);
+        this.addField(doc, 'Cancelación:', `${statistics.cancellation_rate}%`);
         this.addField(doc, 'Confirmaciones Pendientes:', statistics.pending_confirmations.toString());
 
         doc.moveDown(1);
@@ -442,6 +443,7 @@ export class ReportActivityService implements IReportActivityService {
         summaryData.push(['Estado', this.translateActivityStatus(data.activity.Status_activity)]);
         summaryData.push(['Enfoque', this.translateApproach(data.activity.Approach)]);
         summaryData.push(['Abierta a Inscripción', data.activity.OpenForRegistration ? 'Sí' : 'No']);
+        summaryData.push(['Métrica', this.translateMetricType(data.activity.Metric_activity)]);
         summaryData.push(['Fecha Inicio', data.activity.Start_date || 'N/A']);
         summaryData.push(['Fecha Fin', data.activity.End_date || 'N/A']);
 
@@ -499,8 +501,8 @@ export class ReportActivityService implements IReportActivityService {
 
         statsData.push(['Métrica', 'Valor']);
         statsData.push(['Total Voluntarios', data.statistics.total_volunteers]);
-        statsData.push(['Asistencia', data.statistics.attendance_rate]);
-        statsData.push(['Cancelación', data.statistics.cancellation_rate]);
+        statsData.push(['Asistencia', `${data.statistics.attendance_rate}%`]);
+        statsData.push(['Cancelación', `${data.statistics.cancellation_rate}%`]);
         statsData.push(['Confirmaciones Pendientes', data.statistics.pending_confirmations]);
         statsData.push([]);
 
@@ -577,6 +579,15 @@ export class ReportActivityService implements IReportActivityService {
             'environmental': 'Ambiental'
         };
         return translations[approach] || approach;
+    }
+
+    private translateMetricType(metric: string): string {
+        const translations = {
+            'attendance': 'Asistencia',
+            'trees_planted': 'Árboles Sembrados',
+            'waste_collected': 'Residuos Recolectados (kg)',
+        };
+        return translations[metric] || metric;
     }
 
     private translateEnrollmentStatus(status: string): string {
