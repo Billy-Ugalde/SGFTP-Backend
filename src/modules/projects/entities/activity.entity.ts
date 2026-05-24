@@ -18,6 +18,9 @@ export class Activity {
     @Column({ type: 'varchar' })
     Name: string
 
+    @Column({ type: 'varchar', nullable: true })
+    Slug: string;
+
     @Column({ type: 'varchar' })
     Description: string;
 

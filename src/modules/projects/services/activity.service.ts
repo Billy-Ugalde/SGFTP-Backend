@@ -1,8 +1,9 @@
-import { ConflictException, Injectable, InternalServerErrorException, NotFoundException } from "@nestjs/common";
+import { ConflictException, Injectable, InternalServerErrorException, NotFoundException, OnModuleInit } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Activity } from "../entities/activity.entity";
 import { DateActivity } from "../entities/date.entity";
-import { DataSource, QueryFailedError, Repository } from "typeorm";
+import { DataSource, IsNull, QueryFailedError, Repository } from "typeorm";
+import { generateSlug, generateUniqueSlug } from "../utils/slug.helper";
 import { CreateActivityDto } from "../dto/createActivity.dto";
 import { GoogleDriveService } from "src/modules/google-drive/google-drive.service";
 import { ProjectService } from "./project.service";
@@ -14,7 +15,7 @@ import { Project } from "../entities/project.entity";
 import { Metric_value } from "../entities/activityValues.entity";
 
 @Injectable()
-export class ActivityService implements IActivityService {
+export class ActivityService implements IActivityService, OnModuleInit {
     constructor(
         @InjectRepository(Activity)
         private activityRepository: Repository<Activity>,
@@ -26,6 +27,26 @@ export class ActivityService implements IActivityService {
         private googleDriveService: GoogleDriveService,
         private projectService: ProjectService,
     ) { }
+
+    async onModuleInit() {
+        const activities = await this.activityRepository.find({ where: { Slug: IsNull() } });
+        for (const activity of activities) {
+            const slug = await this.generateActivitySlug(activity.Name, activity.Id_activity);
+            await this.activityRepository.update(activity.Id_activity, { Slug: slug });
+        }
+    }
+
+    private async generateActivitySlug(name: string, excludeId?: number): Promise<string> {
+        const baseSlug = generateSlug(name);
+        const queryBuilder = this.activityRepository.createQueryBuilder('activity')
+            .select('activity.Slug');
+        if (excludeId) {
+            queryBuilder.where('activity.Id_activity != :excludeId', { excludeId });
+        }
+        const existingActivities = await queryBuilder.getMany();
+        const existingSlugs = existingActivities.map(a => a.Slug).filter(Boolean);
+        return generateUniqueSlug(baseSlug, existingSlugs);
+    }
 
     async createActivity(
         createActivityDto: CreateActivityDto,
@@ -48,8 +69,11 @@ export class ActivityService implements IActivityService {
 
             const project = await this.projectService.getbyIdProject(createActivityDto.Id_project);
 
+            const slug = await this.generateActivitySlug(createActivityDto.Name);
+
             const newActivity = queryRunner.manager.create(Activity, {
                 Name: createActivityDto.Name,
+                Slug: slug,
                 Description: createActivityDto.Description,
                 Conditions: createActivityDto.Conditions,
                 Observations: createActivityDto.Observations,
@@ -176,7 +200,10 @@ export class ActivityService implements IActivityService {
             const filesToDelete: string[] = [];
             const updateData: Partial<Activity> = {};
             
-            if (updateActivityDto.Name) updateData.Name = updateActivityDto.Name;
+            if (updateActivityDto.Name) {
+                updateData.Name = updateActivityDto.Name;
+                updateData.Slug = await this.generateActivitySlug(updateActivityDto.Name, id_activity);
+            }
             if (updateActivityDto.Description) updateData.Description = updateActivityDto.Description;
             if (updateActivityDto.Conditions) updateData.Conditions = updateActivityDto.Conditions;
             if (updateActivityDto.Observations) updateData.Observations = updateActivityDto.Observations;
@@ -524,6 +551,17 @@ export class ActivityService implements IActivityService {
 
         if (!activity) {
             throw new NotFoundException(`La actividad con ID ${id_activity} no fue encontrada o no está disponible`);
+        }
+        return activity;
+    }
+
+    async getPublicActivityBySlug(slug: string): Promise<Activity> {
+        const activity = await this.activityRepository.findOne({
+            where: { Slug: slug, Active: true },
+            relations: ['project', 'dateActivities', 'metric_value', 'metric_value.dateActivity']
+        });
+        if (!activity) {
+            throw new NotFoundException(`La actividad con slug "${slug}" no fue encontrada o no está disponible`);
         }
         return activity;
     }
