@@ -33,6 +33,12 @@ export class ActivityController {
         return await this.activityservice.getPublicDisplayActivities();
     }
 
+    @Get('public/slug/:slug')
+    @Public()
+    async getPublicActivityBySlug(@Param('slug') slug: string): Promise<Activity> {
+        return await this.activityservice.getPublicActivityBySlug(slug);
+    }
+
     @Get('public/:id')
     @Public()
     async getPublicActivityById(@Param('id', ParseIntPipe) id_activity: number): Promise<Activity> {
