@@ -1,4 +1,5 @@
-import { IsNotEmpty, IsString, IsUrl, IsBoolean, IsOptional} from 'class-validator';
+import { IsNotEmpty, IsString, IsOptional, IsEnum } from 'class-validator';
+import { NewsStatus } from '../entities/news.entity';
 
 export class CreateNewsDto {
     @IsNotEmpty()
@@ -7,15 +8,15 @@ export class CreateNewsDto {
 
     @IsNotEmpty()
     @IsString()
-    content: string;            
-
-    @IsNotEmpty()
-    @IsUrl()
-    image_url: string;   
+    content: string;
 
     @IsNotEmpty()
     @IsString()
-    author: string; 
+    author: string;
+
+    @IsOptional()
+    @IsEnum(NewsStatus)
+    status?: NewsStatus;
 }
 
     
