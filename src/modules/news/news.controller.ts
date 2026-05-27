@@ -58,7 +58,8 @@ export class NewsController {
   }
 
   @Get(':id')
-  @Public()
+  @UseGuards(RoleGuard)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN, UserRole.CONTENT_ADMIN)
   getOne(@Param('id', ParseIntPipe) id: number) {
     return this.newsService.getOne(id);
   }

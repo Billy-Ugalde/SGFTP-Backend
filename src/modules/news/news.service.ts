@@ -1,5 +1,5 @@
 // news.service.ts
-import { Injectable, NotFoundException, InternalServerErrorException } from '@nestjs/common';
+import { Injectable, NotFoundException, InternalServerErrorException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { News, NewsStatus } from './entities/news.entity';
@@ -166,6 +166,13 @@ export class NewsService {
 
     async updateStatus(id_news: number, { status }: NewsStatusDto): Promise<News> {
         const news = await this.getOne(id_news);
+
+        if (status === NewsStatus.PUBLISHED && !news.image_url?.trim()) {
+            throw new BadRequestException(
+                'No se puede publicar una noticia sin imagen. Agrega una imagen antes de publicar.'
+            );
+        }
+
         news.status = status;
         return this.newsRepository.save(news);
     }
@@ -177,24 +184,25 @@ export class NewsService {
 
         try {
             const news = await this.newsRepository.findOne({ where: { id_news } });
-            
+
             if (!news) {
                 throw new NotFoundException(`La noticia con ID ${id_news} no existe`);
             }
 
-            // Eliminar imagen de Google Drive si existe
-            if (news.image_url && news.image_url.trim() !== '') {
-                const fileId = this.googleDriveService.extractFileIdFromUrl(news.image_url);
-                if (fileId) {
-                    console.log('🗑️ Eliminando imagen de Google Drive:', fileId);
-                    await this.googleDriveService.deleteFile(fileId);
-                    console.log('✅ Imagen eliminada de Google Drive');
-                }
-            }
+            const fileIdToDelete = (news.image_url && news.image_url.trim() !== '')
+                ? this.googleDriveService.extractFileIdFromUrl(news.image_url)
+                : null;
 
             await queryRunner.manager.delete(News, id_news);
             await queryRunner.commitTransaction();
             console.log('✅ Noticia eliminada exitosamente');
+
+            // Eliminar imagen de Drive después del commit (fire-and-forget)
+            if (fileIdToDelete) {
+                this.googleDriveService.deleteFile(fileIdToDelete)
+                    .then(() => console.log('✅ Imagen eliminada de Google Drive'))
+                    .catch(error => console.error('⚠️ No se pudo eliminar imagen de Drive:', error.message));
+            }
 
         } catch (error) {
             await queryRunner.rollbackTransaction();
