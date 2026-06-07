@@ -14,7 +14,7 @@ export class Donation {
   })
   donationType: DonationType;
 
-  @Column({ type: 'varchar', length: 250 })
+  @Column({ type: 'varchar', length: 1000 })
   donationDetails: string;
 
   @Column({
