@@ -1,17 +1,20 @@
-import { IsString, IsEnum, IsNotEmpty, IsOptional } from 'class-validator';
+import { IsString, IsEnum, IsNotEmpty, IsOptional, MaxLength } from 'class-validator';
 import { EntrepreneurshipCategory, EntrepreneurshipApproach } from '../entities/entrepreneurship.entity';
 
 export class CreateEntrepreneurshipDto {
   @IsString()
   @IsNotEmpty()
+  @MaxLength(50)
   name: string;
 
   @IsString()
   @IsNotEmpty()
+  @MaxLength(150)
   description: string;
 
   @IsString()
   @IsNotEmpty()
+  @MaxLength(150)
   location: string;
 
   @IsEnum(EntrepreneurshipCategory)
@@ -38,14 +41,17 @@ export class CreateEntrepreneurshipDto {
 export class UpdateEntrepreneurshipDto {
   @IsString()
   @IsOptional()
+  @MaxLength(50)
   name?: string;
 
   @IsString()
   @IsOptional()
+  @MaxLength(150)
   description?: string;
 
   @IsString()
   @IsOptional()
+  @MaxLength(150)
   location?: string;
 
   @IsEnum(EntrepreneurshipCategory)
