@@ -109,7 +109,7 @@ export class PersonService {
     if (updateDto.second_lastname) updateData.second_lastname = updateDto.second_lastname;
     if (updateDto.email) updateData.email = updateDto.email;
     if (updateDto.phone_primary) updateData.phone_primary = normalizePhone(updateDto.phone_primary);
-    if (updateDto.phone_secondary !== undefined) updateData.phone_secondary = normalizePhoneOptional(updateDto.phone_secondary);
+    if (updateDto.phone_secondary !== undefined) updateData.phone_secondary = (normalizePhoneOptional(updateDto.phone_secondary) ?? null) as string;
 
     if (Object.keys(updateData).length > 0) {
       await queryRunner.manager.update(Person, personId, updateData);
