@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between, FindOptionsWhere } from 'typeorm';
 import { Buffer } from 'buffer';
@@ -38,6 +38,30 @@ export class AuditService implements IAuditService {
         ]);
 
         return { total_events, role_changes, events_today };
+    }
+
+    async generatePdfById(id: number): Promise<Buffer> {
+        const record = await this.auditRepo.createQueryBuilder('audit')
+            .leftJoinAndSelect('audit.user', 'user')
+            .leftJoinAndSelect('user.person', 'person')
+            .where('audit.id = :id', { id })
+            .getOne();
+
+        if (!record) throw new NotFoundException(`Registro ${id} no encontrado`);
+
+        return new Promise((resolve, reject) => {
+            try {
+                const doc = new PDFDocument({
+                    size: 'LETTER',
+                    margins: { top: 50, bottom: 50, left: 50, right: 50 },
+                });
+                const buffers: Buffer[] = [];
+                doc.on('data', buffers.push.bind(buffers));
+                doc.on('end', () => resolve(Buffer.concat(buffers)));
+                this.generateSingleRecordPDFContent(doc, record);
+                doc.end();
+            } catch (error) { reject(error); }
+        });
     }
 
     async generatePdf(query: QueryAuditDto): Promise<Buffer> {
@@ -101,6 +125,62 @@ export class AuditService implements IAuditService {
         }
 
         return qb;
+    }
+
+    private generateSingleRecordPDFContent(doc: PDFDoc, record: AuditLog): void {
+        // Encabezado
+        doc.fontSize(18).font('Helvetica-Bold')
+            .text('DETALLE DE REGISTRO DE AUDITORÍA', { align: 'center' })
+            .moveDown(0.3);
+        doc.fontSize(11).font('Helvetica')
+            .text('Fundación Tamarindo Park · SGTPF', { align: 'center' })
+            .moveDown(0.3);
+        doc.fontSize(10)
+            .text(`Generado: ${new Date().toLocaleDateString('es-ES')}`, { align: 'center' })
+            .moveDown(1.5);
+
+        // Usuario
+        doc.fontSize(12).font('Helvetica-Bold').fillColor('#2c3e50').text('USUARIO').moveDown(0.5);
+        doc.fillColor('#000000');
+        const userName = record.user?.person
+            ? `${record.user.person.first_name} ${record.user.person.first_lastname}`
+            : record.user_email ?? (record.user_id ? `Usuario #${record.user_id}` : 'Sistema');
+        this.addField(doc, 'Nombre:', userName);
+        if (record.user_email) this.addField(doc, 'Email:', record.user_email);
+        if (record.user_roles?.length) this.addField(doc, 'Roles:', record.user_roles.join(', '));
+        doc.moveDown(1);
+
+        // Evento
+        doc.fontSize(12).font('Helvetica-Bold').fillColor('#2c3e50').text('EVENTO').moveDown(0.5);
+        doc.fillColor('#000000');
+        this.addField(doc, 'Módulo:', this.translateModule(record.entity));
+        this.addField(doc, 'Acción:', this.translateAction(record.action));
+        if (record.entity_id) this.addField(doc, 'ID del registro afectado:', record.entity_id);
+        this.addField(doc, 'Fuente:', this.translateSource(record.source));
+        this.addField(doc, 'Fecha y hora:', new Date(record.timestamp).toLocaleString('es-ES', {
+            day: '2-digit', month: '2-digit', year: 'numeric',
+            hour: '2-digit', minute: '2-digit', second: '2-digit',
+        }));
+        doc.moveDown(1);
+
+        // Valor anterior
+        doc.fontSize(12).font('Helvetica-Bold').fillColor('#2c3e50').text('VALOR ANTERIOR').moveDown(0.5);
+        doc.fillColor('#000000');
+        if (record.old_value && Object.keys(record.old_value).length > 0) {
+            Object.entries(record.old_value).forEach(([k, v]) => this.addField(doc, `${this.translateField(k)}:`, this.translateValue(String(v ?? ''))));
+        } else {
+            doc.fontSize(10).font('Helvetica').text('Sin datos').moveDown(0.3);
+        }
+        doc.moveDown(1);
+
+        // Valor nuevo
+        doc.fontSize(12).font('Helvetica-Bold').fillColor('#2c3e50').text('VALOR NUEVO').moveDown(0.5);
+        doc.fillColor('#000000');
+        if (record.new_value && Object.keys(record.new_value).length > 0) {
+            Object.entries(record.new_value).forEach(([k, v]) => this.addField(doc, `${this.translateField(k)}:`, this.translateValue(String(v ?? ''))));
+        } else {
+            doc.fontSize(10).font('Helvetica').text('Sin datos').moveDown(0.3);
+        }
     }
 
     private generatePDFContent(doc: PDFDoc, records: AuditLog[], query: QueryAuditDto): void {
@@ -211,6 +291,138 @@ export class AuditService implements IAuditService {
             .font('Helvetica')
             .text(` ${value}`)
             .moveDown(0.3);
+    }
+
+    private translateField(key: string): string {
+        const map: Record<string, string> = {
+            // ── Comunes ──────────────────────────────────────────────────
+            id: 'ID', name: 'Nombre', status: 'Estado', active: 'Activo',
+            description: 'Descripción', location: 'Ubicación',
+            created_at: 'Creado en', updated_at: 'Actualizado en',
+            createdAt: 'Creado en', updatedAt: 'Actualizado en',
+            registration_date: 'Fecha de registro', Registration_date: 'Fecha de registro',
+            Update_date: 'Fecha de actualización', UpdatedAt: 'Actualizado en',
+            image_url: 'URL de imagen',
+            url_1: 'URL 1', url_2: 'URL 2', url_3: 'URL 3',
+            url_4: 'URL 4', url_5: 'URL 5', url_6: 'URL 6',
+            url1: 'URL 1', url2: 'URL 2', url3: 'URL 3',
+            // ── Ferias ───────────────────────────────────────────────────
+            date: 'Fecha', typeFair: 'Tipo de feria',
+            stand_capacity: 'Capacidad de stands', conditions: 'Condiciones',
+            archived: 'Archivada', stand_code: 'Código de stand',
+            // ── Inscripciones ────────────────────────────────────────────
+            id_activity: 'ID de actividad', id_volunteer: 'ID de voluntario',
+            enrollment_date: 'Fecha de inscripción', attendance_date: 'Fecha de asistencia',
+            // ── Emprendedores ────────────────────────────────────────────
+            experience: 'Experiencia', is_active: 'Activo',
+            facebook_url: 'Facebook', instagram_url: 'Instagram',
+            id_entrepreneur: 'ID de emprendedor', id_person: 'ID de persona',
+            category: 'Categoría', approach: 'Enfoque',
+            // ── Voluntarios / buzón ──────────────────────────────────────
+            Organization: 'Organización', Description: 'Descripción', Affair: 'Asunto',
+            Hour_volunteer: 'Horas de voluntario',
+            Document1: 'Documento 1', Document2: 'Documento 2', Document3: 'Documento 3',
+            // ── Proyectos ────────────────────────────────────────────────
+            Name: 'Nombre', Slug: 'Slug', Observations: 'Observaciones', Aim: 'Objetivo',
+            Start_date: 'Fecha de inicio', End_date: 'Fecha de fin',
+            Target_population: 'Población objetivo', Active: 'Activo', Status: 'Estado',
+            METRIC_TOTAL_BENEFICIATED: 'Total beneficiados',
+            METRIC_TOTAL_WASTE_COLLECTED: 'Residuos recolectados (kg)',
+            METRIC_TOTAL_TREES_PLANTED: 'Árboles plantados',
+            // ── Actividades ──────────────────────────────────────────────
+            Conditions: 'Condiciones', IsRecurring: 'Recurrente', IsFavorite: 'Favorita',
+            OpenForRegistration: 'Inscripción abierta', Type_activity: 'Tipo de actividad',
+            Status_activity: 'Estado de actividad', Approach: 'Enfoque', Spaces: 'Espacios',
+            Location: 'Ubicación', Metric_activity: 'Métrica',
+            Total_metric_value: 'Valor total de métrica',
+            Enrolled_count: 'Inscritos', Available_spaces: 'Espacios disponibles', Value: 'Valor',
+            // ── Donaciones ───────────────────────────────────────────────
+            donationType: 'Tipo de donación', donationDetails: 'Detalles de donación',
+            donor: 'Donante', amount: 'Monto', currency: 'Moneda',
+            firstName: 'Nombre', secondName: 'Segundo nombre',
+            nameCompany: 'Nombre de empresa',
+            firstLastName: 'Primer apellido', secondLastName: 'Segundo apellido',
+            donorType: 'Tipo de donante', interest: 'Interés',
+            email: 'Correo electrónico', phone: 'Teléfono',
+            // ── Noticias ─────────────────────────────────────────────────
+            title: 'Título', content: 'Contenido',
+            publicationDate: 'Fecha de publicación', author: 'Autor',
+            lastUpdated: 'Última actualización',
+            // ── Newsletters ──────────────────────────────────────────────
+            subject: 'Asunto', language: 'Idioma', sentAt: 'Enviado en',
+            totalRecipients: 'Total de destinatarios',
+            successfulSends: 'Envíos exitosos', failedSends: 'Envíos fallidos', errors: 'Errores',
+            // ── Usuarios ─────────────────────────────────────────────────
+            isEmailVerified: 'Email verificado',
+            failedLoginAttempts: 'Intentos de inicio de sesión fallidos',
+            activation_token: 'Token de activación', activation_expires: 'Expiración de activación',
+            reset_token: 'Token de restablecimiento', reset_expires: 'Expiración de restablecimiento',
+            role: 'Rol', roles: 'Roles',
+            // ── Informativo ──────────────────────────────────────────────
+            address: 'Dirección', whatsapp_url: 'WhatsApp',
+            youtube_url: 'YouTube', google_maps_url: 'Google Maps',
+            page: 'Página', section: 'Sección', block_key: 'Clave de bloque',
+            text_content: 'Contenido de texto',
+            // ── Persona ──────────────────────────────────────────────────
+            first_name: 'Nombre', second_name: 'Segundo nombre',
+            first_lastname: 'Primer apellido', second_lastname: 'Segundo apellido',
+            phone_primary: 'Teléfono principal', phone_secondary: 'Teléfono secundario',
+            // ── Fechas ───────────────────────────────────────────────────
+            start_date: 'Fecha de inicio', end_date: 'Fecha de fin',
+        };
+        return map[key] ?? key;
+    }
+
+    private translateValue(value: string): string {
+        const map: Record<string, string> = {
+            // ── Booleanos ────────────────────────────────────────────────
+            '1': 'Sí', '0': 'No',
+            // ── Estados generales ────────────────────────────────────────
+            active: 'Activo', inactive: 'Inactivo',
+            pending: 'Pendiente', approved: 'Aprobado', rejected: 'Rechazado',
+            published: 'Publicado', draft: 'Borrador', archived: 'Archivado',
+            completed: 'Completado', failed: 'Fallido', partial: 'Parcial',
+            // ── Inscripciones de actividades ──────────────────────────────
+            enrolled: 'Inscrito', attended: 'Asistió',
+            not_attended: 'No asistió', cancelled: 'Cancelado',
+            // ── Tipos de feria ────────────────────────────────────────────
+            interna: 'Interna', externa: 'Externa',
+            // ── Enfoques ─────────────────────────────────────────────────
+            social: 'Social', cultural: 'Cultural', ambiental: 'Ambiental',
+            // ── Tipos de donación / donante ───────────────────────────────
+            monetary: 'Monetaria', 'in-kind': 'En especie', service: 'Servicio',
+            individual: 'Individual', company: 'Empresa', anonymous: 'Anónimo',
+            // ── Intereses de donante ──────────────────────────────────────
+            conservation: 'Conservación', education: 'Educación',
+            community: 'Comunidad', research: 'Investigación',
+            // ── Idiomas ───────────────────────────────────────────────────
+            spanish: 'Español', english: 'Inglés',
+            // ── Fuentes ───────────────────────────────────────────────────
+            SYSTEM: 'Sistema', HTTP_REQUEST: 'Solicitud HTTP',
+            SCRIPT: 'Script', CRON: 'Tarea programada',
+            // ── Categorías de emprendimiento ──────────────────────────────
+            'Comida': 'Comida', 'Artesanía': 'Artesanía', 'Vestimenta': 'Vestimenta',
+            'Accesorios': 'Accesorios', 'Decoración': 'Decoración',
+            'Demostración': 'Demostración', 'Otra categoría': 'Otra categoría',
+            // ── Estados de proyecto ───────────────────────────────────────
+            planning: 'En planificación', 'in-progress': 'En progreso',
+            on_hold: 'En pausa', cancelled_project: 'Cancelado', finished: 'Finalizado',
+            // ── Roles ─────────────────────────────────────────────────────
+            super_admin: 'Super administrador', general_admin: 'Administrador general',
+            fair_admin: 'Administrador de ferias', content_admin: 'Administrador de contenido',
+            auditor: 'Auditor', entrepreneur: 'Emprendedor', volunteer: 'Voluntario',
+        };
+        return map[value] ?? value;
+    }
+
+    private translateSource(source: string): string {
+        const map: Record<string, string> = {
+            SYSTEM: 'Sistema',
+            HTTP_REQUEST: 'Solicitud HTTP',
+            SCRIPT: 'Script',
+            CRON: 'Tarea programada',
+        };
+        return map[source] ?? source;
     }
 
     private translateModule(entity: string): string {
