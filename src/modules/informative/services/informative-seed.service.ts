@@ -123,7 +123,7 @@ export class InformativeSeedService {
         page: 'home',
         section: 'statistics',
         block_key: 'custom_stat_name',
-        text_content: 'Arboles plantados',
+        text_content: 'Poblacion estudiantil impactada',
       },
       {
         page: 'home',
@@ -173,6 +173,12 @@ export class InformativeSeedService {
         section: 'fairs',
         block_key: 'description',
         text_content: 'Participa en nuestras ferias, estas son las próximas...',
+      },
+      {
+        page: 'home',
+        section: 'fairs',
+        block_key: 'park_map_image',
+        text_content: 'example.com/fairs-image.jpg',
       },
       {
         page: 'home',

@@ -14,10 +14,14 @@ import { GoogleDriveService } from "../google-drive/google-drive.service";
 import { ImageProxyController } from "../google-drive/image-proxy.controller";
 import { Project } from "../projects/entities/project.entity";
 import { Activity } from "../projects/entities/activity.entity";
+import { Volunteer } from "../volunteers/entities/volunteer.entity";
+import { Donor } from "../donations/entities/donor.entity";
+import { User } from "../users/entities/user.entity";
+import { Entrepreneur } from "../entrepreneurs/entities/entrepreneur.entity";
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([ContactInfo, ContentBlock, Project, Activity]),
+    TypeOrmModule.forFeature([ContactInfo, ContentBlock, Project, Activity, Volunteer, Donor, User, Entrepreneur]),
     AuthModule
   ],
   controllers: [
