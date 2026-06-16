@@ -1,4 +1,4 @@
-import { Controller, Get, HttpStatus, Query, Res, UseGuards } from '@nestjs/common';
+import { Controller, Get, HttpStatus, Param, ParseIntPipe, Query, Res, UseGuards } from '@nestjs/common';
 import { Response } from 'express';
 import { AuditService } from '../services/audit.service';
 import { QueryAuditDto } from '../dto/query-audit.dto';
@@ -24,6 +24,16 @@ export class AuditController {
     @Get('stats')
     getStats() {
         return this.auditService.getStats();
+    }
+
+    // GET /audit/:id/pdf — PDF de un registro individual
+    @Get(':id/pdf')
+    async downloadPdfById(@Param('id', ParseIntPipe) id: number, @Res() res: Response) {
+        const buffer = await this.auditService.generatePdfById(id);
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename="Registro_Auditoria_${id}.pdf"`);
+        res.setHeader('Content-Length', buffer.length);
+        res.status(HttpStatus.OK).send(buffer);
     }
 
     // GET /audit/pdf — reporte PDF descargable
