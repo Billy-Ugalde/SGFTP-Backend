@@ -61,7 +61,7 @@ export class EntrepreneurController {
   @UseGuards(RoleGuard)
   @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN, UserRole.FAIR_ADMIN)
   @HttpCode(HttpStatus.CREATED)
-  @UseInterceptors(FilesInterceptor('files', 3))
+  @UseInterceptors(FilesInterceptor('files', 3, { limits: { fileSize: 25 * 1024 * 1024 } }))
   async create(
     @Body('person', ParseJsonPipe) person: any,
     @Body('entrepreneur', ParseJsonPipe) entrepreneur: any,
@@ -73,7 +73,7 @@ export class EntrepreneurController {
   @Post('public')
   @Public()
   @HttpCode(HttpStatus.CREATED)
-   @UseInterceptors(FilesInterceptor('files', 3))
+   @UseInterceptors(FilesInterceptor('files', 3, { limits: { fileSize: 25 * 1024 * 1024 } }))
   async createPublic(@Body('person', ParseJsonPipe) person: any,
     @Body('entrepreneur', ParseJsonPipe) entrepreneur: any,
     @Body('entrepreneurship', ParseJsonPipe) entrepreneurship: any, @UploadedFiles() files: Express.Multer.File[]): Promise<Entrepreneur> {
@@ -87,7 +87,7 @@ export class EntrepreneurController {
   @HttpCode(HttpStatus.OK)
   @UseGuards(RoleGuard)
   @Roles(UserRole.ENTREPRENEUR)
-  @UseInterceptors(FilesInterceptor('files', 3))
+  @UseInterceptors(FilesInterceptor('files', 3, { limits: { fileSize: 25 * 1024 * 1024 } }))
   async updateOwn(
     @Param('id', ParseIntPipe) id: number,
     @Body('person', ParseJsonPipe) person: any,
@@ -104,7 +104,7 @@ export class EntrepreneurController {
   @Put(':id')
   @UseGuards(RoleGuard)
   @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN, UserRole.FAIR_ADMIN)
-  @UseInterceptors(FilesInterceptor('files', 3))
+  @UseInterceptors(FilesInterceptor('files', 3, { limits: { fileSize: 25 * 1024 * 1024 } }))
   async update(
     @Param('id', ParseIntPipe) id: number,
     @Body('person', ParseJsonPipe) person: any,

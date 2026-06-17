@@ -83,7 +83,7 @@ export class ActivityController {
     @HttpCode(HttpStatus.CREATED)
     @UseGuards(RoleGuard)
     @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN)
-    @UseInterceptors(FilesInterceptor('images', 3), ParseJsonFieldsInterceptor)
+    @UseInterceptors(FilesInterceptor('images', 3, { limits: { fileSize: 10 * 1024 * 1024 } }), ParseJsonFieldsInterceptor)
     async createActivity(
         @Body() createActivityDto: CreateActivityDto,
         @UploadedFiles() images: Express.Multer.File[]
@@ -100,7 +100,7 @@ export class ActivityController {
             { name: 'url2_file', maxCount: 1 },
             { name: 'url3_file', maxCount: 1 },
             { name: 'images', maxCount: 3 }
-        ]),
+        ], { limits: { fileSize: 10 * 1024 * 1024 } }),
         ParseJsonFieldsInterceptor
     )
     async updateActivity(

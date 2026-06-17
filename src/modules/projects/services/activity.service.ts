@@ -13,6 +13,7 @@ import { UpdateActivityDto } from "../dto/updateActivity.dto";
 import { ACTIVITY_TYPE_TO_PROJECT_METRIC } from "../Constants/activity-metrics.constant";
 import { Project } from "../entities/project.entity";
 import { Metric_value } from "../entities/activityValues.entity";
+import { validateAndProcessImages, validateAndProcessImageFields } from "src/common/utils/image-processor";
 
 @Injectable()
 export class ActivityService implements IActivityService, OnModuleInit {
@@ -52,6 +53,9 @@ export class ActivityService implements IActivityService, OnModuleInit {
         createActivityDto: CreateActivityDto,
         images?: Express.Multer.File[]
     ): Promise<Activity> {
+        // Validar y optimizar todas las imágenes antes de abrir la transacción.
+        images = await validateAndProcessImages(images);
+
         const queryRunner = this.dataSource.createQueryRunner();
         await queryRunner.connect();
         await queryRunner.startTransaction();
@@ -191,6 +195,9 @@ export class ActivityService implements IActivityService, OnModuleInit {
         updateActivityDto: UpdateActivityDto,
         files?: ActivityFiles
     ): Promise<Activity> {
+        // Validar y optimizar todas las imágenes entrantes antes de abrir la transacción.
+        files = await validateAndProcessImageFields(files);
+
         const queryRunner = this.dataSource.createQueryRunner();
         await queryRunner.connect();
         await queryRunner.startTransaction();

@@ -1,4 +1,4 @@
-import * as sharp from 'sharp';
+import sharp = require('sharp');
 import { BadRequestException } from '@nestjs/common';
 
 const ALLOWED_MIMES = new Set([
@@ -10,19 +10,13 @@ const ALLOWED_MIMES = new Set([
 
 const ALLOWED_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.webp']);
 
-/**
- * Verifica los primeros bytes del buffer para confirmar el tipo real del archivo.
- * Esto previene que un atacante cambie la extensión/mimetype del archivo.
- */
 function hasValidMagicBytes(buffer: Buffer): boolean {
-  if (buffer.length < 12) return false;
+  if (!buffer || buffer.length < 12) return false;
 
-  // JPEG: FF D8 FF
   if (buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) {
     return true;
   }
 
-  // PNG: 89 50 4E 47 0D 0A 1A 0A
   if (
     buffer[0] === 0x89 &&
     buffer[1] === 0x50 &&
@@ -32,7 +26,6 @@ function hasValidMagicBytes(buffer: Buffer): boolean {
     return true;
   }
 
-  // WebP: RIFF????WEBP (bytes 0-3 = RIFF, bytes 8-11 = WEBP)
   if (
     buffer[0] === 0x52 &&
     buffer[1] === 0x49 &&
@@ -50,32 +43,22 @@ function hasValidMagicBytes(buffer: Buffer): boolean {
 }
 
 export interface ProcessImageOptions {
-  /** Ancho máximo en píxeles. La imagen se redimensiona si supera este valor. */
   maxWidthPx?: number;
-  /** Calidad WebP (1-100). Default: 88 */
   quality?: number;
 }
 
-/**
- * Valida el formato de la imagen (MIME, extensión, magic bytes) y la procesa
- * con Sharp: redimensiona al ancho máximo si es necesario y convierte a WebP.
- *
- * @returns El objeto Multer.File con el buffer procesado y mimetype actualizado.
- */
 export async function validateAndProcessImage(
   file: Express.Multer.File,
   options: ProcessImageOptions = {},
 ): Promise<Express.Multer.File> {
   const { maxWidthPx = 1920, quality = 88 } = options;
 
-  // 1. Whitelist de MIME type
   if (!ALLOWED_MIMES.has(file.mimetype)) {
     throw new BadRequestException(
-      'Formato no permitido. Solo se aceptan: JPG, PNG, WebP.',
+      'Formato no permitido. Solo se aceptan imágenes JPG, PNG o WebP.',
     );
   }
 
-  // 2. Whitelist de extensión
   const rawExt = file.originalname.split('.').pop() ?? '';
   const ext = '.' + rawExt.toLowerCase();
   if (!ALLOWED_EXTENSIONS.has(ext)) {
@@ -84,18 +67,23 @@ export async function validateAndProcessImage(
     );
   }
 
-  // 3. Validación de magic bytes (tipo real del archivo)
   if (!hasValidMagicBytes(file.buffer)) {
     throw new BadRequestException(
-      'El archivo no es una imagen válida.',
+      'El archivo no es una imagen válida o está dañado.',
     );
   }
 
-  // 4. Procesar con Sharp: redimensionar + convertir a WebP
-  const processedBuffer = await sharp(file.buffer)
-    .resize({ width: maxWidthPx, withoutEnlargement: true })
-    .webp({ quality })
-    .toBuffer();
+  let processedBuffer: Buffer;
+  try {
+    processedBuffer = await sharp(file.buffer)
+      .resize({ width: maxWidthPx, withoutEnlargement: true })
+      .webp({ quality })
+      .toBuffer();
+  } catch {
+    throw new BadRequestException(
+      'No se pudo procesar la imagen. El archivo puede estar dañado.',
+    );
+  }
 
   const baseName = file.originalname.replace(/\.[^.]+$/, '');
 
@@ -106,4 +94,29 @@ export async function validateAndProcessImage(
     size: processedBuffer.length,
     originalname: `${baseName}.webp`,
   };
+}
+
+export async function validateAndProcessImages<
+  T extends Express.Multer.File[] | undefined,
+>(files: T, options: ProcessImageOptions = {}): Promise<T> {
+  if (!files || files.length === 0) return files;
+  return (await Promise.all(
+    files.map((file) => validateAndProcessImage(file, options)),
+  )) as T;
+}
+
+export async function validateAndProcessImageFields<T extends object>(
+  fields: T | undefined,
+  options: ProcessImageOptions = {},
+): Promise<T | undefined> {
+  if (!fields) return fields;
+  for (const key of Object.keys(fields)) {
+    const arr = (fields as any)[key] as Express.Multer.File[] | undefined;
+    if (Array.isArray(arr) && arr.length > 0) {
+      (fields as any)[key] = await Promise.all(
+        arr.map((file) => validateAndProcessImage(file, options)),
+      );
+    }
+  }
+  return fields;
 }

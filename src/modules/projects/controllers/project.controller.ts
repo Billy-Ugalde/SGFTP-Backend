@@ -100,7 +100,7 @@ export class ProjectController {
     @UseGuards(RoleGuard)
     @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN)
     @HttpCode(HttpStatus.CREATED)
-    @UseInterceptors(FilesInterceptor('images', 6))
+    @UseInterceptors(FilesInterceptor('images', 6, { limits: { fileSize: 10 * 1024 * 1024 } }))
     async createProject(
         @Body() createProjectDto: CreateProjectDto,
         @UploadedFiles() images: Express.Multer.File[]
@@ -119,7 +119,7 @@ export class ProjectController {
         { name: 'url_5_file', maxCount: 1 },
         { name: 'url_6_file', maxCount: 1 },
         { name: 'images', maxCount: 6 }
-    ]))
+    ], { limits: { fileSize: 10 * 1024 * 1024 } }))
     async updateProject(
         @Param('id', ParseIntPipe) id: number,
         @Body() updateProject: UpdateProjectDto,
