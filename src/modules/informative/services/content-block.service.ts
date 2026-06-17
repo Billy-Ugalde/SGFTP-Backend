@@ -6,7 +6,7 @@ import { CreateContentBlockDto } from '../dto/create-content-block.dto';
 import { UpdateContentBlockDto } from '../dto/update-content-block.dto';
 import { StructuredContentDto } from '../dto/structured-content.dto';
 import { GoogleDriveService } from '../../google-drive/google-drive.service';
-import { validateAndProcessImage } from '../utils/image-processor';
+import { validateAndProcessImage } from 'src/common/utils/image-processor';
 
 @Injectable()
 export class ContentBlockService {

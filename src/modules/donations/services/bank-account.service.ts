@@ -7,6 +7,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { BankAccount } from '../entities/bank-account.entity';
 import { GoogleDriveService } from '../../google-drive/google-drive.service';
+import { validateAndProcessImage } from 'src/common/utils/image-processor';
 
 @Injectable()
 export class BankAccountService {
@@ -17,6 +18,9 @@ export class BankAccountService {
   ) {}
 
   async create(file?: Express.Multer.File): Promise<BankAccount> {
+    // Validar y optimizar la imagen antes de crear el registro.
+    if (file) file = await validateAndProcessImage(file);
+
     try {
       const newAccount = this.bankAccountRepository.create();
       const savedAccount = await this.bankAccountRepository.save(newAccount);
@@ -53,6 +57,9 @@ export class BankAccountService {
   }
 
   async update(id: number, file?: Express.Multer.File): Promise<BankAccount> {
+    // Validar y optimizar la imagen de reemplazo antes de procesar.
+    if (file) file = await validateAndProcessImage(file);
+
     try {
       const account = await this.findOne(id);
 

@@ -35,7 +35,7 @@ export class NewsController {
   @UseGuards(RoleGuard)
   @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN, UserRole.CONTENT_ADMIN)
   @HttpCode(HttpStatus.CREATED)
-  @UseInterceptors(FileInterceptor('file')) // Una sola imagen
+  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 10 * 1024 * 1024 } })) // Una sola imagen (máx 10MB)
   create(
     @Body('news', ParseJsonPipe) newsData: any,
     @UploadedFile() file: Express.Multer.File
@@ -67,7 +67,7 @@ export class NewsController {
   @Patch(':id')
   @UseGuards(RoleGuard)
   @Roles(UserRole.SUPER_ADMIN, UserRole.GENERAL_ADMIN, UserRole.CONTENT_ADMIN)
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 10 * 1024 * 1024 } }))
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body('news', ParseJsonPipe) newsData: any,

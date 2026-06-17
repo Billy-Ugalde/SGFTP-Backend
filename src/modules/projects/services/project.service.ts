@@ -11,6 +11,7 @@ import { UpdateProjectDto } from "../dto/updateProject.dto";
 import { GoogleDriveService } from "src/modules/google-drive/google-drive.service";
 import { ToggleActiveDto } from "../dto/UdpateActive.dto";
 import { generateSlug, generateUniqueSlug } from "../utils/slug.helper";
+import { validateAndProcessImages, validateAndProcessImageFields } from "src/common/utils/image-processor";
 
 @Injectable()
 export class ProjectService implements IProjectService {
@@ -50,6 +51,9 @@ export class ProjectService implements IProjectService {
     createprojectDto: CreateProjectDto,
     images?: Express.Multer.File[]
   ): Promise<Project> {
+    // Validar y optimizar todas las imágenes antes de abrir la transacción.
+    images = await validateAndProcessImages(images);
+
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
@@ -136,8 +140,11 @@ export class ProjectService implements IProjectService {
 async updateProject(
   id_project: number,
   updateProjectDto: UpdateProjectDto,
-  files?: ProjectFiles  
+  files?: ProjectFiles
 ): Promise<Project> {
+  // Validar y optimizar todas las imágenes entrantes antes de abrir la transacción.
+  files = await validateAndProcessImageFields(files);
+
   const queryRunner = this.dataSource.createQueryRunner();
   await queryRunner.connect();
   await queryRunner.startTransaction();

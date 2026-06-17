@@ -15,6 +15,7 @@ import { GoogleDriveService } from '../../google-drive/google-drive.service';
 import { UpdateEntrepreneurshipDto } from '../dto/entrepreneurship.dto';
 import { ForbiddenException } from '@nestjs/common';
 import { EntrepreneurNotificationService } from 'src/modules/entrepreneurs-notifications/services/entrepreneur-notification.service';
+import { validateAndProcessImages } from 'src/common/utils/image-processor';
 @Injectable()
 export class EntrepreneurService {
   constructor(
@@ -67,6 +68,9 @@ export class EntrepreneurService {
 
 
   async create(createDto: CreateCompleteEntrepreneurDto, request?: any, files?: Express.Multer.File[],): Promise<Entrepreneur> {
+    // Validar y optimizar todas las imágenes antes de abrir la transacción.
+    files = await validateAndProcessImages(files);
+
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
@@ -185,6 +189,9 @@ export class EntrepreneurService {
 
 
   async update(id: number, updateDto: UpdateCompleteEntrepreneurDto, files?: Express.Multer.File[],): Promise<Entrepreneur> {
+    // Validar y optimizar las imágenes de reemplazo antes de abrir la transacción.
+    files = await validateAndProcessImages(files);
+
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();

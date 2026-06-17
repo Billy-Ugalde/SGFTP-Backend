@@ -7,6 +7,7 @@ import { UpdateNewsDto } from './dto/update-news.dto';
 import { NewsStatusDto } from './dto/news-status.dto'; 
 import { CreateNewsDto } from './dto/create-news.dto';
 import { GoogleDriveService } from '../google-drive/google-drive.service';
+import { validateAndProcessImage } from 'src/common/utils/image-processor';
 
 @Injectable()
 export class NewsService {
@@ -18,6 +19,10 @@ export class NewsService {
     ) {}      
 
     async create(createNewsDto: CreateNewsDto, file?: Express.Multer.File): Promise<News> {
+        // Validar y optimizar la imagen ANTES de tocar la base de datos.
+        // Si el archivo no es una imagen válida, lanza 400 sin crear la noticia.
+        if (file) file = await validateAndProcessImage(file);
+
         const queryRunner = this.dataSource.createQueryRunner();
         await queryRunner.connect();
         await queryRunner.startTransaction();
@@ -92,6 +97,9 @@ export class NewsService {
     }
 
     async update(id_news: number, dto: UpdateNewsDto, file?: Express.Multer.File): Promise<News> {
+        // Validar y optimizar la imagen de reemplazo antes de abrir la transacción.
+        if (file) file = await validateAndProcessImage(file);
+
         const queryRunner = this.dataSource.createQueryRunner();
         await queryRunner.connect();
         await queryRunner.startTransaction();
