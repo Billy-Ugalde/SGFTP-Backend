@@ -153,6 +153,7 @@ export class AuditService implements IAuditService {
         // Evento
         doc.fontSize(12).font('Helvetica-Bold').fillColor('#2c3e50').text('EVENTO').moveDown(0.5);
         doc.fillColor('#000000');
+        this.addField(doc, 'Descripción:', this.describeAction(record.entity, record.action));
         this.addField(doc, 'Módulo:', this.translateModule(record.entity));
         this.addField(doc, 'Acción:', this.translateAction(record.action));
         if (record.entity_id) this.addField(doc, 'ID del registro afectado:', record.entity_id);
@@ -446,5 +447,53 @@ export class AuditService implements IAuditService {
             EXPORT: 'Exportación',
         };
         return map[action] ?? action;
+    }
+
+    private describeAction(entity: string, action: string): string {
+        const special: Record<string, string> = {
+            'fair_enrollment:INSERT':            'Inscripción de un emprendedor a una feria',
+            'fair_enrollment:STATUS_CHANGE':     'Cambio de estado de una inscripción a feria',
+            'activity_enrollment:INSERT':        'Inscripción de un voluntario a una actividad',
+            'activity_enrollment:STATUS_CHANGE': 'Cambio de estado de una inscripción a actividad',
+            'entrepreneurs:INSERT':              'Registro de un nuevo emprendedor',
+            'users:INSERT':                      'Creación de un nuevo usuario',
+            'subscriber:INSERT':                 'Nueva suscripción al boletín',
+            'subscriber:DELETE':                 'Baja de una suscripción al boletín',
+            'donation:INSERT':                   'Registro de una nueva donación',
+            'newsletter_campaigns:INSERT':       'Envío de una campaña de newsletter',
+        };
+        const hit = special[`${entity}:${action}`];
+        if (hit) return hit;
+
+        const nouns: Record<string, { article: string; noun: string }> = {
+            users:                { article: 'un',  noun: 'usuario' },
+            entrepreneurs:        { article: 'un',  noun: 'emprendedor' },
+            entrepreneurships:    { article: 'un',  noun: 'emprendimiento' },
+            fair:                 { article: 'una', noun: 'feria' },
+            fair_enrollment:      { article: 'una', noun: 'inscripción a feria' },
+            project:              { article: 'un',  noun: 'proyecto' },
+            activity:             { article: 'una', noun: 'actividad' },
+            activity_enrollment:  { article: 'una', noun: 'inscripción a actividad' },
+            volunteers:           { article: 'un',  noun: 'voluntario' },
+            news:                 { article: 'una', noun: 'noticia' },
+            content_blocks:       { article: 'un',  noun: 'bloque de contenido' },
+            subscriber:           { article: 'un',  noun: 'suscriptor' },
+            donation:             { article: 'una', noun: 'donación' },
+            newsletter_campaigns: { article: 'una', noun: 'campaña de newsletter' },
+        };
+        const e = nouns[entity] ?? { article: 'un', noun: 'registro' };
+
+        const templates: Record<string, string> = {
+            INSERT:          `Creación de ${e.article} ${e.noun}`,
+            UPDATE:          `Edición de ${e.article} ${e.noun}`,
+            DELETE:          `Eliminación de ${e.article} ${e.noun}`,
+            STATUS_CHANGE:   `Cambio de estado de ${e.article} ${e.noun}`,
+            EXPORT:          `Exportación de ${e.noun}`,
+            ROLE_ASSIGNED:   'Asignación de un rol a un usuario',
+            ROLE_REMOVED:    'Remoción de un rol de un usuario',
+            PASSWORD_CHANGE: 'Cambio de contraseña de un usuario',
+            PASSWORD_RESET:  'Solicitud de restablecimiento de contraseña',
+        };
+        return templates[action] ?? `${this.translateAction(action)} · ${this.translateModule(entity)}`;
     }
 }
