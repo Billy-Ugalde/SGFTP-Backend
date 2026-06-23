@@ -24,7 +24,89 @@ export class AuditService implements IAuditService {
 
         const qb = this.buildQuery(query).skip(skip).take(limit);
         const [data, total] = await qb.getManyAndCount();
+        await this.attachContext(data);
         return { data, total, page, limit };
+    }
+
+    private readonly entityIdResolvers: Record<string, { label: string; sql: string }> = {
+        fair:              { label: 'Feria',          sql: 'SELECT name AS v FROM fair WHERE id_fair = ?' },
+        entrepreneurs:     { label: 'Emprendedor',    sql: "SELECT CONCAT(p.first_name, ' ', p.first_lastname) AS v FROM entrepreneurs e JOIN person p ON p.id_person = e.id_person WHERE e.id_entrepreneur = ?" },
+        entrepreneurships: { label: 'Emprendimiento', sql: 'SELECT name AS v FROM entrepreneurships WHERE id_entrepreneurship = ?' },
+        activity:          { label: 'Actividad',      sql: 'SELECT Name AS v FROM activity WHERE Id_activity = ?' },
+        project:           { label: 'Proyecto',       sql: 'SELECT Name AS v FROM project WHERE Id_project = ?' },
+        volunteers:        { label: 'Voluntario',     sql: "SELECT CONCAT(p.first_name, ' ', p.first_lastname) AS v FROM volunteers vo JOIN person p ON p.id_person = vo.id_person WHERE vo.id_volunteer = ?" },
+        news:              { label: 'Noticia',        sql: 'SELECT title AS v FROM news WHERE id_news = ?' },
+        users:             { label: 'Usuario',        sql: "SELECT CONCAT(p.first_name, ' ', p.first_lastname) AS v FROM users u JOIN person p ON p.id_person = u.person_id WHERE u.id_user = ?" },
+    };
+
+    private readonly idResolvers: Record<string, { label: string; sql: string }> = {
+        id_fair:         { label: 'Feria',       sql: 'SELECT name AS v FROM fair WHERE id_fair = ?' },
+        id_activity:     { label: 'Actividad',   sql: 'SELECT Name AS v FROM activity WHERE Id_activity = ?' },
+        id_project:      { label: 'Proyecto',    sql: 'SELECT Name AS v FROM project WHERE Id_project = ?' },
+        Id_project:      { label: 'Proyecto',    sql: 'SELECT Name AS v FROM project WHERE Id_project = ?' },
+        id_stand:        { label: 'Stand',       sql: 'SELECT stand_code AS v FROM stand WHERE id_stand = ?' },
+        role_id:         { label: 'Rol',         sql: 'SELECT name AS v FROM role WHERE id_role = ?' },
+        id_entrepreneur: { label: 'Emprendedor', sql: "SELECT CONCAT(p.first_name, ' ', p.first_lastname) AS v FROM entrepreneurs e JOIN person p ON p.id_person = e.id_person WHERE e.id_entrepreneur = ?" },
+        id_entreprenuer: { label: 'Emprendedor', sql: "SELECT CONCAT(p.first_name, ' ', p.first_lastname) AS v FROM entrepreneurs e JOIN person p ON p.id_person = e.id_person WHERE e.id_entrepreneur = ?" },
+        id_volunteer:    { label: 'Voluntario',  sql: "SELECT CONCAT(p.first_name, ' ', p.first_lastname) AS v FROM volunteers vo JOIN person p ON p.id_person = vo.id_person WHERE vo.id_volunteer = ?" },
+        id_user:         { label: 'Usuario',     sql: "SELECT CONCAT(p.first_name, ' ', p.first_lastname) AS v FROM users u JOIN person p ON p.id_person = u.person_id WHERE u.id_user = ?" },
+        user_id:         { label: 'Usuario',     sql: "SELECT CONCAT(p.first_name, ' ', p.first_lastname) AS v FROM users u JOIN person p ON p.id_person = u.person_id WHERE u.id_user = ?" },
+        idDonor:         { label: 'Donante',     sql: "SELECT COALESCE(NULLIF(nameCompany, ''), CONCAT(firstName, ' ', firstLastName)) AS v FROM donor WHERE idDonor = ?" },
+    };
+
+    private async resolveContext(records: AuditLog[]): Promise<Map<string, { label: string; value: string }[]>> {
+        const cache  = new Map<string, string | null>();
+        const result = new Map<string, { label: string; value: string }[]>();
+
+        const lookup = async (sql: string, id: number): Promise<string | null> => {
+            const key = `${sql}|${id}`;
+            if (cache.has(key)) return cache.get(key)!;
+            let val: string | null = null;
+            try {
+                const rows = await this.auditRepo.manager.query(sql, [id]);
+                if (rows?.length && rows[0].v != null) val = String(rows[0].v);
+            } catch { val = null; }
+            cache.set(key, val);
+            return val;
+        };
+
+        for (const rec of records) {
+            const items: { label: string; value: string }[] = [];
+            const seen  = new Set<string>();
+
+            const tryResolve = async (rawId: unknown, resolver: { label: string; sql: string }) => {
+                const id = Number(rawId);
+                if (!Number.isFinite(id) || id <= 0) return;
+                const dedupe = `${resolver.label}:${id}`;
+                if (seen.has(dedupe)) return;
+                seen.add(dedupe);
+                const v = await lookup(resolver.sql, id);
+                if (v) items.push({ label: resolver.label, value: v });
+            };
+
+            const er = this.entityIdResolvers[rec.entity];
+            if (er && rec.entity_id) await tryResolve(rec.entity_id, er);
+
+            for (const json of [rec.new_value, rec.old_value]) {
+                if (!json) continue;
+                for (const [k, val] of Object.entries(json)) {
+                    const r = this.idResolvers[k];
+                    if (r) await tryResolve(val, r);
+                }
+            }
+
+            if (items.length) result.set(String(rec.id), items);
+        }
+
+        return result;
+    }
+
+    private async attachContext(records: AuditLog[]): Promise<void> {
+        const ctx = await this.resolveContext(records);
+        for (const rec of records) {
+            (rec as AuditLog & { context?: { label: string; value: string }[] }).context =
+                ctx.get(String(rec.id)) ?? [];
+        }
     }
 
     async getStats(): Promise<{ total_events: number; role_changes: number; events_today: number }> {
@@ -49,6 +131,9 @@ export class AuditService implements IAuditService {
 
         if (!record) throw new NotFoundException(`Registro ${id} no encontrado`);
 
+        const ctx = await this.resolveContext([record]);
+        const context = ctx.get(String(record.id)) ?? [];
+
         return new Promise((resolve, reject) => {
             try {
                 const doc = new PDFDocument({
@@ -58,7 +143,7 @@ export class AuditService implements IAuditService {
                 const buffers: Buffer[] = [];
                 doc.on('data', buffers.push.bind(buffers));
                 doc.on('end', () => resolve(Buffer.concat(buffers)));
-                this.generateSingleRecordPDFContent(doc, record);
+                this.generateSingleRecordPDFContent(doc, record, context);
                 doc.end();
             } catch (error) { reject(error); }
         });
@@ -127,7 +212,7 @@ export class AuditService implements IAuditService {
         return qb;
     }
 
-    private generateSingleRecordPDFContent(doc: PDFDoc, record: AuditLog): void {
+    private generateSingleRecordPDFContent(doc: PDFDoc, record: AuditLog, context: { label: string; value: string }[] = []): void {
         // Encabezado
         doc.fontSize(18).font('Helvetica-Bold')
             .text('DETALLE DE REGISTRO DE AUDITORÍA', { align: 'center' })
@@ -163,6 +248,13 @@ export class AuditService implements IAuditService {
             hour: '2-digit', minute: '2-digit', second: '2-digit',
         }));
         doc.moveDown(1);
+
+        if (context.length > 0) {
+            doc.fontSize(12).font('Helvetica-Bold').fillColor('#2c3e50').text('INFORMACIÓN RELACIONADA').moveDown(0.5);
+            doc.fillColor('#000000');
+            context.forEach(c => this.addField(doc, `${c.label}:`, c.value));
+            doc.moveDown(1);
+        }
 
         // Valor anterior
         doc.fontSize(12).font('Helvetica-Bold').fillColor('#2c3e50').text('VALOR ANTERIOR').moveDown(0.5);
