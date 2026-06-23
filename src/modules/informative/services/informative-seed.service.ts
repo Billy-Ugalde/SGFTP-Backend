@@ -6,14 +6,12 @@ import { ContactInfoService } from './contact-info.service';
 export class InformativeSeedService {
   constructor(
     private readonly contentBlockService: ContentBlockService,
-    private readonly contactInfoService: ContactInfoService,
+    private readonly  contactInfoService: ContactInfoService,
   ) {}
 
   async seedInformativeContent(): Promise<void> {
-    console.log('🌱 Starting informative content seeding...');
     await this.seedContentBlocks();
     await this.seedContactInfo();
-    console.log('✅ Informative content seeding completed');
   }
 
   private async seedContentBlocks() {
@@ -117,7 +115,7 @@ export class InformativeSeedService {
         page: 'home',
         section: 'statistics',
         block_key: 'custom_stat_value',
-        text_content: '500+',
+        text_content: '50+',
       },
       {
         page: 'home',

@@ -49,8 +49,8 @@ export class ContactInfoService {
         }
         
         const defaultContact = this.contactInfoRepository.create({
-            email: 'contacto@ejemplo.com',
-            phone: '+1234567890',
+            email: 'info@tamarindoparkfoundation.com',
+            phone: '+506 6461 2741',
             address: 'Dirección predeterminada',
             facebook_url: 'https://www.facebook.com/TamarindoParkFoundation',
             instagram_url: 'https://www.instagram.com/tamarindoparkfoundation/',
